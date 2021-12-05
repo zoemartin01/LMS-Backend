@@ -1,0 +1,17 @@
+[{
+    "name": "dev",
+    "type": "postgresql",
+    "host": "127.0.0.1",
+    "port": 5432,
+    "username": "postgres",
+    "password": "postgres",
+    "database": "postgres"
+ }, {
+    "name": "docker",
+    "type": "postgresql",
+    "host": "db",
+    "port": 5432,
+    "username": "postgres",
+    "password": "postgres",
+    "database": "postgres"
+ }]
