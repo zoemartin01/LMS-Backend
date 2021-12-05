@@ -2,25 +2,43 @@ import bodyParser from 'body-parser';
 import cookieParser from 'cookie-parser';
 import express from 'express';
 
-const app = express();
+class App {
+  public app: express.Application;
+  public port: number;
 
-app.use((_, res, next) => {
-  res.header('Access-Control-Allow-Origin', '*');
-  res.header(
-    'Access-Control-Allow-Headers',
-    'Origin, X-Requested-With, Content-Type, Accept, Authorization'
-  );
-  next();
-});
+  constructor(controllers: any[], port: number) {
+    this.app = express();
+    this.port = port;
 
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: false }));
-app.use(cookieParser());
+    this.initializeMiddlewares();
+    this.initializeControllers(controllers);
+  }
 
-app.use('/api/v1/', require('./v1'));
+  private initializeMiddlewares() {
+    this.app.use((_, res, next) => {
+      
+      res.header('Access-Control-Allow-Origin', '*');
+      res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
 
-app.listen(3000, () => {
-  console.log('Listening on port 3000');
-});
+      next();
+    });
 
-module.exports = app;
+    this.app.use(bodyParser.json());
+    this.app.use(bodyParser.urlencoded({ extended: false }));
+    this.app.use(cookieParser());
+  }
+
+  private initializeControllers(controllers: any[]) {
+    controllers.forEach((controller) => {
+      this.app.use('/', controller.router);
+    });
+  }
+
+  public listen() {
+    this.app.listen(this.port, () => {
+      console.log(`App listening on the port ${this.port}`);
+    });
+  }
+}
+
+export default App;
