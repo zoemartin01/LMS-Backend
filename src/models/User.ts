@@ -55,3 +55,4 @@ export class User {
      */
     @Column()
     emailVerification: boolean;
+}
