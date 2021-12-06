@@ -7,10 +7,9 @@ import { Column, CreateDateColumn, PrimaryGeneratedColumn, UpdateDateColumn } fr
  * @class
  *
  * @property {string} id - The id of the time slot.
+ * @property {string} seriesId - The id of the series the time slot belongs to.
  * @property {Date} start - The start time of the time slot.
  * @property {Date} end - The end time of the time slot.
- * @property {Date} validFrom - The date the time slot is valid from.
- * @property {Date} validTo - The date the time slot is valid to.
  * @property {Date} createdAt - The date the time slot was created.
  * @property {Date} updatedAt - The date the time slot was last updated.
  */
@@ -18,8 +17,14 @@ export class TimeSlot {
   /**
    * The id of the time slot.
    */
-  @PrimaryGeneratedColumn()
+  @PrimaryGeneratedColumn('uuid')
   id: string;
+
+  /**
+   * The id of the series the time slot belongs to.
+   */
+  @Column('uuid')
+  seriesId: string;
 
   /**
    * The start time of the time slot.
