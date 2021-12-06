@@ -19,35 +19,30 @@ export class UserController {
   }
 
   private getAllUsers = async (req: Request, res: Response) => {
-    const users = await getRepository(User)
-    .find();
+    const users = await getRepository(User).find();
     res.send(users);
   };
 
   private getUserById = async (req: Request, res: Response) => {
     const id = req.params.id;
-    const user = await getRepository(User)
-    .findOne(id);
+    const user = await getRepository(User).findOne(id);
     res.send(user);
   };
 
   private createUser = async (req: Request, res: Response) => {
-    const user = await getRepository(User)
-    .save(req.body);
+    const user = await getRepository(User).save(req.body);
     res.send(user);
   };
 
   private updateUser = async (req: Request, res: Response) => {
     const id = req.params.id;
-    const user = await getRepository(User)
-    .update(id, req.body);
+    const user = await getRepository(User).update(id, req.body);
     res.send(user);
   };
 
   private deleteUser = async (req: Request, res: Response) => {
     const id = req.params.id;
-    const user = await getRepository(User)
-    .delete(id);
+    const user = await getRepository(User).delete(id);
     res.send(user);
   };
 }

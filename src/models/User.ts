@@ -1,10 +1,16 @@
-import { type } from "os";
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn } from "typeorm";
-import { UserRole } from "../types/enums/user-role";
+import { type } from 'os';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  UpdateDateColumn,
+} from 'typeorm';
+import { UserRole } from '../types/enums/user-role';
 
 /**
  * A User model.
- * 
+ *
  * @property {number} id The id of the user.
  * @property {string} email The email of the user.
  * @property {string} password The password of the user.
@@ -15,49 +21,49 @@ import { UserRole } from "../types/enums/user-role";
  */
 @Entity()
 export class User {
-    /**
-     * The id of the user.
-     */
-    @PrimaryGeneratedColumn()
-    id: number;
+  /**
+   * The id of the user.
+   */
+  @PrimaryGeneratedColumn()
+  id: number;
 
-    /**
-     * The email of the user.
-     */
-    @Column()
-    email: string;
+  /**
+   * The email of the user.
+   */
+  @Column()
+  email: string;
 
-    /**
-     * The password of the user.
-     */
-    @Column()
-    password: string;
-    
-    /**
-     * The created at date of the user.
-     */
-    @CreateDateColumn()
-    createdAt: Date;
+  /**
+   * The password of the user.
+   */
+  @Column()
+  password: string;
 
-    /**
-     * The updated at date of the user.
-     */
-    @UpdateDateColumn()
-    updatedAt: Date;
+  /**
+   * The created at date of the user.
+   */
+  @CreateDateColumn()
+  createdAt: Date;
 
-    /**
-     * The role of the user.
-     */
-    @Column({
-        type: "enum",
-        enum: UserRole,
-        default: UserRole.pending
-    })
-    role: UserRole;
+  /**
+   * The updated at date of the user.
+   */
+  @UpdateDateColumn()
+  updatedAt: Date;
 
-    /**
-     * The email verification status of the user.
-     */
-    @Column({default: false})
-    emailVerification: boolean;
+  /**
+   * The role of the user.
+   */
+  @Column({
+    type: 'enum',
+    enum: UserRole,
+    default: UserRole.pending,
+  })
+  role: UserRole;
+
+  /**
+   * The email verification status of the user.
+   */
+  @Column({ default: false })
+  emailVerification: boolean;
 }
