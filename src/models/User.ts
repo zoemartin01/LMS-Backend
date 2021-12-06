@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column } from "typeorm";
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn } from "typeorm";
 import { UserRole } from "../types/enums/user-role";
 
 /**
@@ -35,13 +35,13 @@ export class User {
     /**
      * The created at date of the user.
      */
-    @Column()
+    @CreateDateColumn()
     createdAt: Date;
 
     /**
      * The updated at date of the user.
      */
-    @Column()
+    @UpdateDateColumn()
     updatedAt: Date;
 
     /**
@@ -53,6 +53,6 @@ export class User {
     /**
      * The email verification status of the user.
      */
-    @Column()
+    @Column({default: false})
     emailVerification: boolean;
 }
