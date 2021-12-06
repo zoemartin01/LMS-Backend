@@ -1,3 +1,4 @@
+import { type } from "os";
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn } from "typeorm";
 import { UserRole } from "../types/enums/user-role";
 
@@ -47,7 +48,11 @@ export class User {
     /**
      * The role of the user.
      */
-    @Column()
+    @Column({
+        type: "enum",
+        enum: UserRole,
+        default: UserRole.pending
+    })
     role: UserRole;
 
     /**
