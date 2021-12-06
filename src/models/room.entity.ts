@@ -1,5 +1,5 @@
-import { Column, Column, Entity, PrimaryGeneratedColumn } from "typeorm";
-import { TimeSlot } from "../types/timeslot";
+import { Column, Entity, PrimaryGeneratedColumn } from "typeorm";
+import { TimeSlot } from "../types/timeSlot";
 
 /**
  * A room model.
