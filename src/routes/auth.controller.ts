@@ -23,7 +23,7 @@ export class AuthController {
     this.router.get(`${this.path}/check`, this.check);
   }
 
-  private login = async (req: Request, res: Response) => {
+  private async login(req: Request, res: Response) {
     const { email, password } = req.body;
 
     const user: User | undefined = await getRepository(User).findOne({
@@ -58,7 +58,7 @@ export class AuthController {
     }
   };
 
-  private refresh = async (req: Request, res: Response) => {
+  private async refresh(req: Request, res: Response) {
     const { token } = req.body;
 
     if (!token) {
@@ -84,7 +84,7 @@ export class AuthController {
     });
   };
 
-  private logout = async (req: Request, res: Response) => {
+  private async logout(req: Request, res: Response) {
     const { token } = req.body;
     refreshTokens = refreshTokens.filter((t: any) => t !== token);
 
