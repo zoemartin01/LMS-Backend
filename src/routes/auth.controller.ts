@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { getRepository } from 'typeorm';
-import { User } from '../models/User';
+import { User } from '../models/user.entity';
 import jsonwebtoken from 'jsonwebtoken';
 
 const accessTokenSecret = 'V50jPXQVocPUSPHl0yzPJhXZzh32bp';

@@ -2,8 +2,8 @@ import App from './app';
 import {createConnection} from "typeorm";
 
 // Controllers
-import { UserController } from './routes/UserController';
-import { AuthController } from './routes/AuthController';
+import { UserController } from './routes/user.controller';
+import { AuthController } from './routes/auth.controller';
 
 const connection = async () => {
     await createConnection();

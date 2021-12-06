@@ -1,5 +1,5 @@
 import { getRepository } from 'typeorm';
-import { User } from '../models/User';
+import { User } from '../models/user.entity';
 import { Request, Response, Router } from 'express';
 
 export class UserController {
