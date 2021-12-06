@@ -18,8 +18,6 @@ import { TimeSlot } from "./timeSlot.entity";
 export class Room {
     /**
      * The room id.
-     *
-     * @type {number}
      */
     @PrimaryGeneratedColumn()
     id: number;
