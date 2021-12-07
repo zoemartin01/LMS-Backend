@@ -28,36 +28,42 @@ import { TimeSlot } from './timeSlot.entity';
 export class User {
   /**
    * The id of the user.
+   * @type {string}
    */
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
   /**
    * The email of the user.
+   * @type {string}
    */
   @Column()
   email: string;
 
   /**
    * The password of the user.
+   * @type {string}
    */
   @Column()
   password: string;
 
   /**
    * The created at date of the user.
+   * @type {Date}
    */
   @CreateDateColumn()
   createdAt: Date;
 
   /**
    * The updated at date of the user.
+   * @type {Date}
    */
   @UpdateDateColumn()
   updatedAt: Date;
 
   /**
    * The role of the user.
+   * @type {UserRole}
    */
   @Column({
     type: 'enum',
@@ -68,6 +74,7 @@ export class User {
 
   /**
    * The email verification status of the user.
+   * @type {boolean}
    */
   @Column({ default: false })
   emailVerification: boolean;

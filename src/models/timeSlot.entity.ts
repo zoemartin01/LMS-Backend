@@ -92,13 +92,6 @@ export class TimeSlot {
   @ManyToOne(() => User, user => user.bookings, { nullable: true })
   user?: User;
 
-
-  // /**
-  //  * The roomId of the room the time slot belongs to.
-  //  */
-  // @Column('uuid')
-  // roomId: string;
-
   /**
    * The type of the time slot.
    * @type {TimeSlotType}
