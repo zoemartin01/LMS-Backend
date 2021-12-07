@@ -32,6 +32,7 @@ import { UnavaliableTimeslot } from './unavaliable.timeslot.entity';
 export class Room extends BaseEntity {
   /**
    * The name of the room.
+   * 
    * @type {string}
    */
   @Column()
@@ -39,6 +40,7 @@ export class Room extends BaseEntity {
 
   /**
    * The description of the room.
+   * 
    * @type {string}
    */
   @Column()
@@ -46,6 +48,7 @@ export class Room extends BaseEntity {
 
   /**
    * The maximum number of concurrent bookings allowed in the room.
+   * 
    * @type {number}
    */
   @Column({ default: 1 })
@@ -77,6 +80,7 @@ export class Room extends BaseEntity {
 
   /**
    * Whether or not bookings in the room should be automatically accepted.
+   * 
    * @type {boolean}
    */
   @Column({ default: false })

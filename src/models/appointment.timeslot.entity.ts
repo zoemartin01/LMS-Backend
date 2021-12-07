@@ -15,6 +15,7 @@ import { User } from "./user.entity";
 export class AppointmentTimeslot extends TimeSlot {
   /**
    * The room the time slot belongs to.
+   * 
    * @type {Room}
    * 
    */
@@ -23,6 +24,7 @@ export class AppointmentTimeslot extends TimeSlot {
 
    /**
    * If TimeSlotType is booked, the user assosiated with the time slot.
+   * 
    * @type {User}
    */
   @ManyToOne(() => User, (user) => user.bookings)

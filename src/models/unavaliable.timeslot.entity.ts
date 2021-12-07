@@ -14,8 +14,8 @@ import { TimeSlot } from "./timeslot";
 export class UnavaliableTimeslot extends TimeSlot {
   /**
    * The room the time slot belongs to.
-   * @type {Room}
    * 
+   * @type {Room}
    */
    @ManyToOne(() => Room, (room) => room.unavailableTimeSlots)
    room: Room;

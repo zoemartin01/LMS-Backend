@@ -21,6 +21,7 @@ import { User } from './user.entity';
 export class Order extends BaseEntity {
   /**
    * The item.
+   * 
    * @type {Item}
    */
   @ManyToOne(() => Item, (item) => item.orders)
@@ -28,6 +29,7 @@ export class Order extends BaseEntity {
 
   /**
    * The user.
+   * 
    * @type {User}
    */
   @ManyToOne(() => User, (user) => user.orders)
@@ -35,6 +37,7 @@ export class Order extends BaseEntity {
 
   /**
    * The order status.
+   * 
    * @type {OrderStatus}
    * @default OrderStatus.PENDING
    */
@@ -43,6 +46,7 @@ export class Order extends BaseEntity {
 
   /**
    * The order quanity.
+   * 
    * @type {number}
    */
   @Column()
@@ -50,6 +54,7 @@ export class Order extends BaseEntity {
 
   /**
    * The purchase url.
+   * 
    * @type {string}
    */
   @Column()

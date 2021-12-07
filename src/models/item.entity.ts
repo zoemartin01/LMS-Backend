@@ -18,6 +18,7 @@ import { Order } from './order.entity';
 export class Item extends BaseEntity {
   /**
    * The item's name
+   * 
    * @type {string}
    */
   @Column()
@@ -25,6 +26,7 @@ export class Item extends BaseEntity {
 
   /**
    * The item's description
+   * 
    * @type {string}
    */
   @Column()
@@ -32,6 +34,7 @@ export class Item extends BaseEntity {
 
   /**
    * The item's quanity in inventory
+   * 
    * @type {number}
    * @default 0
    */
@@ -40,6 +43,7 @@ export class Item extends BaseEntity {
 
   /**
    * The orders for this item
+   * 
    * @type {Order[]}
    */
   @OneToMany((type) => Order, (order) => order.item)

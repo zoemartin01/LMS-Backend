@@ -14,6 +14,7 @@ import { TimeSlot } from "./timeslot";
 export class AvaliableTimeslot extends TimeSlot {
   /**
    * The room the time slot belongs to.
+   * 
    * @type {Room}
    * 
    */
