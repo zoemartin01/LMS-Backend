@@ -1,4 +1,5 @@
 import { Column, CreateDateColumn, Entity, ManyToOne, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
+import { ConfirmationStatus } from "../types/enums/confirmation-status";
 import { TimeSlotType } from "../types/enums/timeslot-type";
 import { Room } from "./room.entity";
 import { User } from "./user.entity";
@@ -18,6 +19,7 @@ import { User } from "./user.entity";
  * @property {Date} createdAt - The date the time slot was created.
  * @property {Date} updatedAt - The date the time slot was last updated.
  * @property {TimeSlotType} type - The type of the time slot.
+ * @property {ConfirmationStatus} confirmationStatus - The confirmation status of the time slot.
  */
 @Entity()
 export class TimeSlot {
@@ -101,4 +103,14 @@ export class TimeSlot {
     enum: TimeSlotType,
   })
   type: TimeSlotType;
+
+  /**
+   * The confirmation status of the time slot.
+   * @type {ConfirmationStatus}
+   */
+  @Column({
+    type: 'enum',
+    enum: ConfirmationStatus,
+  })
+  confirmationStatus: ConfirmationStatus;  
 }
