@@ -1,4 +1,4 @@
-import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, Entity, ManyToOne, PrimaryGeneratedColumn, TableInheritance } from 'typeorm';
 import { ConfirmationStatus } from '../types/enums/confirmation-status';
 import { TimeSlotType } from '../types/enums/timeslot-type';
 import { BaseEntity } from './base.entity';
@@ -25,6 +25,7 @@ export class TimeSlot extends BaseEntity {
 
   /**
    * The id of the series the time slot belongs to.
+   * 
    * @type {string}
    */
   @Column('uuid')
@@ -32,6 +33,7 @@ export class TimeSlot extends BaseEntity {
 
   /**
    * The start time of the time slot.
+   * 
    * @type {Date}
    */
   @Column()
@@ -40,6 +42,7 @@ export class TimeSlot extends BaseEntity {
   /**
    * The end time of the time slot.
    * @type {Date}
+   * 
    */
   @Column()
   end: Date;
@@ -47,6 +50,7 @@ export class TimeSlot extends BaseEntity {
   /**
    * The room the time slot belongs to.
    * @type {Room}
+   * 
    */
   @ManyToOne(() => Room, (room) => room.timeSlots)
   room: Room;
@@ -54,6 +58,7 @@ export class TimeSlot extends BaseEntity {
   /**
    * If TimeSlotType is booked, the user assosiated with the time slot.
    * @type {User}
+   * 
    * @nullable
    */
   @ManyToOne(() => User, (user) => user.bookings, { nullable: true })
@@ -61,6 +66,7 @@ export class TimeSlot extends BaseEntity {
 
   /**
    * The type of the time slot.
+   * 
    * @type {TimeSlotType}
    */
   @Column({
@@ -71,6 +77,7 @@ export class TimeSlot extends BaseEntity {
 
   /**
    * The confirmation status of the time slot.
+   * 
    * @type {ConfirmationStatus}
    */
   @Column({
