@@ -8,6 +8,7 @@ import { Column, Entity } from "typeorm";
  * 
  * @property {string} key - The key of the setting
  * @property {string} value - The value of the setting
+ * @property {string} description - The description of the setting
  */
 @Entity()
 export class GlobalSetting {
@@ -26,4 +27,13 @@ export class GlobalSetting {
      */
     @Column()
     public value: string;
+
+    /**
+     * The description of the setting
+     * 
+     * @type {string}
+     * @default ""
+     */
+    @Column({ default: "" })
+    public description: string;
 }
