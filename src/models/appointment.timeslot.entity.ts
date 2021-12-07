@@ -9,7 +9,7 @@ import { User } from './user.entity';
  *
  * @typedef {Object} AppointmentTimeslot
  * @class
- * @extends Timeslot
+ * @extends TimeSlot
  *
  * @property {Room} room - The room the time slot belongs to.
  * @property {User} user - The user who booked the appointment.
