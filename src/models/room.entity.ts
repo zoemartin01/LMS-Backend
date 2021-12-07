@@ -7,8 +7,11 @@ import {
   PrimaryGeneratedColumn,
 } from 'typeorm';
 import { TimeSlotType } from '../types/enums/timeslot-type';
+import { AppointmentTimeslot } from './appointment.timeslot.entity';
+import { AvaliableTimeslot } from './avaliable.timeslot.entity';
 import { BaseEntity } from './base.entity';
-import { TimeSlot } from './timeSlot.entity';
+import { TimeSlot } from './timeslot';
+import { UnavaliableTimeslot } from './unavaliable.timeslot.entity';
 
 /**
  * A room model.
@@ -20,10 +23,9 @@ import { TimeSlot } from './timeSlot.entity';
  * @property {string} name - The name of the room.
  * @property {string} description - The description of the room.
  * @property {number} maxConcurrentBookings - The maximum number of concurrent bookings allowed in the room.
- * @property {TimeSlot[]} timeSlots - All time slots assiciated with the room, regardless of their type.
- * @property {TimeSlot[]} availableTimeSlots - The available time slots in the room.
- * @property {TimeSlot[]} unavailableTimeSlots - The unavailable time slots in the room.
- * @property {TimeSlot[]} bookedTimeSlots - The booked time slots in the room.
+ * @property {AvaliableTimeslot[]} availableTimeSlots - The available time slots in the room.
+ * @property {UnavaliableTimeslot[]} unavailableTimeSlots - The unavailable time slots in the room.
+ * @property {AppointmentTimeslot[]} appointments - The booked appointments in the room.
  * @property {boolean} autoAcceptBookings - Whether or not bookings in the room should be automatically accepted.
  */
 @Entity()
@@ -50,44 +52,28 @@ export class Room extends BaseEntity {
   maxConcurrentBookings: number;
 
   /**
-   * All time slots assiciated with the room, regardless of their type.
-   * @type {TimeSlot[]}
-   */
-  @OneToMany(() => TimeSlot, (timeSlot) => timeSlot.room)
-  timeSlots: TimeSlot[];
-
-  /**
    * The available time slots in the room.
-   * @type {TimeSlot[]}
+   * 
+   * @type {AvaliableTimeslot[]}
    */
-  availableTimeSlots: TimeSlot[] = (() => {
-    if (this.timeSlots == null) return [];
-    return this.timeSlots.filter(
-      (timeSlot) => timeSlot.type === TimeSlotType.available
-    );
-  })();
+  @OneToMany(() => AvaliableTimeslot, (avaliableTimeslot) => avaliableTimeslot.room)
+  availableTimeSlots: AvaliableTimeslot[];
 
   /**
    * The unavailable time slots in the room.
-   * @type {TimeSlot[]}
+   * 
+   * @type {UnavaliableTimeslot[]}
    */
-  unavailableTimeSlots: TimeSlot[] = (() => {
-    if (this.timeSlots == null) return [];
-    return this.timeSlots.filter(
-      (timeSlot) => timeSlot.type === TimeSlotType.unavailable
-    );
-  })();
+  @OneToMany(() => UnavaliableTimeslot, (unavaliableTimeslot) => unavaliableTimeslot.room)
+  unavailableTimeSlots: UnavaliableTimeslot[];
 
   /**
-   * The booked time slots in the room.
-   * @type {TimeSlot[]}
+   * The booked appointments in the room.
+   *
+   * @type {AppointmentTimeslot[]}
    */
-  bookedTimeSlots: TimeSlot[] = (() => {
-    if (this.timeSlots == null) return [];
-    return this.timeSlots.filter(
-      (timeSlot) => timeSlot.type === TimeSlotType.booked
-    );
-  })();
+  @OneToMany(() => AppointmentTimeslot, (timeslot) => timeslot.room)
+  appointments: AppointmentTimeslot[];
 
   /**
    * Whether or not bookings in the room should be automatically accepted.

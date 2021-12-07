@@ -1,10 +1,10 @@
 import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from 'typeorm';
 import { UserRole } from '../types/enums/user-role';
+import { AppointmentTimeslot } from './appointment.timeslot.entity';
 import { BaseEntity } from './base.entity';
 import { Message } from './message.entity';
 import { Order } from './order.entity';
 import { Recording } from './recording.entity';
-import { TimeSlot } from './timeSlot.entity';
 
 /**
  * A User model.
@@ -59,8 +59,8 @@ export class User extends BaseEntity {
    * The bookings of the user.
    * @type {TimeSlot[]}
    */
-  @OneToMany(() => TimeSlot, (timeSlot) => timeSlot.user)
-  bookings: TimeSlot[];
+  @OneToMany(() => AppointmentTimeslot, (timeSlot) => timeSlot.user)
+  bookings: AppointmentTimeslot[];
 
   /**
    * The orders of the user.

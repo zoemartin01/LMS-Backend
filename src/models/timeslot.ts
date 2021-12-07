@@ -21,6 +21,7 @@ import { User } from './user.entity';
  * @property {ConfirmationStatus} confirmationStatus - The confirmation status of the time slot.
  */
 @Entity()
+@TableInheritance({ column: { name: 'type' } })
 export class TimeSlot extends BaseEntity {
 
   /**
@@ -48,32 +49,16 @@ export class TimeSlot extends BaseEntity {
   end: Date;
 
   /**
-   * The room the time slot belongs to.
-   * @type {Room}
-   * 
-   */
-  @ManyToOne(() => Room, (room) => room.timeSlots)
-  room: Room;
-
-  /**
-   * If TimeSlotType is booked, the user assosiated with the time slot.
-   * @type {User}
-   * 
-   * @nullable
-   */
-  @ManyToOne(() => User, (user) => user.bookings, { nullable: true })
-  user?: User;
-
-  /**
    * The type of the time slot.
    * 
    * @type {TimeSlotType}
+   * @readonly
    */
   @Column({
     type: 'enum',
     enum: TimeSlotType,
   })
-  type: TimeSlotType;
+  readonly type: TimeSlotType;
 
   /**
    * The confirmation status of the time slot.
