@@ -1,9 +1,4 @@
-import {
-  Entity,
-  PrimaryGeneratedColumn,
-  Column,
-  OneToMany,
-} from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from 'typeorm';
 import { UserRole } from '../types/enums/user-role';
 import { BaseEntity } from './base.entity';
 import { Message } from './message.entity';
@@ -83,7 +78,7 @@ export class User extends BaseEntity {
 
   /**
    * The messages the user received.
-   * 
+   *
    * @type {Message[]}
    */
   @OneToMany(() => Message, (message) => message.recipient)
@@ -91,7 +86,7 @@ export class User extends BaseEntity {
 
   /**
    * The recordings of the user.
-   * 
+   *
    * @type {Recording[]}
    */
   @OneToMany(() => Recording, (recording) => recording.user)

@@ -1,9 +1,9 @@
-import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from "typeorm";
-import { ConfirmationStatus } from "../types/enums/confirmation-status";
-import { TimeSlotType } from "../types/enums/timeslot-type";
-import { BaseEntity } from "./base.entity";
-import { Room } from "./room.entity";
-import { User } from "./user.entity";
+import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
+import { ConfirmationStatus } from '../types/enums/confirmation-status';
+import { TimeSlotType } from '../types/enums/timeslot-type';
+import { BaseEntity } from './base.entity';
+import { Room } from './room.entity';
+import { User } from './user.entity';
 
 /**
  * A model for a time slot.
@@ -54,7 +54,7 @@ export class TimeSlot extends BaseEntity {
    * The room the time slot belongs to.
    * @type {Room}
    */
-  @ManyToOne(() => Room, room => room.timeSlots)
+  @ManyToOne(() => Room, (room) => room.timeSlots)
   room: Room;
 
   /**
@@ -62,7 +62,7 @@ export class TimeSlot extends BaseEntity {
    * @type {User}
    * @nullable
    */
-  @ManyToOne(() => User, user => user.bookings, { nullable: true })
+  @ManyToOne(() => User, (user) => user.bookings, { nullable: true })
   user?: User;
 
   /**
@@ -83,5 +83,5 @@ export class TimeSlot extends BaseEntity {
     type: 'enum',
     enum: ConfirmationStatus,
   })
-  confirmationStatus: ConfirmationStatus;  
+  confirmationStatus: ConfirmationStatus;
 }

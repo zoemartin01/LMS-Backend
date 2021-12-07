@@ -1,7 +1,14 @@
-import { Column, Entity, ManyToMany, ManyToOne, OneToMany, PrimaryGeneratedColumn } from "typeorm";
-import { TimeSlotType } from "../types/enums/timeslot-type";
-import { BaseEntity } from "./base.entity";
-import { TimeSlot } from "./timeSlot.entity";
+import {
+  Column,
+  Entity,
+  ManyToMany,
+  ManyToOne,
+  OneToMany,
+  PrimaryGeneratedColumn,
+} from 'typeorm';
+import { TimeSlotType } from '../types/enums/timeslot-type';
+import { BaseEntity } from './base.entity';
+import { TimeSlot } from './timeSlot.entity';
 
 /**
  * A room model.
@@ -21,72 +28,78 @@ import { TimeSlot } from "./timeSlot.entity";
  */
 @Entity()
 export class Room extends BaseEntity {
-    /**
-     * The room id.
-     * @type {string}
-     */
-    @PrimaryGeneratedColumn('uuid')
-    id: string;
+  /**
+   * The room id.
+   * @type {string}
+   */
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
 
-    /**
-     * The name of the room.
-     * @type {string}
-     */
-    @Column()
-    name: string;
+  /**
+   * The name of the room.
+   * @type {string}
+   */
+  @Column()
+  name: string;
 
-    /**
-     * The description of the room.
-     * @type {string}
-     */
-    @Column()
-    description: string;
+  /**
+   * The description of the room.
+   * @type {string}
+   */
+  @Column()
+  description: string;
 
-    /**
-     * The maximum number of concurrent bookings allowed in the room.
-     * @type {number}
-     */
-    @Column({ default: 1 })
-    maxConcurrentBookings: number;
+  /**
+   * The maximum number of concurrent bookings allowed in the room.
+   * @type {number}
+   */
+  @Column({ default: 1 })
+  maxConcurrentBookings: number;
 
-    /**
-     * All time slots assiciated with the room, regardless of their type.
-     * @type {TimeSlot[]}
-     */
-    @OneToMany(() => TimeSlot, timeSlot => timeSlot.room)
-    timeSlots: TimeSlot[];
+  /**
+   * All time slots assiciated with the room, regardless of their type.
+   * @type {TimeSlot[]}
+   */
+  @OneToMany(() => TimeSlot, (timeSlot) => timeSlot.room)
+  timeSlots: TimeSlot[];
 
-    /**
-     * The available time slots in the room.
-     * @type {TimeSlot[]}
-     */
-    availableTimeSlots: TimeSlot[] = (() => {
-        if (this.timeSlots == null) return [];
-        return this.timeSlots.filter(timeSlot => timeSlot.type === TimeSlotType.available);
-    })();
+  /**
+   * The available time slots in the room.
+   * @type {TimeSlot[]}
+   */
+  availableTimeSlots: TimeSlot[] = (() => {
+    if (this.timeSlots == null) return [];
+    return this.timeSlots.filter(
+      (timeSlot) => timeSlot.type === TimeSlotType.available
+    );
+  })();
 
-    /**
-     * The unavailable time slots in the room.
-     * @type {TimeSlot[]}
-     */
-    unavailableTimeSlots: TimeSlot[] = (() => {
-        if (this.timeSlots == null) return [];
-        return this.timeSlots.filter(timeSlot => timeSlot.type === TimeSlotType.unavailable);
-    })();
+  /**
+   * The unavailable time slots in the room.
+   * @type {TimeSlot[]}
+   */
+  unavailableTimeSlots: TimeSlot[] = (() => {
+    if (this.timeSlots == null) return [];
+    return this.timeSlots.filter(
+      (timeSlot) => timeSlot.type === TimeSlotType.unavailable
+    );
+  })();
 
-    /**
-     * The booked time slots in the room.
-     * @type {TimeSlot[]}
-     */
-    bookedTimeSlots: TimeSlot[] = (() => {
-        if (this.timeSlots == null) return [];
-        return this.timeSlots.filter(timeSlot => timeSlot.type === TimeSlotType.booked);
-    })();
+  /**
+   * The booked time slots in the room.
+   * @type {TimeSlot[]}
+   */
+  bookedTimeSlots: TimeSlot[] = (() => {
+    if (this.timeSlots == null) return [];
+    return this.timeSlots.filter(
+      (timeSlot) => timeSlot.type === TimeSlotType.booked
+    );
+  })();
 
-    /**
-     * Whether or not bookings in the room should be automatically accepted.
-     * @type {boolean}
-     */
-    @Column({ default: false })
-    autoAcceptBookings: boolean;
+  /**
+   * Whether or not bookings in the room should be automatically accepted.
+   * @type {boolean}
+   */
+  @Column({ default: false })
+  autoAcceptBookings: boolean;
 }

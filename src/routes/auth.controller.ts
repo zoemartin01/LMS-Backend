@@ -56,7 +56,7 @@ export class AuthController {
 
       res.json({ accessToken, refreshToken, role: user.role });
     }
-  };
+  }
 
   private async refresh(req: Request, res: Response) {
     const { token } = req.body;
@@ -82,14 +82,14 @@ export class AuthController {
 
       res.json({ accessToken });
     });
-  };
+  }
 
   private async logout(req: Request, res: Response) {
     const { token } = req.body;
     refreshTokens = refreshTokens.filter((t: any) => t !== token);
 
     res.send('Logout successful');
-  };
+  }
 
   private check = async (req: Request, res: Response) => {
     const authHeader = req.headers['authorization'];
