@@ -1,5 +1,6 @@
 import { Column, Entity, ManyToMany, ManyToOne, OneToMany, PrimaryGeneratedColumn } from "typeorm";
 import { TimeSlotType } from "../types/enums/timeslot-type";
+import { BaseEntity } from "./base.entity";
 import { TimeSlot } from "./timeSlot.entity";
 
 /**
@@ -19,7 +20,7 @@ import { TimeSlot } from "./timeSlot.entity";
  * @property {boolean} autoAcceptBookings - Whether or not bookings in the room should be automatically accepted.
  */
 @Entity()
-export class Room {
+export class Room extends BaseEntity {
     /**
      * The room id.
      * @type {string}

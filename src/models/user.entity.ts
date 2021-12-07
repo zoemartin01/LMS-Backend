@@ -1,13 +1,11 @@
-import { type } from 'os';
 import {
   Entity,
   PrimaryGeneratedColumn,
   Column,
-  CreateDateColumn,
-  UpdateDateColumn,
   OneToMany,
 } from 'typeorm';
 import { UserRole } from '../types/enums/user-role';
+import { BaseEntity } from './base.entity';
 import { Message } from './message.entity';
 import { Order } from './order.entity';
 import { Recording } from './recording.entity';
@@ -21,8 +19,6 @@ import { TimeSlot } from './timeSlot.entity';
  * @property {string} id - The id of the user.
  * @property {string} email - The email of the user.
  * @property {string} password - The password of the user.
- * @property {Date} createdAt - The created at date of the user.
- * @property {Date} updatedAt - The updated at date of the user.
  * @property {UserRole} role - The role of the user.
  * @property {boolean} emailVerification - The email verification status of the user.
  * @property {TimeSlot[]} bookings - The bookings of the user.
@@ -31,7 +27,7 @@ import { TimeSlot } from './timeSlot.entity';
  * @property {Recording[]} recordings - The recordings of the user.
  */
 @Entity()
-export class User {
+export class User extends BaseEntity {
   /**
    * The id of the user.
    * @type {string}
@@ -52,20 +48,6 @@ export class User {
    */
   @Column()
   password: string;
-
-  /**
-   * The created at date of the user.
-   * @type {Date}
-   */
-  @CreateDateColumn()
-  createdAt: Date;
-
-  /**
-   * The updated at date of the user.
-   * @type {Date}
-   */
-  @UpdateDateColumn()
-  updatedAt: Date;
 
   /**
    * The role of the user.

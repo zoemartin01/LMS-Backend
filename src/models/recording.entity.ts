@@ -1,5 +1,6 @@
 import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from "typeorm";
 import { VideoResolution } from "../types/enums/video-resolution";
+import { BaseEntity } from "./base.entity";
 import { User } from "./user.entity";
 
 /**
@@ -16,7 +17,7 @@ import { User } from "./user.entity";
  * @property {number} bitrate - The bitrate of the recording in kbps.
  */
 @Entity()
-export class Recording {
+export class Recording extends BaseEntity {
     /**
      * The recording id.
      * 

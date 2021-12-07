@@ -1,5 +1,6 @@
 import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from "typeorm";
 import { OrderStatus } from "../types/enums/order-status";
+import { BaseEntity } from "./base.entity";
 import { Item } from "./item.entity";
 import { User } from "./user.entity";
 
@@ -17,7 +18,7 @@ import { User } from "./user.entity";
  * @property {string} url - The purchase url. 
  */
 @Entity()
-export class Order {
+export class Order extends BaseEntity {
     /**
      * The order id.
      * 

@@ -1,4 +1,5 @@
 import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from "typeorm";
+import { BaseEntity } from "./base.entity";
 import { Order } from "./order.entity";
 
 /**
@@ -14,7 +15,7 @@ import { Order } from "./order.entity";
  * @property {Order[]} orders - The orders for this item
  */
 @Entity()
-export class Item {
+export class Item extends BaseEntity {
     /**
      * The item's id
      * @type {string}

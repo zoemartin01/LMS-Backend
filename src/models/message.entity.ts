@@ -1,4 +1,5 @@
 import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from "typeorm";
+import { BaseEntity } from "./base.entity";
 import { User } from "./user.entity";
 
 /**
@@ -15,7 +16,7 @@ import { User } from "./user.entity";
  * @property {boolean} readStatus - The message is read.
  */
 @Entity()
-export class Message {
+export class Message extends BaseEntity {
     /**
      * The message id.
      * 

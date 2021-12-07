@@ -1,6 +1,7 @@
-import { Column, CreateDateColumn, Entity, ManyToOne, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
+import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from "typeorm";
 import { ConfirmationStatus } from "../types/enums/confirmation-status";
 import { TimeSlotType } from "../types/enums/timeslot-type";
+import { BaseEntity } from "./base.entity";
 import { Room } from "./room.entity";
 import { User } from "./user.entity";
 
@@ -12,17 +13,15 @@ import { User } from "./user.entity";
  *
  * @property {string} id - The id of the time slot.
  * @property {string} seriesId - The id of the series the time slot belongs to.
- * @property {Room} room - The room the time slot belongs to.
- * @property {User} user - The user assosiated with the time slot.
  * @property {Date} start - The start time of the time slot.
  * @property {Date} end - The end time of the time slot.
- * @property {Date} createdAt - The date the time slot was created.
- * @property {Date} updatedAt - The date the time slot was last updated.
+ * @property {Room} room - The room the time slot belongs to.
+ * @property {User} user - The user assosiated with the time slot.
  * @property {TimeSlotType} type - The type of the time slot.
  * @property {ConfirmationStatus} confirmationStatus - The confirmation status of the time slot.
  */
 @Entity()
-export class TimeSlot {
+export class TimeSlot extends BaseEntity {
   /**
    * The id of the time slot.
    * @type {string}
@@ -50,34 +49,6 @@ export class TimeSlot {
    */
   @Column()
   end: Date;
-
-  /**
-   * The date the time slot is valid from.
-   * @type {Date}
-   */
-  @Column()
-  validFrom: Date;
-
-  /**
-   * The date the time slot is valid to.
-   * @type {Date}
-   */
-  @Column()
-  validTo: Date;
-
-  /**
-   * The date the time slot was created.
-   * @type {Date}
-   */
-  @CreateDateColumn()
-  createdAt: Date;
-
-  /**
-   * The date the time slot was last updated.
-   * @type {Date}
-   */
-  @UpdateDateColumn()
-  updatedAt: Date;
 
   /**
    * The room the time slot belongs to.
