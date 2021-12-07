@@ -1,4 +1,4 @@
-import { Column, Entity } from "typeorm";
+import { Column, Entity, PrimaryColumn } from "typeorm";
 
 /**
  * Global Setting
@@ -17,7 +17,7 @@ export class GlobalSetting {
      * 
      * @type {string}
      */
-    @Column({ type: "varchar", length: 255, unique: true })
+    @PrimaryColumn({ type: "varchar", length: 255, unique: true })
     public key: string;
 
     /**
