@@ -9,21 +9,7 @@ const refreshTokenSecret = '3pqOHs7R1TrCgsRKksPp4J3Kfs0l0X';
 var refreshTokens: any = [];
 
 export class AuthController {
-  public path = '/token';
-  public router = Router();
-
-  constructor() {
-    this.initializeRoutes();
-  }
-
-  private initializeRoutes() {
-    this.router.post(this.path, this.login);
-    this.router.post(`${this.path}/refresh`, this.refresh);
-    this.router.delete(`${this.path}/:id`, this.logout);
-    this.router.get(`${this.path}/check`, this.check);
-  }
-
-  private async login(req: Request, res: Response) {
+  public static async login(req: Request, res: Response) {
     const { email, password } = req.body;
 
     const user: User | undefined = await getRepository(User).findOne({
@@ -58,7 +44,7 @@ export class AuthController {
     }
   }
 
-  private async refresh(req: Request, res: Response) {
+  public static async refresh(req: Request, res: Response) {
     const { token } = req.body;
 
     if (!token) {
@@ -84,14 +70,14 @@ export class AuthController {
     });
   }
 
-  private async logout(req: Request, res: Response) {
+  public static async logout(req: Request, res: Response) {
     const { token } = req.body;
     refreshTokens = refreshTokens.filter((t: any) => t !== token);
 
     res.send('Logout successful');
   }
 
-  private check = async (req: Request, res: Response) => {
+  public static check = async (req: Request, res: Response) => {
     const authHeader = req.headers['authorization'];
 
     if (authHeader) {
