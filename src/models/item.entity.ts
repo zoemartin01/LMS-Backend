@@ -1,4 +1,4 @@
-import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, Entity, OneToMany } from 'typeorm';
 import { BaseEntity } from './base.entity';
 import { Order } from './order.entity';
 
@@ -7,6 +7,7 @@ import { Order } from './order.entity';
  *
  * @typedef {Object} Item
  * @class
+ * @extends BaseEntity
  *
  * @property {string} id - The item's id
  * @property {string} name - The item's name

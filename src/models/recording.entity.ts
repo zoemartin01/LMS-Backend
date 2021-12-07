@@ -1,4 +1,4 @@
-import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, Entity, ManyToOne } from 'typeorm';
 import { VideoResolution } from '../types/enums/video-resolution';
 import { BaseEntity } from './base.entity';
 import { User } from './user.entity';
@@ -8,6 +8,7 @@ import { User } from './user.entity';
  *
  * @typedef {Object} Recording
  * @class
+ * @extends BaseEntity
  *
  * @property {string} id - The recording id.
  * @property {User} user - The user who created the recording.

@@ -7,6 +7,7 @@ import { TimeSlot } from './timeslot.entity';
  *
  * @typedef {Object} UnavaliableTimeslot
  * @class
+ * @extends TimeSlot
  *
  * @property {Room} - The room the time slot belongs to.
  */

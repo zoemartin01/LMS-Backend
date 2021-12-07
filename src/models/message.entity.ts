@@ -1,4 +1,4 @@
-import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, Entity, ManyToOne } from 'typeorm';
 import { BaseEntity } from './base.entity';
 import { User } from './user.entity';
 
@@ -7,6 +7,7 @@ import { User } from './user.entity';
  *
  * @typedef {Object} Message
  * @class
+ * @extends BaseEntity
  *
  * @property {string} id - The message id.
  * @property {string} title - The message title.

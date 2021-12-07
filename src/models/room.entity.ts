@@ -1,16 +1,10 @@
 import {
   Column,
-  Entity,
-  ManyToMany,
-  ManyToOne,
-  OneToMany,
-  PrimaryGeneratedColumn,
+  Entity, OneToMany
 } from 'typeorm';
-import { TimeSlotType } from '../types/enums/timeslot-type';
 import { AppointmentTimeslot } from './appointment.timeslot.entity';
 import { AvaliableTimeslot } from './avaliable.timeslot.entity';
 import { BaseEntity } from './base.entity';
-import { TimeSlot } from './timeslot.entity';
 import { UnavaliableTimeslot } from './unavaliable.timeslot.entity';
 
 /**
@@ -18,6 +12,7 @@ import { UnavaliableTimeslot } from './unavaliable.timeslot.entity';
  *
  * @typedef {Object} Room
  * @class
+ * @extends BaseEntity
  *
  * @property {string} id - The room id.
  * @property {string} name - The name of the room.

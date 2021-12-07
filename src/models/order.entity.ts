@@ -1,4 +1,4 @@
-import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, Entity, ManyToOne } from 'typeorm';
 import { OrderStatus } from '../types/enums/order-status';
 import { BaseEntity } from './base.entity';
 import { Item } from './item.entity';
@@ -9,6 +9,7 @@ import { User } from './user.entity';
  *
  * @typedef {Object} Order
  * @class
+ * @extends BaseEntity
  *
  * @property {string} id - The order id.
  * @property {Item} item - The item.

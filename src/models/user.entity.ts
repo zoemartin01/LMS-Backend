@@ -10,6 +10,7 @@ import { Recording } from './recording.entity';
  * A User model.
  * @typedef {Object} User
  * @class
+ * @extends BaseEntity
  *
  * @property {string} id - The id of the user.
  * @property {string} email - The email of the user.

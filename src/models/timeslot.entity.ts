@@ -1,5 +1,4 @@
 import { Column, Entity, TableInheritance } from 'typeorm';
-import { ConfirmationStatus } from '../types/enums/confirmation-status';
 import { TimeSlotType } from '../types/enums/timeslot-type';
 import { BaseEntity } from './base.entity';
 
@@ -8,6 +7,7 @@ import { BaseEntity } from './base.entity';
  *
  * @typedef {Object} TimeSlot
  * @class
+ * @extends BaseEntity
  *
  * @property {string} id - The id of the time slot.
  * @property {string} seriesId - The id of the series the time slot belongs to.
