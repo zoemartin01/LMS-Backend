@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from 'typeorm';
+import { Entity, Column, OneToMany } from 'typeorm';
 import { UserRole } from '../types/enums/user-role';
 import { AppointmentTimeslot } from './appointment.timeslot.entity';
 import { BaseEntity } from './base.entity';
@@ -16,7 +16,7 @@ import { Recording } from './recording.entity';
  * @property {string} password - The password of the user.
  * @property {UserRole} role - The role of the user.
  * @property {boolean} emailVerification - The email verification status of the user.
- * @property {TimeSlot[]} bookings - The bookings of the user.
+ * @property {AppointmentTimeslot[]} bookings - The bookings of the user.
  * @property {Order[]} orders - The orders of the user.
  * @property {Message[]} messages - The messages the user received.
  * @property {Recording[]} recordings - The recordings of the user.
@@ -43,6 +43,7 @@ export class User extends BaseEntity {
    * The role of the user.
    * 
    * @type {UserRole}
+   * @default UserRole.pending
    */
   @Column({
     type: 'enum',
@@ -55,6 +56,7 @@ export class User extends BaseEntity {
    * The email verification status of the user.
    * 
    * @type {boolean}
+   * @default false
    */
   @Column({ default: false })
   emailVerification: boolean;

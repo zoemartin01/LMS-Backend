@@ -12,17 +12,19 @@ export abstract class BaseEntity {
    * The entity's unique identifier
    * 
    * @type {string}
+   * @readonly
    */
   @PrimaryGeneratedColumn('uuid')
-  id: string;
+  readonly id: string;
 
   /**
    * The date the entity was created
    * 
    * @type {Date}
+   * @readonly
    */
   @CreateDateColumn()
-  createdAt: Date;
+  readonly createdAt: Date;
 
   /**
    * The date the entity was last updated

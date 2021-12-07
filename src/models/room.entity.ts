@@ -50,9 +50,19 @@ export class Room extends BaseEntity {
    * The maximum number of concurrent bookings allowed in the room.
    * 
    * @type {number}
+   * @default 1
    */
   @Column({ default: 1 })
   maxConcurrentBookings: number;
+  
+  /**
+   * Whether or not bookings in the room should be automatically accepted.
+   * 
+   * @type {boolean}
+   * @default false
+   */
+  @Column({ default: false })
+  autoAcceptBookings: boolean;
 
   /**
    * The available time slots in the room.
@@ -77,12 +87,4 @@ export class Room extends BaseEntity {
    */
   @OneToMany(() => AppointmentTimeslot, (timeslot) => timeslot.room)
   appointments: AppointmentTimeslot[];
-
-  /**
-   * Whether or not bookings in the room should be automatically accepted.
-   * 
-   * @type {boolean}
-   */
-  @Column({ default: false })
-  autoAcceptBookings: boolean;
 }

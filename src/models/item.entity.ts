@@ -46,6 +46,6 @@ export class Item extends BaseEntity {
    * 
    * @type {Order[]}
    */
-  @OneToMany((type) => Order, (order) => order.item)
+  @OneToMany(() => Order, (order) => order.item)
   orders: Order[];
 }

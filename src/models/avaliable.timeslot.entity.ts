@@ -16,8 +16,8 @@ export class AvaliableTimeslot extends TimeSlot {
    * The room the time slot belongs to.
    * 
    * @type {Room}
-   * 
+   * @readonly
    */
    @ManyToOne(() => Room, (room) => room.availableTimeSlots)
-   room: Room;
+   readonly room: Room;
 }

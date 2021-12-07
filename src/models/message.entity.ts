@@ -21,33 +21,37 @@ export class Message extends BaseEntity {
    * The message title.
    *
    * @type {string}
+   * @readonly
    */
   @Column()
-  title: string;
+  readonly title: string;
 
   /**
    * The message content.
    *
    * @type {string}
+   * @readonly
    */
   @Column()
-  content: string;
+  readonly content: string;
 
   /**
    * The message corresponding url.
    *
    * @type {string}
+   * @readonly
    */
   @Column()
-  correspondingUrl: string;
+  readonly correspondingUrl: string;
 
   /**
    * The message recipient.
    *
    * @type {User}
+   * @readonly
    */
   @ManyToOne(() => User, (user) => user.messages)
-  recipient: User;
+  readonly recipient: User;
 
   /**
    * The message is read.

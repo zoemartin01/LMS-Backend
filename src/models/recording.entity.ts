@@ -22,42 +22,47 @@ export class Recording extends BaseEntity {
    * The user who created the recording.
    *
    * @type {User}
+   * @readonly
    */
   @ManyToOne(() => User, (user) => user.recordings)
-  user: User;
+  readonly user: User;
 
   /**
    * The start date of the recording.
    *
    * @type {Date}
+   * @readonly
    */
   @Column()
-  start: Date;
+  readonly start: Date;
 
   /**
    * The end date of the recording.
    *
    * @type {Date}
+   * @readonly
    */
   @Column()
-  end: Date;
+  readonly end: Date;
 
   /**
    * The resolution of the recording.
    *
    * @type {VideoResolution}
+   * @readonly
    */
   @Column({
     type: 'enum',
     enum: VideoResolution,
   })
-  resolution: VideoResolution;
+  readonly resolution: VideoResolution;
 
   /**
    * The bitrate of the recording in kbps.
    *
    * @type {number}
+   * @readonly
    */
   @Column()
-  bitrate: number;
+  readonly bitrate: number;
 }
