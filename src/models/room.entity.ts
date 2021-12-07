@@ -32,7 +32,7 @@ export class Room {
      * @type {string}
      */
     @Column()
-    name: string;s
+    name: string;
 
     /**
      * The description of the room.
