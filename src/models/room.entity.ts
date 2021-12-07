@@ -1,5 +1,5 @@
 import { Column, Entity, ManyToMany, ManyToOne, OneToMany, PrimaryGeneratedColumn } from "typeorm";
-import { TimeSlotType } from "../types/enums/timeSlotType";
+import { TimeSlotType } from "../types/enums/timeslot-type";
 import { TimeSlot } from "./timeSlot.entity";
 
 /**
@@ -32,7 +32,7 @@ export class Room {
      * @type {string}
      */
     @Column()
-    name: string;
+    name: string;s
 
     /**
      * The description of the room.

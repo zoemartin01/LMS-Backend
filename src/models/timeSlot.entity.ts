@@ -1,5 +1,5 @@
 import { Column, CreateDateColumn, Entity, ManyToOne, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
-import { TimeSlotType } from "../types/enums/timeSlotType";
+import { TimeSlotType } from "../types/enums/timeslot-type";
 import { Room } from "./room.entity";
 import { User } from "./user.entity";
 
