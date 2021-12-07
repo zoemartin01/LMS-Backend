@@ -1,7 +1,6 @@
 export enum UserRole {
-    unkown = 0,
     pending = 1,
-    visitor = 3,
-    admin = 4
+    visitor = 2,
+    admin = 3,
   }
   
