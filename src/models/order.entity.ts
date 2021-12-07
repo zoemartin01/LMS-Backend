@@ -20,14 +20,6 @@ import { User } from './user.entity';
 @Entity()
 export class Order extends BaseEntity {
   /**
-   * The order id.
-   *
-   * @type {string}
-   */
-  @PrimaryGeneratedColumn('uuid')
-  id: string;
-
-  /**
    * The item.
    * @type {Item}
    */

@@ -19,14 +19,6 @@ import { User } from './user.entity';
 @Entity()
 export class Recording extends BaseEntity {
   /**
-   * The recording id.
-   *
-   * @type {string}
-   */
-  @PrimaryGeneratedColumn('uuid')
-  id: string;
-
-  /**
    * The user who created the recording.
    *
    * @type {User}

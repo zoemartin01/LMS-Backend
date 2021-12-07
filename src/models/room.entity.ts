@@ -29,13 +29,6 @@ import { TimeSlot } from './timeSlot.entity';
 @Entity()
 export class Room extends BaseEntity {
   /**
-   * The room id.
-   * @type {string}
-   */
-  @PrimaryGeneratedColumn('uuid')
-  id: string;
-
-  /**
    * The name of the room.
    * @type {string}
    */

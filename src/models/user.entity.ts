@@ -24,13 +24,6 @@ import { TimeSlot } from './timeSlot.entity';
 @Entity()
 export class User extends BaseEntity {
   /**
-   * The id of the user.
-   * @type {string}
-   */
-  @PrimaryGeneratedColumn('uuid')
-  id: string;
-
-  /**
    * The email of the user.
    * @type {string}
    */

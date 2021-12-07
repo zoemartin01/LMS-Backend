@@ -22,12 +22,6 @@ import { User } from './user.entity';
  */
 @Entity()
 export class TimeSlot extends BaseEntity {
-  /**
-   * The id of the time slot.
-   * @type {string}
-   */
-  @PrimaryGeneratedColumn('uuid')
-  id: string;
 
   /**
    * The id of the series the time slot belongs to.

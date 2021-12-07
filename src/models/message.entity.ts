@@ -18,14 +18,6 @@ import { User } from './user.entity';
 @Entity()
 export class Message extends BaseEntity {
   /**
-   * The message id.
-   *
-   * @type {string}
-   */
-  @PrimaryGeneratedColumn('uuid')
-  id: string;
-
-  /**
    * The message title.
    *
    * @type {string}
