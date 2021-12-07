@@ -1,7 +1,4 @@
-import {
-  Column,
-  Entity, OneToMany
-} from 'typeorm';
+import { Column, Entity, OneToMany } from 'typeorm';
 import { AppointmentTimeslot } from './appointment.timeslot.entity';
 import { AvaliableTimeslot } from './avaliable.timeslot.entity';
 import { BaseEntity } from './base.entity';
