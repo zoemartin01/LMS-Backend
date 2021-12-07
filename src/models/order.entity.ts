@@ -22,7 +22,7 @@ import { User } from './user.entity';
 export class Order extends BaseEntity {
   /**
    * The item.
-   * 
+   *
    * @type {Item}
    * @nullable if item does not yet exist.
    */
@@ -31,7 +31,7 @@ export class Order extends BaseEntity {
 
   /**
    * The item name.
-   * 
+   *
    * @type {String}
    * @nullable if item has been set.
    */
@@ -40,7 +40,7 @@ export class Order extends BaseEntity {
 
   /**
    * The user.
-   * 
+   *
    * @type {User}
    * @readonly
    */
@@ -49,7 +49,7 @@ export class Order extends BaseEntity {
 
   /**
    * The order status.
-   * 
+   *
    * @type {OrderStatus}
    * @default OrderStatus.pending
    */
@@ -58,7 +58,7 @@ export class Order extends BaseEntity {
 
   /**
    * The order quanity.
-   * 
+   *
    * @type {number}
    */
   @Column()
@@ -66,7 +66,7 @@ export class Order extends BaseEntity {
 
   /**
    * The purchase url.
-   * 
+   *
    * @type {string}
    */
   @Column()

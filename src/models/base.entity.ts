@@ -1,8 +1,12 @@
-import { CreateDateColumn, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
+import {
+  CreateDateColumn,
+  PrimaryGeneratedColumn,
+  UpdateDateColumn,
+} from 'typeorm';
 
 /**
  * Basic entity model
- * 
+ *
  * @property {string} id - The entity's unique identifier
  * @property {Date} createdAt - The date the entity was created
  * @property {Date} updatedAt - The date the entity was last updated
@@ -10,7 +14,7 @@ import { CreateDateColumn, PrimaryGeneratedColumn, UpdateDateColumn } from 'type
 export abstract class BaseEntity {
   /**
    * The entity's unique identifier
-   * 
+   *
    * @type {string}
    * @readonly
    */
@@ -19,7 +23,7 @@ export abstract class BaseEntity {
 
   /**
    * The date the entity was created
-   * 
+   *
    * @type {Date}
    * @readonly
    */
@@ -28,7 +32,7 @@ export abstract class BaseEntity {
 
   /**
    * The date the entity was last updated
-   * 
+   *
    * @type {Date}
    */
   @UpdateDateColumn()

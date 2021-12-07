@@ -22,7 +22,7 @@ import { BaseEntity } from './base.entity';
 export class TimeSlot extends BaseEntity {
   /**
    * The start time of the time slot.
-   * 
+   *
    * @type {Date}
    * @readonly
    */
@@ -31,7 +31,7 @@ export class TimeSlot extends BaseEntity {
 
   /**
    * The end time of the time slot.
-   * 
+   *
    * @type {Date}
    * @readonly
    */
@@ -40,7 +40,7 @@ export class TimeSlot extends BaseEntity {
 
   /**
    * The type of the time slot.
-   * 
+   *
    * @type {TimeSlotType}
    * @readonly
    */

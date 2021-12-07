@@ -25,7 +25,7 @@ import { Recording } from './recording.entity';
 export class User extends BaseEntity {
   /**
    * The email of the user.
-   * 
+   *
    * @type {string}
    */
   @Column()
@@ -33,7 +33,7 @@ export class User extends BaseEntity {
 
   /**
    * The password of the user.
-   * 
+   *
    * @type {string}
    */
   @Column()
@@ -41,7 +41,7 @@ export class User extends BaseEntity {
 
   /**
    * The role of the user.
-   * 
+   *
    * @type {UserRole}
    * @default UserRole.pending
    */
@@ -54,7 +54,7 @@ export class User extends BaseEntity {
 
   /**
    * The email verification status of the user.
-   * 
+   *
    * @type {boolean}
    * @default false
    */
@@ -63,7 +63,7 @@ export class User extends BaseEntity {
 
   /**
    * The bookings of the user.
-   * 
+   *
    * @type {AppointmentTimeslot[]}
    */
   @OneToMany(() => AppointmentTimeslot, (timeSlot) => timeSlot.user)
@@ -71,7 +71,7 @@ export class User extends BaseEntity {
 
   /**
    * The orders of the user.
-   * 
+   *
    * @type {Order[]}
    */
   @OneToMany(() => Order, (order) => order.user)

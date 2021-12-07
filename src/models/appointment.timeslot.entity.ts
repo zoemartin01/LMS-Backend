@@ -1,15 +1,15 @@
-import { ChildEntity, Column, ManyToOne } from "typeorm";
-import { ConfirmationStatus } from "../types/enums/confirmation-status";
-import { Room } from "./room.entity";
-import { TimeSlot } from "./timeslot.entity";
-import { User } from "./user.entity";
+import { ChildEntity, Column, ManyToOne } from 'typeorm';
+import { ConfirmationStatus } from '../types/enums/confirmation-status';
+import { Room } from './room.entity';
+import { TimeSlot } from './timeslot.entity';
+import { User } from './user.entity';
 
 /**
  * Appointment Timeslot
- * 
+ *
  * @typedef {Object} AppointmentTimeslot
  * @class
- * 
+ *
  * @property {Room} - The room the time slot belongs to.
  * @property {User} - The user who booked the appointment.
  * @property {ConfirmationStatus} confirmationStatus - The confirmation status of the time slot.
@@ -18,16 +18,16 @@ import { User } from "./user.entity";
 export class AppointmentTimeslot extends TimeSlot {
   /**
    * The room the time slot belongs to.
-   * 
+   *
    * @type {Room}
    * @readonly
    */
-   @ManyToOne(() => Room, (room) => room.appointments)
-   readonly room: Room;
+  @ManyToOne(() => Room, (room) => room.appointments)
+  readonly room: Room;
 
-   /**
+  /**
    * If TimeSlotType is booked, the user assosiated with the time slot.
-   * 
+   *
    * @type {User}
    * @readonly
    */
@@ -36,12 +36,12 @@ export class AppointmentTimeslot extends TimeSlot {
 
   /**
    * The confirmation status of the time slot.
-   * 
+   *
    * @type {ConfirmationStatus}
    */
-     @Column({
-      type: 'enum',
-      enum: ConfirmationStatus,
-    })
-    confirmationStatus: ConfirmationStatus;
+  @Column({
+    type: 'enum',
+    enum: ConfirmationStatus,
+  })
+  confirmationStatus: ConfirmationStatus;
 }

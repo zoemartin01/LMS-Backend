@@ -32,7 +32,7 @@ import { UnavaliableTimeslot } from './unavaliable.timeslot.entity';
 export class Room extends BaseEntity {
   /**
    * The name of the room.
-   * 
+   *
    * @type {string}
    */
   @Column()
@@ -40,7 +40,7 @@ export class Room extends BaseEntity {
 
   /**
    * The description of the room.
-   * 
+   *
    * @type {string}
    */
   @Column()
@@ -48,16 +48,16 @@ export class Room extends BaseEntity {
 
   /**
    * The maximum number of concurrent bookings allowed in the room.
-   * 
+   *
    * @type {number}
    * @default 1
    */
   @Column({ default: 1 })
   maxConcurrentBookings: number;
-  
+
   /**
    * Whether or not bookings in the room should be automatically accepted.
-   * 
+   *
    * @type {boolean}
    * @default false
    */
@@ -66,18 +66,24 @@ export class Room extends BaseEntity {
 
   /**
    * The available time slots in the room.
-   * 
+   *
    * @type {AvaliableTimeslot[]}
    */
-  @OneToMany(() => AvaliableTimeslot, (avaliableTimeslot) => avaliableTimeslot.room)
+  @OneToMany(
+    () => AvaliableTimeslot,
+    (avaliableTimeslot) => avaliableTimeslot.room
+  )
   availableTimeSlots: AvaliableTimeslot[];
 
   /**
    * The unavailable time slots in the room.
-   * 
+   *
    * @type {UnavaliableTimeslot[]}
    */
-  @OneToMany(() => UnavaliableTimeslot, (unavaliableTimeslot) => unavaliableTimeslot.room)
+  @OneToMany(
+    () => UnavaliableTimeslot,
+    (unavaliableTimeslot) => unavaliableTimeslot.room
+  )
   unavailableTimeSlots: UnavaliableTimeslot[];
 
   /**
