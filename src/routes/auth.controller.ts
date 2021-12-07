@@ -6,8 +6,6 @@ import jsonwebtoken from 'jsonwebtoken';
 const accessTokenSecret = 'V50jPXQVocPUSPHl0yzPJhXZzh32bp';
 const refreshTokenSecret = '3pqOHs7R1TrCgsRKksPp4J3Kfs0l0X';
 
-var refreshTokens: any = [];
-
 export class AuthController {
   public path = '/token';
   public router = Router();
@@ -31,7 +29,7 @@ export class AuthController {
     });
 
     if (!user) {
-      return res.status(401).send({
+      res.status(400).send({
         message: 'Invalid email or password',
       });
     } else {
@@ -52,8 +50,6 @@ export class AuthController {
         refreshTokenSecret
       );
 
-      refreshTokens.push(refreshToken);
-
       res.json({ accessToken, refreshToken, role: user.role });
     }
   };
@@ -62,16 +58,12 @@ export class AuthController {
     const { token } = req.body;
 
     if (!token) {
-      return res.sendStatus(401);
-    }
-
-    if (!refreshTokens.includes(token)) {
-      return res.sendStatus(403);
+      res.sendStatus(401);
     }
 
     jsonwebtoken.verify(token, refreshTokenSecret, (err: any, user: any) => {
       if (err) {
-        return res.sendStatus(403);
+        res.sendStatus(403);
       }
 
       const accessToken = jsonwebtoken.sign(
@@ -86,7 +78,6 @@ export class AuthController {
 
   private async logout(req: Request, res: Response) {
     const { token } = req.body;
-    refreshTokens = refreshTokens.filter((t: any) => t !== token);
 
     res.send('Logout successful');
   };
@@ -99,7 +90,7 @@ export class AuthController {
 
       jsonwebtoken.verify(token, accessTokenSecret, (err: any, user: any) => {
         if (err) {
-          return res.sendStatus(403);
+          res.sendStatus(401);
         }
 
         res.json({

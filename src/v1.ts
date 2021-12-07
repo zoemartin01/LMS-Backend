@@ -4,7 +4,6 @@ import jsonwebtoken from 'jsonwebtoken';
 const router = express.Router();
 const accessTokenSecret = 'V50jPXQVocPUSPHl0yzPJhXZzh32bp';
 const refreshTokenSecret = '3pqOHs7R1TrCgsRKksPp4J3Kfs0l0X';
-var refreshTokens: any = [];
 
 router.post('/token', (req, res) => {
   const { email, password } = req.body;
@@ -28,7 +27,7 @@ router.post('/token', (req, res) => {
   const user = users.find((u) => u.email === email && u.password === password);
 
   if (!user) {
-    return res.status(401).send({
+    return res.status(400).send({
       message: 'Invalid email or password',
     });
   } else {
@@ -49,8 +48,6 @@ router.post('/token', (req, res) => {
       refreshTokenSecret,
     );
 
-    refreshTokens.push(refreshToken);
-
     res.json({ accessToken, refreshToken, role: user.role });
   }
 });
@@ -59,16 +56,12 @@ router.post('/token/refresh', (req, res) => {
   const { token } = req.body;
 
   if (!token) {
-    return res.sendStatus(401);
-  }
-
-  if (!refreshTokens.includes(token)) {
-    return res.sendStatus(403);
+    res.sendStatus(401);
   }
 
   jsonwebtoken.verify(token, refreshTokenSecret, (err: any, user: any) => {
     if (err) {
-      return res.sendStatus(403);
+      res.sendStatus(403);
     }
 
     const accessToken = jsonwebtoken.sign({ email: user.email, role: user.role }, accessTokenSecret, { expiresIn: '20m' });
@@ -79,7 +72,6 @@ router.post('/token/refresh', (req, res) => {
 
 router.delete('token', (req, res) => {
   const { token } = req.body;
-  refreshTokens = refreshTokens.filter((t: any) => t !== token);
 
   res.send('Logout successful');
 });
@@ -92,7 +84,7 @@ const authenticateJWT = (req: any, res: any, next: any) => {
 
     jsonwebtoken.verify(token, accessTokenSecret, (err: any, user: any) => {
       if (err) {
-        return res.sendStatus(403);
+        res.sendStatus(401);
       }
 
       req.user = user;
