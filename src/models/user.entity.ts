@@ -10,6 +10,7 @@ import {
 import { UserRole } from '../types/enums/user-role';
 import { Message } from './message.entity';
 import { Order } from './order.entity';
+import { Recording } from './recording.entity';
 import { TimeSlot } from './timeSlot.entity';
 
 /**
@@ -27,6 +28,7 @@ import { TimeSlot } from './timeSlot.entity';
  * @property {TimeSlot[]} bookings - The bookings of the user.
  * @property {Order[]} orders - The orders of the user.
  * @property {Message[]} messages - The messages the user received.
+ * @property {Recording[]} recordings - The recordings of the user.
  */
 @Entity()
 export class User {
@@ -104,4 +106,12 @@ export class User {
    */
   @OneToMany(() => Message, (message) => message.recipient)
   messages: Message[];
+
+  /**
+   * The recordings of the user.
+   * 
+   * @type {Recording[]}
+   */
+  @OneToMany(() => Recording, (recording) => recording.user)
+  recordings: Recording[];
 }
