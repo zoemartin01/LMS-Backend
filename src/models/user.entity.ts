@@ -8,6 +8,7 @@ import {
   OneToMany,
 } from 'typeorm';
 import { UserRole } from '../types/enums/user-role';
+import { Order } from './order.entity';
 import { TimeSlot } from './timeSlot.entity';
 
 /**
@@ -23,6 +24,7 @@ import { TimeSlot } from './timeSlot.entity';
  * @property {UserRole} role - The role of the user.
  * @property {boolean} emailVerification - The email verification status of the user.
  * @property {TimeSlot[]} bookings - The bookings of the user.
+ * @property {Order[]} orders - The orders of the user.
  */
 @Entity()
 export class User {
@@ -85,4 +87,11 @@ export class User {
    */
   @OneToMany(() => TimeSlot, (timeSlot) => timeSlot.user)
   bookings: TimeSlot[];
+
+  /**
+   * The orders of the user.
+   * @type {Order[]}
+   */
+  @OneToMany(() => Order, (order) => order.user)
+  orders: Order[];
 }
