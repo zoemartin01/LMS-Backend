@@ -1,6 +1,6 @@
 import { ChildEntity, ManyToOne } from "typeorm";
 import { Room } from "./room.entity";
-import { TimeSlot } from "./timeslot";
+import { TimeSlot } from "./timeslot.entity";
 
 /**
  * Avaliable Timeslot

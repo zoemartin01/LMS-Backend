@@ -10,7 +10,7 @@ import { TimeSlotType } from '../types/enums/timeslot-type';
 import { AppointmentTimeslot } from './appointment.timeslot.entity';
 import { AvaliableTimeslot } from './avaliable.timeslot.entity';
 import { BaseEntity } from './base.entity';
-import { TimeSlot } from './timeslot';
+import { TimeSlot } from './timeslot.entity';
 import { UnavaliableTimeslot } from './unavaliable.timeslot.entity';
 
 /**
