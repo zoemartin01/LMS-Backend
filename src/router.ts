@@ -37,7 +37,10 @@ const LIVECAM_BASE_URL = '/livecam/recordings';
 
 router.get(LIVECAM_BASE_URL, LivecamController.getRecordings);
 router.get(`${LIVECAM_BASE_URL}/:id`, LivecamController.getRecordingById);
-router.post(LIVECAM_BASE_URL, LivecamController.scheduleRecording);
+router.post(
+  `${LIVECAM_BASE_URL}/schedule`,
+  LivecamController.scheduleRecording
+);
 router.get(
   `${LIVECAM_BASE_URL}/:id/download`,
   LivecamController.streamRecording

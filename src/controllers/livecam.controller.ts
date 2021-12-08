@@ -6,13 +6,6 @@ import { Request, Response } from 'express';
  */
 export class LivecamController {
   /**
-   * Get the recording data for a specific recording
-   *
-   * @route {GET} /livecam/recordings/:id
-   */
-  public static async getRecordingById(req: Request, res: Response) {}
-
-  /**
    * Get the data for all recordings
    *
    * @route {GET} /livecam/recordings
@@ -20,9 +13,16 @@ export class LivecamController {
   public static async getRecordings(req: Request, res: Response) {}
 
   /**
+   * Get the recording data for a specific recording
+   *
+   * @route {GET} /livecam/recordings/:id
+   */
+  public static async getRecordingById(req: Request, res: Response) {}
+
+  /**
    * Schedule a new recording
    *
-   * @route {POST} /livecam/schedule
+   * @route {POST} /livecam/recordings/schedule
    */
   public static async scheduleRecording(req: Request, res: Response) {}
 
