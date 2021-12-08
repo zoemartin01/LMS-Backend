@@ -1,17 +1,18 @@
 import bodyParser from 'body-parser';
 import cookieParser from 'cookie-parser';
 import express from 'express';
+import router from './router';
 
 class App {
   public app: express.Application;
   public port: number;
 
-  constructor(controllers: any[], port: number) {
+  constructor(port: number) {
     this.app = express();
     this.port = port;
 
     this.initializeMiddlewares();
-    this.initializeControllers(controllers);
+    this.initializeRoutes();
   }
 
   private initializeMiddlewares() {
@@ -34,10 +35,8 @@ class App {
     this.app.use(cookieParser());
   }
 
-  private initializeControllers(controllers: any[]) {
-    controllers.forEach((controller) => {
-      this.app.use('/api/v1/', controller.router);
-    });
+  private initializeRoutes() {
+    this.app.use('/api/v1', router);
   }
 
   public listen() {
