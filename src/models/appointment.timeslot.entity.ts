@@ -27,7 +27,7 @@ export class AppointmentTimeslot extends TimeSlot {
   readonly room: Room;
 
   /**
-   * If TimeSlotType is booked, the user assosiated with the time slot.
+   * If TimeSlotType is booked, the user associated with the time slot.
    *
    * @type {User}
    * @readonly

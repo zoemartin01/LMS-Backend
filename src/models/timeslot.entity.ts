@@ -14,7 +14,7 @@ import { BaseEntity } from './base.entity';
  * @property {Date} start - The start time of the time slot.
  * @property {Date} end - The end time of the time slot.
  * @property {Room} room - The room the time slot belongs to.
- * @property {User} user - The user assosiated with the time slot.
+ * @property {User} user - The user associated with the time slot.
  * @property {TimeSlotType} type - The type of the time slot.
  */
 @Entity()

@@ -12,7 +12,7 @@ import { Order } from './order.entity';
  * @property {string} id - The item's id
  * @property {string} name - The item's name
  * @property {string} description - The item's description
- * @property {number} quanity - The item's quanity in inventory
+ * @property {number} quantity - The item's quantity in inventory
  * @property {Order[]} orders - The orders for this item
  */
 @Entity()
@@ -34,13 +34,13 @@ export class Item extends BaseEntity {
   description: string;
 
   /**
-   * The item's quanity in inventory
+   * The item's quantity in inventory
    *
    * @type {number}
    * @default 0
    */
   @Column({ default: 0 })
-  quanity: number;
+  quantity: number;
 
   /**
    * The orders for this item
