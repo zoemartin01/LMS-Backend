@@ -1,3 +1,4 @@
+import { Request, Response } from 'express';
 /**
  * Controller for the LiveCam System
  *
@@ -9,7 +10,7 @@ export class LivecamController {
    *
    * @route {GET} /livecam/recordings/:id
    */
-  public static async getRecording(req: Request, res: Response) {}
+  public static async getRecordingById(req: Request, res: Response) {}
 
   /**
    * Get the data for all recordings
