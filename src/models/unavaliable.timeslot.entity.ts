@@ -9,7 +9,7 @@ import { TimeSlot } from './timeslot.entity';
  * @class
  * @extends TimeSlot
  *
- * @property {Room} - The room the time slot belongs to.
+ * @property {Room} room - The room the time slot belongs to.
  */
 @ChildEntity()
 export class UnavailableTimeslot extends TimeSlot {
