@@ -2,6 +2,7 @@
  * An enum representing the confirmation status for a request.
  *
  * @typedef {pending | confirmed | rejected} ConfirmationStatus
+ * @kind enum
  */
 export enum ConfirmationStatus {
   pending = 1,
