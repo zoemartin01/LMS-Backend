@@ -4,10 +4,15 @@ import { Request, Response } from 'express';
 
 /**
  * Controller for room management
+ *
+ * @see RoomService
+ * @see Room
  */
 export class RoomController {
   /**
    * Get all rooms
+   *
+   * @route {GET} /rooms
    * @param {Request} req frontend request to get data about all rooms
    * @param {Response} res backend response with data about all rooms
    */
@@ -18,6 +23,8 @@ export class RoomController {
 
   /**
    * Get one room with an id
+   *
+   * @route {GET} /rooms/:id
    * @param {Request} req frontend request to get data about one room
    * @param {Response} res backend response with data about one room
    */
@@ -29,6 +36,8 @@ export class RoomController {
 
   /**
    * Create a new room
+   *
+   * @route {POST} /rooms
    * @param {Request} req frontend request to create a new room
    * @param {Response} res backend response creation of a new room
    */
@@ -39,6 +48,8 @@ export class RoomController {
 
   /**
    * Edit thus update room
+   *
+   * @route {PUT} /rooms/:id
    * @param {Request} req frontend request to change data about one room
    * @param {Response} res backend response with data change of one room
    */
@@ -50,6 +61,8 @@ export class RoomController {
 
   /**
    * Delete one room
+   *
+   * @route {DELETE} /rooms/:id
    * @param {Request} req frontend request to delete one room
    * @param {Response} res backend response deletion
    */
