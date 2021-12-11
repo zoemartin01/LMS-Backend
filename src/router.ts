@@ -47,47 +47,44 @@ router.put(`${USER_BASE_URL}/:id`, UserController.updateUser);
 router.delete(`${USER_BASE_URL}/:id`, UserController.deleteUser);
 
 // Room Management
+const ROOM_BASE_URL = '/rooms';
 
 // Appointment Management
-const ROOM_OVERVIEW_BASE_URL = '/room-overview';
 const APPOINTMENTS_BASE_URL = '/appointments';
 
 router.get(
-  ROOM_OVERVIEW_BASE_URL,
-  AppointmentController.getAppointmentsForRoom
-);
-router.get(
-  `${ROOM_OVERVIEW_BASE_URL}/:id`,
-  AppointmentController.getAppointment
-);
-router.put(
-  `${ROOM_OVERVIEW_BASE_URL}/:id`,
-  AppointmentController.updateAppointment
-);
-router.delete(
-  `${ROOM_OVERVIEW_BASE_URL}/:id`,
-  AppointmentController.deleteAppointment
-);
-router.get(APPOINTMENTS_BASE_URL, AppointmentController.getAppointmentsForUser);
-router.get(
-  `${APPOINTMENTS_BASE_URL}/all`,
+  `${APPOINTMENTS_BASE_URL}`,
   AppointmentController.getAllAppointments
 );
+
+router.get(
+  `${USER_BASE_URL}/:id/appointments`,
+  AppointmentController.getAppointmentsForUser
+);
+
+router.get(
+  `/${ROOM_BASE_URL}/:id/appointments`,
+  AppointmentController.getAppointmentsForRoom
+);
+
 router.get(
   `${APPOINTMENTS_BASE_URL}/:id`,
   AppointmentController.getAppointment
 );
+
+router.post(
+  `${APPOINTMENTS_BASE_URL}`,
+  AppointmentController.createAppointment
+);
+
+router.put(
+  `${APPOINTMENTS_BASE_URL}/:id`,
+  AppointmentController.updateAppointment
+);
+
 router.delete(
   `${APPOINTMENTS_BASE_URL}/:id`,
   AppointmentController.deleteAppointment
-);
-router.patch(
-  `${ROOM_OVERVIEW_BASE_URL}/:id/edit`,
-  AppointmentController.updateAppointment
-);
-router.post(
-  `${ROOM_OVERVIEW_BASE_URL}/create`,
-  AppointmentController.createAppointment
 );
 
 // Inventory & Order Management

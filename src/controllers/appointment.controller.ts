@@ -8,6 +8,8 @@ import { Request, Response } from 'express';
 export class AppointmentController {
   /**
    * Get all appointments
+   *
+   * @route {GET} /appointments
    * @param {Request} req frontend request to get data about all appointments
    * @param {Response} res backend response with data about all appointments
    */
@@ -18,6 +20,8 @@ export class AppointmentController {
 
   /**
    * Get all appointments related to a specific user
+   *
+   * @route {GET} /users/:id/appointments
    * @param {Request} req frontend request to get data about all appointments for user
    * @param {Response} res backend response with data about all appointments for user
    */
@@ -26,8 +30,11 @@ export class AppointmentController {
     const appointments = await getRepository(AppointmentTimeslot).findOne(id);
     res.send(appointments);
   }
+
   /**
    * Get all appointments related to a specific room
+   *
+   * @route {GET} /rooms/:id/appointments
    * @param {Request} req frontend request to get data about all appointments for room
    * @param {Response} res backend response with data about all appointments for room
    */
@@ -39,6 +46,8 @@ export class AppointmentController {
 
   /**
    * Get one appointment with an id
+   *
+   * @route {GET} /appointments/:id
    * @param {Request} req frontend request to get data about one appointment
    * @param {Response} res backend response with data about one appointment
    */
@@ -49,6 +58,8 @@ export class AppointmentController {
 
   /**
    * Create a new appointment
+   *
+   * @route {POST} /appointments
    * @param {Request} req frontend request to create a new appointment
    * @param {Response} res backend response creation of a new appointment
    */
@@ -59,6 +70,8 @@ export class AppointmentController {
 
   /**
    * Edit thus update appointment
+   *
+   * @route {PATCH} /appointments/:id
    * @param {Request} req frontend request to change data about one appointment
    * @param {Response} res backend response with data change of one appointment
    */
@@ -73,6 +86,8 @@ export class AppointmentController {
 
   /**
    * Delete one appointment
+   *
+   * @route {DELETE} /appointments/:id
    * @param {Request} req frontend request to delete one appointment
    * @param {Response} res backend response deletion
    */
