@@ -96,32 +96,4 @@ export class AppointmentController {
     const appointment = await getRepository(AppointmentTimeslot).delete(id);
     res.send(appointment);
   }
-
-  /**
-   * Change confirmation status of an appointment to accepted
-   * @param {Request} req frontend request to change data about one appointment
-   * @param {Response} res backend response with data change of one appointment
-   */
-  public static async acceptRequest(req: Request, res: Response) {
-    const id = req.params.id;
-    const appointment = await getRepository(AppointmentTimeslot).update(
-      id,
-      req.body
-    );
-    res.send(appointment);
-  }
-
-  /**
-   * Change confirmation status of an appointment to denied
-   * @param {Request} req frontend request to change data about one appointment
-   * @param {Response} res backend response with data change of one appointment
-   */
-  public static async declineRequest(req: Request, res: Response) {
-    const id = req.params.id;
-    const appointment = await getRepository(AppointmentTimeslot).update(
-      id,
-      req.body
-    );
-    res.send(appointment);
-  }
 }
