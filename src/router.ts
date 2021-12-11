@@ -3,6 +3,7 @@ import { AuthController } from './controllers/auth.controller';
 import { LivecamController } from './controllers/livecam.controller';
 import { UserController } from './controllers/user.controller';
 import { AdminController } from './controllers/admin.controller';
+import { RoomController } from './controllers/room.controller';
 
 const router: Router = Router();
 
@@ -46,6 +47,14 @@ router.put(`${USER_BASE_URL}/:id`, UserController.updateUser);
 router.delete(`${USER_BASE_URL}/:id`, UserController.deleteUser);
 
 // Room Management
+const ROOM_BASE_URL = '/rooms';
+
+//TODO check with frontend rooms or room
+router.get(ROOM_BASE_URL, RoomController.getAllRooms);
+router.get(`${ROOM_BASE_URL}/:id`, RoomController.getRoomById);
+router.post(ROOM_BASE_URL, RoomController.createRoom);
+router.put(`${ROOM_BASE_URL}/:id`, RoomController.updateRoom);
+router.delete(`${ROOM_BASE_URL}/:id`, RoomController.deleteRoom);
 
 // Appointment Management
 
