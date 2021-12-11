@@ -1,6 +1,11 @@
 import { Request, Response } from 'express';
 /**
  * Controller for Admin Management
+ *
+ * @see AdminService
+ * @see User
+ * @see GlobalSetting
+ * @see Retailer
  */
 export class AdminController {
   /**
