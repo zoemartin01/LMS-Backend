@@ -1,7 +1,8 @@
-import { Router } from 'express';
+import { Request, Response, Router } from 'express';
 import { AuthController } from './controllers/auth.controller';
 import { LivecamController } from './controllers/livecam.controller';
 import { UserController } from './controllers/user.controller';
+import { AdminController } from './controllers/admin.controller';
 
 const router: Router = Router();
 
@@ -16,6 +17,24 @@ router.delete(`${AUTH_BASE_URL}/:id`, AuthController.logout);
 router.get(`${AUTH_BASE_URL}/check`, AuthController.check);
 
 // Settings
+const GLOBAL_SETTINGS_BASE_URL = '/global-settings';
+const WHITELIST_BASE_URL = '/global-settings/whitelist-retailer';
+
+router.get(GLOBAL_SETTINGS_BASE_URL, AdminController.getGlobalSettings);
+router.put(GLOBAL_SETTINGS_BASE_URL, AdminController.updateGlobalSettings);
+router.get(
+  `${WHITELIST_BASE_URL}/:id`,
+  AdminController.getWhitelistRetailerData
+);
+router.put(
+  `${WHITELIST_BASE_URL}/:id`,
+  AdminController.editWhitelistRetailerData
+);
+router.post(GLOBAL_SETTINGS_BASE_URL, AdminController.createWhitelistRetailer);
+router.delete(
+  `${WHITELIST_BASE_URL}/:id`,
+  AdminController.deleteWhitelistRetailer
+);
 
 // User Management
 const USER_BASE_URL = '/users';
