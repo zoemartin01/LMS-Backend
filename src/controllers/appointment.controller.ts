@@ -4,6 +4,11 @@ import { Request, Response } from 'express';
 
 /**
  * Controller for appointment management
+ *
+ * @see AppointmentService
+ * @see AppointmentTimeslot
+ * @see User
+ * @see Room
  */
 export class AppointmentController {
   /**
