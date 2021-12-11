@@ -16,10 +16,7 @@ export class AdminController {
   /**
    * Gets data of a specific user
    */
-  public static async getUserData(
-    req: Request,
-    res: Response
-  ): Observable<any> {}
+  public static async getUserData(req: Request, res: Response) {}
 
   /**
    * Changes data of a specific user
@@ -35,4 +32,24 @@ export class AdminController {
    * Deletes a given user
    */
   public static async deleteUser(req: Request, res: Response) {}
+
+  /**
+   * Gets whitelist retailer data
+   */
+  public static async getWhitelistRetailerData(req: Request, res: Response) {}
+
+  /**
+   * Creates whitelist retailer with data
+   */
+  public static async createWhitelistRetailer(req: Request, res: Response) {}
+
+  /**
+   * Changes data of whitelist retailer
+   */
+  public static async editWhitelistRetailerData(req: Request, res: Response) {}
+
+  /**
+   * Deletes whitelist retailer
+   */
+  public static async deleteWhitelistRetailer(req: Request, res: Response) {}
 }
