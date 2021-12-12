@@ -2,22 +2,21 @@ import { Request, Response } from 'express';
 import { getRepository } from 'typeorm';
 import { User } from '../models/user.entity';
 import jsonwebtoken from 'jsonwebtoken';
+const bcrypt = require("bcrypt");
 
 const accessTokenSecret = 'V50jPXQVocPUSPHl0yzPJhXZzh32bp';
 const refreshTokenSecret = '3pqOHs7R1TrCgsRKksPp4J3Kfs0l0X';
 
 /**
- * Controller for authentication
+ * Controller for Authentication
  */
 export class AuthController {
   /**
-   * Returns user details
-   */
-  public static async userDetails(req: Request, res: Response) {
-  }
-
-  /**
    * Logs in user with specified credentials
+   *
+   * @route {POST} /token
+   * @bodyParam {string} email - user's email address
+   * @bodyParam {string} password - user's password
    */
   public static async login(req: Request, res: Response) {
     const { email, password } = req.body;
@@ -54,6 +53,8 @@ export class AuthController {
 
   /**
    * Logs out current user
+   *
+   * @route {DELETE} /token
    */
   public static async logout(req: Request, res: Response) {
     //@todo logout current user
@@ -63,6 +64,9 @@ export class AuthController {
 
   /**
    * Refreshes authentication token of current user
+   *
+   * @route {POST} /token/refresh
+   * @bodyParam {string} refreshToken - user's refresh token
    */
   public static async refreshToken(req: Request, res: Response) {
     const { refreshToken } = req.body;
@@ -88,6 +92,8 @@ export class AuthController {
 
   /**
    * Checks token of current user
+   *
+   * @route {GET} /token/check
    */
   public static async checkToken(req: Request, res: Response) {
     const authHeader = req.headers['authorization'];
@@ -106,27 +112,6 @@ export class AuthController {
       res.sendStatus(401);
     }
   };
-
-  /**
-   * Signs in user with his personal information
-   */
-  public static async signin(req: Request, res: Response) {
-    const { firstname, lastname, email, password } = req.body;
-  }
-
-  /**
-   * Verifies email address using a token sent on signin
-   */
-  public static async verifyEmail(req: Request, res: Response) {
-    const { userId, token } = req.body;
-  }
-
-  /**
-   * Updates user's data
-   */
-  public static async updateUser(req: Request, res: Response) {
-    const data = req.body;
-  }
 
   //@todo add jwt tokens to db
   //@todo hash passwords
