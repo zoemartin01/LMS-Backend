@@ -24,18 +24,16 @@ export class AppointmentController {
   }
 
   /**
-   * Get all appointments related to a specific user
+   * Get all appointments for the current user
    *
-   * @route {GET} /users/:id/appointments
-   * @routeParam {string} id - id of the user
-   * @param {Request} req frontend request to get data about all appointments for user
-   * @param {Response} res backend response with data about all appointments for user
+   * @route {GET} /user/appointments
+   * @param {Request} req frontend request to get data about all appointments for the current user
+   * @param {Response} res backend response with data about all appointments for the current user
    */
-  public static async getAppointmentsForUser(req: Request, res: Response) {
-    const id = req.params.id;
-    const appointments = await getRepository(AppointmentTimeslot).findOne(id);
-    res.send(appointments);
-  }
+  public static async getAppointmentsForCurrentUser(
+    req: Request,
+    res: Response
+  ) {}
 
   /**
    * Get all appointments related to a specific room
