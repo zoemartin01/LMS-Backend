@@ -39,10 +39,12 @@ export class AppointmentTimeslot extends TimeSlot {
    * The confirmation status of the time slot.
    *
    * @type {ConfirmationStatus}
+   * @default ConfirmationStatus.pending
    */
   @Column({
     type: 'enum',
     enum: ConfirmationStatus,
+    default: ConfirmationStatus.pending,
   })
   confirmationStatus: ConfirmationStatus;
 }
