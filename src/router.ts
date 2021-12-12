@@ -4,6 +4,7 @@ import { LivecamController } from './controllers/livecam.controller';
 import { UserController } from './controllers/user.controller';
 import { AdminController } from './controllers/admin.controller';
 import { RoomController } from './controllers/room.controller';
+import { InventoryController } from './controllers/inventory.controller';
 
 const router: Router = Router();
 
@@ -59,6 +60,21 @@ router.delete(`${ROOM_BASE_URL}/:id`, RoomController.deleteRoom);
 // Appointment Management
 
 // Inventory & Order Management
+const INVENTORY_BASE_URL = '/inventory';
+router.get(INVENTORY_BASE_URL, InventoryController.getInventoryItems);
+router.get(
+  `${INVENTORY_BASE_URL}/:id`,
+  InventoryController.getInventoryItemById
+);
+router.post(INVENTORY_BASE_URL, InventoryController.createInventoryItem);
+router.patch(
+  `${INVENTORY_BASE_URL}/:id`,
+  InventoryController.updateInventoryItem
+);
+router.delete(
+  `${INVENTORY_BASE_URL}/:id`,
+  InventoryController.deleteInventoryItem
+);
 
 // Livecam
 const LIVECAM_BASE_URL = '/livecam/recordings';
