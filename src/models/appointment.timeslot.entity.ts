@@ -27,7 +27,7 @@ export class AppointmentTimeslot extends TimeSlot {
   readonly room: Room;
 
   /**
-   * If TimeSlotType is booked, the user assosiated with the time slot.
+   * If TimeSlotType is booked, the user associated with the time slot.
    *
    * @type {User}
    * @readonly
@@ -39,10 +39,12 @@ export class AppointmentTimeslot extends TimeSlot {
    * The confirmation status of the time slot.
    *
    * @type {ConfirmationStatus}
+   * @default ConfirmationStatus.pending
    */
   @Column({
     type: 'enum',
     enum: ConfirmationStatus,
+    default: ConfirmationStatus.pending,
   })
   confirmationStatus: ConfirmationStatus;
 }

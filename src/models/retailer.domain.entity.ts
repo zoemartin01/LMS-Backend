@@ -9,7 +9,7 @@ import { Retailer } from './retailer.entity';
  * @class
  * @extends BaseEntity
  *
- * @property {Reatiler} retailer - Retailer
+ * @property {Retailer} retailer - Retailer
  * @property {string} domain - Retailer domain
  */
 @Entity()

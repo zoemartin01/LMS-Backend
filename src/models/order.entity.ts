@@ -16,7 +16,7 @@ import { User } from './user.entity';
  * @property {String} itemName - The item name.
  * @property {User} user - The user.
  * @property {OrderStatus} status - The order status.
- * @property {number} quanity - The order quanity.
+ * @property {number} quantity - The order quantity.
  * @property {string} url - The purchase url.
  */
 @Entity()
@@ -58,12 +58,12 @@ export class Order extends BaseEntity {
   status: OrderStatus;
 
   /**
-   * The order quanity.
+   * The order quantity.
    *
    * @type {number}
    */
   @Column()
-  quanity: number;
+  quantity: number;
 
   /**
    * The purchase url.

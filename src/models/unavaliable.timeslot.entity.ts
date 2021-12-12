@@ -3,16 +3,16 @@ import { Room } from './room.entity';
 import { TimeSlot } from './timeslot.entity';
 
 /**
- * Unavaliable Timeslot
+ * Unavailable Timeslot
  *
- * @typedef {Object} UnavaliableTimeslot
+ * @typedef {Object} UnavailableTimeslot
  * @class
  * @extends TimeSlot
  *
- * @property {Room} - The room the time slot belongs to.
+ * @property {Room} room - The room the time slot belongs to.
  */
 @ChildEntity()
-export class UnavaliableTimeslot extends TimeSlot {
+export class UnavailableTimeslot extends TimeSlot {
   /**
    * The room the time slot belongs to.
    *
