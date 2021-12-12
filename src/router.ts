@@ -38,13 +38,14 @@ router.delete(
 );
 
 // User Management
-const USER_BASE_URL = '/users';
+const USERS_BASE_URL = '/users';
+const USER_BASE_URL = '/user';
 
-router.get(USER_BASE_URL, UserController.getAllUsers);
-router.get(`${USER_BASE_URL}/:id`, UserController.getUserById);
-router.post(USER_BASE_URL, UserController.createUser);
-router.put(`${USER_BASE_URL}/:id`, UserController.updateUser);
-router.delete(`${USER_BASE_URL}/:id`, UserController.deleteUser);
+router.get(USERS_BASE_URL, UserController.getAllUsers);
+router.get(`${USERS_BASE_URL}/:id`, UserController.getUserById);
+router.post(USERS_BASE_URL, UserController.createUser);
+router.put(`${USERS_BASE_URL}/:id`, UserController.updateUser);
+router.delete(`${USERS_BASE_URL}/:id`, UserController.deleteUser);
 
 // Room Management
 const ROOM_BASE_URL = '/rooms';
@@ -58,8 +59,8 @@ router.get(
 );
 
 router.get(
-  `${USER_BASE_URL}/:id/appointments`,
-  AppointmentController.getAppointmentsForUser
+  `${USER_BASE_URL}/appointments`,
+  AppointmentController.getAppointmentsForCurrentUser
 );
 
 router.get(
