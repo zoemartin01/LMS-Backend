@@ -1,4 +1,4 @@
-import { Router, Request, Response } from 'express';
+import { Request, Response } from 'express';
 import { getRepository } from 'typeorm';
 import { User } from '../models/user.entity';
 import jsonwebtoken from 'jsonwebtoken';
@@ -6,7 +6,19 @@ import jsonwebtoken from 'jsonwebtoken';
 const accessTokenSecret = 'V50jPXQVocPUSPHl0yzPJhXZzh32bp';
 const refreshTokenSecret = '3pqOHs7R1TrCgsRKksPp4J3Kfs0l0X';
 
+/**
+ * Controller for authentication
+ */
 export class AuthController {
+  /**
+   * Returns user details
+   */
+  public static async userDetails(req: Request, res: Response) {
+  }
+
+  /**
+   * Logs in user with specified credentials
+   */
   public static async login(req: Request, res: Response) {
     const { email, password } = req.body;
 
@@ -36,20 +48,32 @@ export class AuthController {
         refreshTokenSecret
       );
 
-      res.json({ accessToken, refreshToken, role: user.role });
+      res.status(201).json({ accessToken, refreshToken, role: user.role });
     }
   }
 
-  public static async refresh(req: Request, res: Response) {
-    const { token } = req.body;
+  /**
+   * Logs out current user
+   */
+  public static async logout(req: Request, res: Response) {
+    //@todo logout current user
 
-    if (!token) {
-      res.sendStatus(401);
+    res.sendStatus(204);
+  }
+
+  /**
+   * Refreshes authentication token of current user
+   */
+  public static async refreshToken(req: Request, res: Response) {
+    const { refreshToken } = req.body;
+
+    if (!refreshToken) {
+      res.sendStatus(400);
     }
 
-    jsonwebtoken.verify(token, refreshTokenSecret, (err: any, user: any) => {
+    jsonwebtoken.verify(refreshToken, refreshTokenSecret, (err: any, user: any) => {
       if (err) {
-        res.sendStatus(403);
+        res.sendStatus(401);
       }
 
       const accessToken = jsonwebtoken.sign(
@@ -62,13 +86,10 @@ export class AuthController {
     });
   }
 
-  public static async logout(req: Request, res: Response) {
-    const { token } = req.body;
-
-    res.send('Logout successful');
-  }
-
-  public static check = async (req: Request, res: Response) => {
+  /**
+   * Checks token of current user
+   */
+  public static async checkToken(req: Request, res: Response) {
     const authHeader = req.headers['authorization'];
 
     if (authHeader) {
@@ -79,13 +100,34 @@ export class AuthController {
           res.sendStatus(403);
         }
 
-        res.json({
-          user,
-          authenticated: true,
-        });
+        res.sendStatus(200);
       });
     } else {
       res.sendStatus(401);
     }
   };
+
+  /**
+   * Signs in user with his personal information
+   */
+  public static async signin(req: Request, res: Response) {
+    const { firstname, lastname, email, password } = req.body;
+  }
+
+  /**
+   * Verifies email address using a token sent on signin
+   */
+  public static async verifyEmail(req: Request, res: Response) {
+    const { userId, token } = req.body;
+  }
+
+  /**
+   * Updates user's data
+   */
+  public static async updateUser(req: Request, res: Response) {
+    const data = req.body;
+  }
+
+  //@todo add jwt tokens to db
+  //@todo hash passwords
 }
