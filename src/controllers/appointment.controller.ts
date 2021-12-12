@@ -27,6 +27,7 @@ export class AppointmentController {
    * Get all appointments related to a specific user
    *
    * @route {GET} /users/:id/appointments
+   * @routeParam {string} id - id of the user
    * @param {Request} req frontend request to get data about all appointments for user
    * @param {Response} res backend response with data about all appointments for user
    */
@@ -40,6 +41,7 @@ export class AppointmentController {
    * Get all appointments related to a specific room
    *
    * @route {GET} /rooms/:id/appointments
+   * @routeParam {string} id - id of the room
    * @param {Request} req frontend request to get data about all appointments for room
    * @param {Response} res backend response with data about all appointments for room
    */
@@ -53,6 +55,7 @@ export class AppointmentController {
    * Get one appointment with an id
    *
    * @route {GET} /appointments/:id
+   * @routeParam {string} id - id of the appointment
    * @param {Request} req frontend request to get data about one appointment
    * @param {Response} res backend response with data about one appointment
    */
@@ -65,6 +68,11 @@ export class AppointmentController {
    * Create a new appointment
    *
    * @route {POST} /appointments
+   * @bodyParam {Date} start - start date and time of the appointment
+   * @bodyParam {Date} end - end date and time of the appointment
+   * @bodyParam {Room} room - the room associated with the appointment
+   * @bodyParam {User} user - the user associated with the appointment
+   * @bodyParam {ConfirmationStatus [Optional]} confirmationStatus - the confirmation status of the appointment
    * @param {Request} req frontend request to create a new appointment
    * @param {Response} res backend response creation of a new appointment
    */
@@ -77,6 +85,9 @@ export class AppointmentController {
    * Edit thus update appointment
    *
    * @route {PATCH} /appointments/:id
+   * @routeParam {string} id - id of the appointment
+   * @bodyParam {Date [Optional]} start - start date and time of the appointment
+   * @bodyParam {Date [Optional]} end - end date and time of the appointment
    * @param {Request} req frontend request to change data about one appointment
    * @param {Response} res backend response with data change of one appointment
    */
@@ -93,6 +104,7 @@ export class AppointmentController {
    * Delete one appointment
    *
    * @route {DELETE} /appointments/:id
+   * @routeParam {string} id - id of the appointment
    * @param {Request} req frontend request to delete one appointment
    * @param {Response} res backend response deletion
    */
