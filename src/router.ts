@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { AdminController } from './controllers/admin.controller';
+import { AppointmentController } from './controllers/appointment.controller';
 import { AuthController } from './controllers/auth.controller';
 import { LivecamController } from './controllers/livecam.controller';
 import { RoomController } from './controllers/room.controller';
@@ -11,14 +12,23 @@ const router: Router = Router();
 
 // Authentication
 const TOKEN_BASE_URL = "/token"
+
 router.post(TOKEN_BASE_URL, AuthController.login);
 router.delete(`${TOKEN_BASE_URL}`, AuthController.logout);
 router.post(`${TOKEN_BASE_URL}/refresh`, AuthController.refreshToken);
 router.get(`${TOKEN_BASE_URL}/check`, AuthController.checkToken);
 
+// Personal User Settings
+const USER_BASE_URL = '/user';
+
+router.get('/user', UserController.getUser);
+router.post('/users', UserController.signin);
+router.post('/users/verify', UserController.verifyEmail);
+router.patch('/user', UserController.updateUser);
+
 // Messaging
 
-// Settings
+// Admin (General Settings & User Management)
 const GLOBAL_SETTINGS_BASE_URL = '/global-settings';
 const WHITELIST_BASE_URL = '/global-settings/whitelist-retailer';
 
@@ -38,18 +48,10 @@ router.delete(
   AdminController.deleteWhitelistRetailer
 );
 
-// Admin (General Settings & User Management)
-const USERS_BASE_URL = "/users"
-
-router.get(USERS_BASE_URL, AdminController.getUsers);
-router.get(`${USERS_BASE_URL}/:id`, AdminController.getUserData);
-router.put(`${USERS_BASE_URL}/:id`, AdminController.editUserData);
-router.delete(`${USERS_BASE_URL}/:id`, AdminController.deleteUser);
-
-router.get('/user', UserController.getUser);
-router.post('/users', UserController.signin);
-router.post('/users/verify', UserController.verifyEmail);
-router.patch('/user', UserController.updateUser);
+router.get(`${USER_BASE_URL}s`, AdminController.getUsers);
+router.get(`${USER_BASE_URL}s/:id`, AdminController.getUserData);
+router.put(`${USER_BASE_URL}s/:id`, AdminController.editUserData);
+router.delete(`${USER_BASE_URL}s/:id`, AdminController.deleteUser);
 
 // Room Management
 const ROOM_BASE_URL = '/rooms';
@@ -62,6 +64,42 @@ router.put(`${ROOM_BASE_URL}/:id`, RoomController.updateRoom);
 router.delete(`${ROOM_BASE_URL}/:id`, RoomController.deleteRoom);
 
 // Appointment Management
+const APPOINTMENTS_BASE_URL = '/appointments';
+
+router.get(
+  `${APPOINTMENTS_BASE_URL}`,
+  AppointmentController.getAllAppointments
+);
+
+router.get(
+  `${USER_BASE_URL}/appointments`,
+  AppointmentController.getAppointmentsForCurrentUser
+);
+
+router.get(
+  `/${ROOM_BASE_URL}/:id/appointments`,
+  AppointmentController.getAppointmentsForRoom
+);
+
+router.get(
+  `${APPOINTMENTS_BASE_URL}/:id`,
+  AppointmentController.getAppointment
+);
+
+router.post(
+  `${APPOINTMENTS_BASE_URL}`,
+  AppointmentController.createAppointment
+);
+
+router.put(
+  `${APPOINTMENTS_BASE_URL}/:id`,
+  AppointmentController.updateAppointment
+);
+
+router.delete(
+  `${APPOINTMENTS_BASE_URL}/:id`,
+  AppointmentController.deleteAppointment
+);
 
 // Inventory Management
 
