@@ -3,6 +3,7 @@ import { AuthController } from './controllers/auth.controller';
 import { LivecamController } from './controllers/livecam.controller';
 import { UserController } from './controllers/user.controller';
 import { AdminController } from './controllers/admin.controller';
+import { AppointmentController } from './controllers/appointment.controller';
 import { RoomController } from './controllers/room.controller';
 
 const router: Router = Router();
@@ -38,13 +39,14 @@ router.delete(
 );
 
 // User Management
-const USER_BASE_URL = '/users';
+const USERS_BASE_URL = '/users';
+const USER_BASE_URL = '/user';
 
-router.get(USER_BASE_URL, UserController.getAllUsers);
-router.get(`${USER_BASE_URL}/:id`, UserController.getUserById);
-router.post(USER_BASE_URL, UserController.createUser);
-router.put(`${USER_BASE_URL}/:id`, UserController.updateUser);
-router.delete(`${USER_BASE_URL}/:id`, UserController.deleteUser);
+router.get(USERS_BASE_URL, UserController.getAllUsers);
+router.get(`${USERS_BASE_URL}/:id`, UserController.getUserById);
+router.post(USERS_BASE_URL, UserController.createUser);
+router.put(`${USERS_BASE_URL}/:id`, UserController.updateUser);
+router.delete(`${USERS_BASE_URL}/:id`, UserController.deleteUser);
 
 // Room Management
 const ROOM_BASE_URL = '/rooms';
@@ -57,6 +59,42 @@ router.put(`${ROOM_BASE_URL}/:id`, RoomController.updateRoom);
 router.delete(`${ROOM_BASE_URL}/:id`, RoomController.deleteRoom);
 
 // Appointment Management
+const APPOINTMENTS_BASE_URL = '/appointments';
+
+router.get(
+  `${APPOINTMENTS_BASE_URL}`,
+  AppointmentController.getAllAppointments
+);
+
+router.get(
+  `${USER_BASE_URL}/appointments`,
+  AppointmentController.getAppointmentsForCurrentUser
+);
+
+router.get(
+  `/${ROOM_BASE_URL}/:id/appointments`,
+  AppointmentController.getAppointmentsForRoom
+);
+
+router.get(
+  `${APPOINTMENTS_BASE_URL}/:id`,
+  AppointmentController.getAppointment
+);
+
+router.post(
+  `${APPOINTMENTS_BASE_URL}`,
+  AppointmentController.createAppointment
+);
+
+router.put(
+  `${APPOINTMENTS_BASE_URL}/:id`,
+  AppointmentController.updateAppointment
+);
+
+router.delete(
+  `${APPOINTMENTS_BASE_URL}/:id`,
+  AppointmentController.deleteAppointment
+);
 
 // Inventory & Order Management
 
