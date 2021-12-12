@@ -35,10 +35,10 @@ export class AdminController {
    *
    * @route {PATCH} /users/:id
    * @routeParam {string} id - a user id
-   * @bodyParam {string [OPTIONAL]} email - a new email address
-   * @bodyParam {string [OPTIONAL]} password - a new password
-   * @bodyParam {UserRole [OPTIONAL]} userRole - a new user role
-   * @bodyParam {boolean [OPTIONAL]} emailVerification - a new email verification status
+   * @bodyParam {string [Optional]} email - a new email address
+   * @bodyParam {string [Optional]} password - a new password
+   * @bodyParam {UserRole [Optional]} userRole - a new user role
+   * @bodyParam {boolean [Optional]} emailVerification - a new email verification status
    *
    */
   public static async editUserData(req: Request, res: Response) {}
@@ -49,8 +49,8 @@ export class AdminController {
    *
    * @route {PATCH} /global-settings/:key
    * @routeParam {string} key - a global setting key
-   * @bodyParam {string [OPTIONAL]} value - a new value
-   * @bodyParam {string [OPTIONAL]} description - a new description
+   * @bodyParam {string [Optional]} value - a new value
+   * @bodyParam {string [Optional]} description - a new description
    */
   public static async updateGlobalSettings(req: Request, res: Response) {}
 
@@ -73,7 +73,7 @@ export class AdminController {
    *
    * @route {POST} /global-settings/whitelist-retailers
    * @bodyParam {string} name - a name of the retailer
-   * @bodyParam {string [OPTIONAL]} domain - a domain of the retailer
+   * @bodyParam {string [Optional]} domain - a domain of the retailer
    */
   public static async createWhitelistRetailer(req: Request, res: Response) {}
 
@@ -82,7 +82,7 @@ export class AdminController {
    *
    * @route {PATCH} /global-settings/whitelist-retailers/:id
    * @routeParam {string} id - a retailer id
-   * @bodyParam {string [OPTIONAL]} name - a new name of the retailer
+   * @bodyParam {string [Optional]} name - a new name of the retailer
    */
   public static async editWhitelistRetailerData(req: Request, res: Response) {}
 
