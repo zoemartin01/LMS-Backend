@@ -1,21 +1,30 @@
-import { Request, Response, Router } from 'express';
+import { Router } from 'express';
+import { AdminController } from './controllers/admin.controller';
 import { AuthController } from './controllers/auth.controller';
 import { LivecamController } from './controllers/livecam.controller';
-import { UserController } from './controllers/user.controller';
-import { AdminController } from './controllers/admin.controller';
+import { MessagingController } from "./controllers/messaging.controller";
 import { RoomController } from './controllers/room.controller';
+import { UserController } from './controllers/user.controller';
 
 const router: Router = Router();
 
 // General
 
 // Authentication
-const AUTH_BASE_URL = '/token';
+const TOKEN_BASE_URL = '/token';
 
-router.post(AUTH_BASE_URL, AuthController.login);
-router.post(`${AUTH_BASE_URL}/refresh`, AuthController.refresh);
-router.delete(`${AUTH_BASE_URL}/:id`, AuthController.logout);
-router.get(`${AUTH_BASE_URL}/check`, AuthController.check);
+router.post(TOKEN_BASE_URL, AuthController.login);
+router.post(`${TOKEN_BASE_URL}/refresh`, AuthController.refresh);
+router.delete(`${TOKEN_BASE_URL}/:id`, AuthController.logout);
+router.get(`${TOKEN_BASE_URL}/check`, AuthController.check);
+
+// Messaging
+const MESSAGE_BASE_URL = "/message"
+
+router.get(`${MESSAGE_BASE_URL}s`, MessagingController.messages);
+router.get(`${MESSAGE_BASE_URL}s/unread-amounts`, MessagingController.unreadMessagesAmounts);
+router.delete(`${TOKEN_BASE_URL}/:id`, MessagingController.deleteMessage);
+router.patch(`${TOKEN_BASE_URL}/:id`, MessagingController.updateMessage);
 
 // Settings
 const GLOBAL_SETTINGS_BASE_URL = '/global-settings';
