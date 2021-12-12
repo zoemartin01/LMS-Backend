@@ -4,6 +4,7 @@ import { LivecamController } from './controllers/livecam.controller';
 import { UserController } from './controllers/user.controller';
 import { AdminController } from './controllers/admin.controller';
 import { RoomController } from './controllers/room.controller';
+import { OrderController } from './controllers/order.controller';
 
 const router: Router = Router();
 
@@ -59,6 +60,22 @@ router.delete(`${ROOM_BASE_URL}/:id`, RoomController.deleteRoom);
 // Appointment Management
 
 // Inventory & Order Management
+// TODO: change if base url changes for users/admins
+const ORDER_BASE_URL = '/orders';
+
+router.get(`${ORDER_BASE_URL}/list`, OrderController.getPersonalOrders);
+
+router.get(`${ORDER_BASE_URL}`, OrderController.getAllOrders);
+
+router.get(`${USER_BASE_URL}/:id/orders`, OrderController.getOrdersForUser);
+
+router.get(`${ORDER_BASE_URL}/:id`, OrderController.getOrderById);
+
+router.post(`${ORDER_BASE_URL}`, OrderController.createOrder);
+
+router.patch(`${ORDER_BASE_URL}/:id`, OrderController.updateOrder);
+
+router.delete(`${ORDER_BASE_URL}/:id`, OrderController.deleteOrder);
 
 // Livecam
 const LIVECAM_BASE_URL = '/livecam/recordings';
