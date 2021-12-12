@@ -20,10 +20,10 @@ router.delete(`${TOKEN_BASE_URL}/:id`, AuthController.logout);
 router.get(`${TOKEN_BASE_URL}/check`, AuthController.check);
 
 // Messaging
-const MESSAGE_BASE_URL = "/message"
+const MESSAGE_BASE_URL = "/messages"
 
-router.get(`${MESSAGE_BASE_URL}s`, MessagingController.messages);
-router.get(`${MESSAGE_BASE_URL}s/unread-amounts`, MessagingController.unreadMessagesAmounts);
+router.get(`user/${MESSAGE_BASE_URL}`, MessagingController.messages);
+router.get(`${MESSAGE_BASE_URL}/unread-amounts`, MessagingController.unreadMessagesAmounts);
 router.delete(`${TOKEN_BASE_URL}/:id`, MessagingController.deleteMessage);
 router.patch(`${TOKEN_BASE_URL}/:id`, MessagingController.updateMessage);
 
