@@ -8,7 +8,7 @@ export class InventoryController {
    * @param req
    * @param res
    */
-  public static async getInventoryItems(req: Request, res: Response) {}
+  public static async getAllInventoryItems(req: Request, res: Response) {}
 
   /**
    * Get the inventory item data of a specific inventory item
@@ -18,7 +18,7 @@ export class InventoryController {
    * @param req
    * @param res
    */
-  public static async getInventoryItemById(req: Request, res: Response) {}
+  public static async getInventoryItem(req: Request, res: Response) {}
 
   /**
    * Edit thus update inventory items data
