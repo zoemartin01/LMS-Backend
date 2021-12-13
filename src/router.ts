@@ -5,6 +5,7 @@ import { AuthController } from './controllers/auth.controller';
 import { LivecamController } from './controllers/livecam.controller';
 import { MessagingController } from './controllers/messaging.controller';
 import { RoomController } from './controllers/room.controller';
+import { InventoryController } from './controllers/inventory.controller';
 import { UserController } from './controllers/user.controller';
 
 const router: Router = Router();
@@ -114,6 +115,23 @@ router.delete(
 );
 
 // Inventory Management
+const INVENTORY_BASE_URL = '/inventory/items';
+
+router.get(INVENTORY_BASE_URL, InventoryController.getAllInventoryItems);
+
+router.get(`${INVENTORY_BASE_URL}/:id`, InventoryController.getInventoryItem);
+
+router.post(INVENTORY_BASE_URL, InventoryController.createInventoryItem);
+
+router.patch(
+  `${INVENTORY_BASE_URL}/:id`,
+  InventoryController.updateInventoryItem
+);
+
+router.delete(
+  `${INVENTORY_BASE_URL}/:id`,
+  InventoryController.deleteInventoryItem
+);
 
 // Order Management
 
