@@ -34,8 +34,9 @@ export class Room extends BaseEntity {
    * The description of the room.
    *
    * @type {string}
+   * @default ''
    */
-  @Column()
+  @Column({ default: '' })
   description: string;
 
   /**

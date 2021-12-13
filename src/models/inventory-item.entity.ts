@@ -29,7 +29,7 @@ export class InventoryItem extends BaseEntity {
    * The inventory item's description
    *
    * @type {string}
-   * @default ""
+   * @default ''
    */
   @Column({ default: '' })
   description: string;
