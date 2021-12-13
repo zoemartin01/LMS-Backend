@@ -43,7 +43,7 @@ export class LivecamController {
   /**
    * Delete a given recording
    *
-   * @route {DELETE} /livecam/recordings/:id/delete
+   * @route {DELETE} /livecam/recordings/:id
    * @routeParam {string} id - The id of the recording
    */
   public static async deleteRecording(req: Request, res: Response) {}
