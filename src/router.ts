@@ -3,6 +3,7 @@ import { AdminController } from './controllers/admin.controller';
 import { AppointmentController } from './controllers/appointment.controller';
 import { AuthController } from './controllers/auth.controller';
 import { LivecamController } from './controllers/livecam.controller';
+import { MessagingController } from './controllers/messaging.controller';
 import { RoomController } from './controllers/room.controller';
 import { UserController } from './controllers/user.controller';
 
@@ -14,9 +15,20 @@ const router: Router = Router();
 const TOKEN_BASE_URL = '/token';
 
 router.post(TOKEN_BASE_URL, AuthController.login);
-router.delete(`${TOKEN_BASE_URL}`, AuthController.logout);
-router.post(`${TOKEN_BASE_URL}/refresh`, AuthController.refreshToken);
-router.get(`${TOKEN_BASE_URL}/check`, AuthController.checkToken);
+router.post(`${TOKEN_BASE_URL}/refresh`, AuthController.refresh);
+router.delete(`${TOKEN_BASE_URL}/:id`, AuthController.logout);
+router.get(`${TOKEN_BASE_URL}/check`, AuthController.check);
+
+// Messaging
+const MESSAGE_BASE_URL = '/messages';
+
+router.get(`user/${MESSAGE_BASE_URL}`, MessagingController.messages);
+router.get(
+  `${MESSAGE_BASE_URL}/unread-amounts`,
+  MessagingController.unreadMessagesAmounts
+);
+router.delete(`${TOKEN_BASE_URL}/:id`, MessagingController.deleteMessage);
+router.patch(`${TOKEN_BASE_URL}/:id`, MessagingController.updateMessage);
 
 // Personal User Settings
 const USER_BASE_URL = '/user';
