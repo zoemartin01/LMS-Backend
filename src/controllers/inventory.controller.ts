@@ -21,6 +21,18 @@ export class InventoryController {
   public static async getInventoryItem(req: Request, res: Response) {}
 
   /**
+   * Create a new inventory item
+   *
+   * @route {POST} /inventory/item
+   * @bodyParam {string} name - the name of the inventory item
+   * @bodyParam {string} description - description of the inventory item
+   * @bodyParam {number [Optional]} quantity - quantity of the inventory item
+   * @param {Request} req frontend request to create one new inventory item
+   * @param {Response} res backend response with data of newly created inventory item
+   */
+  public static async createInventoryItem(req: Request, res: Response) {}
+
+  /**
    * Edit thus update inventory items data
    *
    * @route {PATCH} /inventory/item/:id
@@ -32,18 +44,6 @@ export class InventoryController {
    * @param {Response} res backend response with (changed) data of inventory item
    */
   public static async updateInventoryItem(req: Request, res: Response) {}
-
-  /**
-   * Create a new inventory item
-   *
-   * @route {POST} /inventory/item
-   * @bodyParam {string} name - the name of the inventory item
-   * @bodyParam {string} description - description of the inventory item
-   * @bodyParam {number [Optional]} quantity - quantity of the inventory item
-   * @param {Request} req frontend request to create one new inventory item
-   * @param {Response} res backend response with data of newly created inventory item
-   */
-  public static async createInventoryItem(req: Request, res: Response) {}
 
   /**
    * Delete one inventory item
