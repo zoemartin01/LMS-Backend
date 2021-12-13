@@ -61,11 +61,8 @@ router.delete(`${ROOM_BASE_URL}/:id`, RoomController.deleteRoom);
 
 // Inventory & Order Management
 const INVENTORY_BASE_URL = '/inventory';
-router.get(INVENTORY_BASE_URL, InventoryController.getInventoryItems);
-router.get(
-  `${INVENTORY_BASE_URL}/:id`,
-  InventoryController.getInventoryItemById
-);
+router.get(INVENTORY_BASE_URL, InventoryController.getAllInventoryItems);
+router.get(`${INVENTORY_BASE_URL}/:id`, InventoryController.getInventoryItem);
 router.post(INVENTORY_BASE_URL, InventoryController.createInventoryItem);
 router.patch(
   `${INVENTORY_BASE_URL}/:id`,
