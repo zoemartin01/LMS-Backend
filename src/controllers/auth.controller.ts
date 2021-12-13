@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import { getRepository } from 'typeorm';
 import { User } from '../models/user.entity';
 import jsonwebtoken from 'jsonwebtoken';
-const bcrypt = require("bcrypt");
+import bcrypt from 'bcrypt';
 
 const accessTokenSecret = 'V50jPXQVocPUSPHl0yzPJhXZzh32bp';
 const refreshTokenSecret = '3pqOHs7R1TrCgsRKksPp4J3Kfs0l0X';
@@ -75,19 +75,23 @@ export class AuthController {
       res.sendStatus(400);
     }
 
-    jsonwebtoken.verify(refreshToken, refreshTokenSecret, (err: any, user: any) => {
-      if (err) {
-        res.sendStatus(401);
+    jsonwebtoken.verify(
+      refreshToken,
+      refreshTokenSecret,
+      (err: any, user: any) => {
+        if (err) {
+          res.sendStatus(401);
+        }
+
+        const accessToken = jsonwebtoken.sign(
+          { email: user.email, role: user.role },
+          accessTokenSecret,
+          { expiresIn: '20m' }
+        );
+
+        res.json({ accessToken });
       }
-
-      const accessToken = jsonwebtoken.sign(
-        { email: user.email, role: user.role },
-        accessTokenSecret,
-        { expiresIn: '20m' }
-      );
-
-      res.json({ accessToken });
-    });
+    );
   }
 
   /**
@@ -111,7 +115,7 @@ export class AuthController {
     } else {
       res.sendStatus(401);
     }
-  };
+  }
 
   //@todo add jwt tokens to db
   //@todo hash passwords
