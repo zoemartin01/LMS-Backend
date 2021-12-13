@@ -12,7 +12,7 @@ export class InventoryController {
    * Get the data of all inventory items
    *
    * @route {GET} /inventory/items
-   * @param {Resquest} req frontend request to get data of all inventory items
+   * @param {Request} req frontend request to get data of all inventory items
    * @param {Response} res backend response with data of all inventory items
    */
   public static async getAllInventoryItems(req: Request, res: Response) {}
