@@ -1,33 +1,54 @@
+import { Request, Response } from 'express';
 import { getRepository } from 'typeorm';
 import { User } from '../models/user.entity';
-import { Request, Response } from 'express';
+import bcrypt from 'bcrypt';
 
+/**
+ * Controller for User Settings
+ */
 export class UserController {
-  public static async getAllUsers(req: Request, res: Response) {
-    const users = await getRepository(User).find();
-    res.send(users);
+  /**
+   * Returns user details
+   *
+   * @route {GET} /user
+   */
+  public static async getUser(req: Request, res: Response) {}
+
+  /**
+   * Signs in user with his personal information
+   *
+   * @route {POST} /users
+   * @bodyParam {string} firstname - new user's firstname
+   * @bodyParam {string} lastname - new user's lastname
+   * @bodyParam {string} email - new user's email address
+   * @bodyParam {string} password - new user's password
+   */
+  public static async signin(req: Request, res: Response) {
+    const { firstname, lastname, email, password } = req.body;
+
+    /*const salt = await bcrypt.genSalt(10);
+    user.password = await bcrypt.hash(user.password, salt);*/
   }
 
-  public static async getUserById(req: Request, res: Response) {
-    const id = req.params.id;
-    const user = await getRepository(User).findOne(id);
-    res.send(user);
+  /**
+   * Verifies email address using a token sent on signin
+   *
+   * @route {POST} /users/verify
+   * @bodyParam {string} userId - user's id
+   * @bodyParam {string} token - token to verify email
+   */
+  public static async verifyEmail(req: Request, res: Response) {
+    const { userId, token } = req.body;
   }
 
-  public static async createUser(req: Request, res: Response) {
-    const user = await getRepository(User).save(req.body);
-    res.send(user);
-  }
-
+  /**
+   * Updates user's data
+   *
+   * @route {PATCH} /user
+   * @bodyParam {string [Optional]} password - user's new password
+   * @bodyParam {string [Optional]} notificationChannel - user's new notification channel
+   */
   public static async updateUser(req: Request, res: Response) {
-    const id = req.params.id;
-    const user = await getRepository(User).update(id, req.body);
-    res.send(user);
-  }
-
-  public static async deleteUser(req: Request, res: Response) {
-    const id = req.params.id;
-    const user = await getRepository(User).delete(id);
-    res.send(user);
+    const data = req.body;
   }
 }
