@@ -1,5 +1,16 @@
 import { Request, Response } from 'express';
+import { Order } from '../models/order.entity';
+import { OrderStatus } from '../types/enums/order-status';
+import { User } from '../models/user.entity';
 
+/**
+ * Controller for order management
+ *
+ * @see OrderService
+ * @see Order
+ * @see OrderStatus
+ * @see User
+ */
 export class OrderController {
   /**
    * Get the data of all orders
