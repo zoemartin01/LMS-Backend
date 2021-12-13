@@ -88,15 +88,15 @@ export class RoomController {
    * Create a new available timeslot
    *
    * @route {POST} /rooms
-   * @param {string} id - The id of the time slot.
-   * @param {string} seriesId - The id of the series the time slot belongs to.
-   * @param {Date} start - The start time of the time slot.
-   * @param {Date} end - The end time of the time slot.
-   * @param {Room} room - The room the time slot belongs to.
-   * @param {User} user - The user associated with the time slot.
-   * @param {TimeSlotType} type - The type of the time slot.
-   * @param {Request} req frontend request to create a new available timeslot of a room
-   * @param {Response} res backend response creation of a new available timeslot of a room
+   * @bodyParam {string} id - id of the timeslot
+   * @bodyParam {string} seriesId - The id of the series the time slot belongs to.
+   * @bodyParam {Date} start - The start time of the time slot.
+   * @bodyParam {Date} end - The end time of the time slot.
+   * @bodyParam {Room} room - The room the time slot belongs to.
+   * @bodyParam {User} user - The user associated with the time slot.
+   * @bodyParam {TimeSlotType} type - The type of the time slot.
+   * @bodyParam {Request} req frontend request to create a new available timeslot of a room
+   * @bodyParam {Response} res backend response creation of a new available timeslot of a room
    */
   public static async createTimeslot(req: Request, res: Response) {
     const timeslot = await getRepository(TimeSlot).save(req.body);
