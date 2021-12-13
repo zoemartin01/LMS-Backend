@@ -103,7 +103,7 @@ router.delete(
 );
 
 // Inventory Management
-const INVENTORY_BASE_URL = '/inventory';
+const INVENTORY_BASE_URL = '/inventory/items';
 
 router.get(INVENTORY_BASE_URL, InventoryController.getAllInventoryItems);
 

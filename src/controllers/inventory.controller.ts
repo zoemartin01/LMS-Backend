@@ -11,7 +11,7 @@ export class InventoryController {
   /**
    * Get the data of all inventory items
    *
-   * @route {GET} /inventory
+   * @route {GET} /inventory/items
    * @param {Resquest} req frontend request to get data of all inventory items
    * @param {Response} res backend response with data of all inventory items
    */
@@ -20,7 +20,7 @@ export class InventoryController {
   /**
    * Get the inventory item data of a specific inventory item
    *
-   * @route {GET} /inventory/item/:id
+   * @route {GET} /inventory/items/:id
    * @routeParam {string} id - The id of the inventory item
    * @param {Request} req frontend request to get data of one inventory item
    * @param {Response} res backend response with data of one inventory item
@@ -30,7 +30,7 @@ export class InventoryController {
   /**
    * Create a new inventory item
    *
-   * @route {POST} /inventory/item
+   * @route {POST} /inventory/items
    * @bodyParam {string} name - the name of the inventory item
    * @bodyParam {string} description - description of the inventory item
    * @bodyParam {number [Optional]} quantity - quantity of the inventory item
@@ -42,7 +42,7 @@ export class InventoryController {
   /**
    * Edit thus update inventory items data
    *
-   * @route {PATCH} /inventory/item/:id
+   * @route {PATCH} /inventory/items/:id
    * @routeParam {string} id - The id of the inventory item
    * @bodyParam {string [Optional]} name - name of the inventory item
    * @bodyParam {string [Optional]} description - description of the inventory item
@@ -55,7 +55,7 @@ export class InventoryController {
   /**
    * Delete one inventory item
    *
-   * @route {DELETE} /inventory/:id
+   * @route {DELETE} /inventory/items/:id
    * @routeParam {string} id - The id of the inventory item
    * @param {Request} req frontend request to delete one inventory item
    * @param {Response} res backend response deletion
