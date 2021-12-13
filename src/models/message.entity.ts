@@ -13,6 +13,7 @@ import { User } from './user.entity';
  * @property {string} title - The message title.
  * @property {string} content - The message content.
  * @property {string} correspondingUrl - The message corresponding url.
+ * @property {string} correspondingUrlText - The message corresponding url text.
  * @property {User} recipient - The message recipient.
  * @property {boolean} readStatus - The message is read.
  */
@@ -44,6 +45,15 @@ export class Message extends BaseEntity {
    */
   @Column()
   readonly correspondingUrl: string;
+
+  /**
+   * The message corresponding url text.
+   *
+   * @type {string}
+   * @readonly
+   */
+  @Column()
+  readonly correspondingUrlText: string;
 
   /**
    * The message recipient.

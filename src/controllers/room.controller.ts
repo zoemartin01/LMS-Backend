@@ -40,7 +40,7 @@ export class RoomController {
    *
    * @route {POST} /rooms
    * @bodyParam {string} name - name of the room
-   * @bodyParam {string} description - description of the room
+   * @bodyParam {string [Optional]} description - description of the room
    * @bodyParam {number [Optional]} maxConcurrentBooking - max number of concurrent bookings
    * @bodyParam {boolean [Optional]} autoAcceptBookings - if bookings are automatically accepted
    * @param {Request} req frontend request to create a new room

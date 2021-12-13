@@ -3,7 +3,10 @@ import { AdminController } from './controllers/admin.controller';
 import { AppointmentController } from './controllers/appointment.controller';
 import { AuthController } from './controllers/auth.controller';
 import { LivecamController } from './controllers/livecam.controller';
+import { MessagingController } from './controllers/messaging.controller';
 import { RoomController } from './controllers/room.controller';
+import { OrderController } from './controllers/order.controller';
+import { InventoryController } from './controllers/inventory.controller';
 import { UserController } from './controllers/user.controller';
 
 const router: Router = Router();
@@ -11,20 +14,31 @@ const router: Router = Router();
 // General
 
 // Authentication
-const TOKEN_BASE_URL = "/token"
+const TOKEN_BASE_URL = '/token';
 
 router.post(TOKEN_BASE_URL, AuthController.login);
-router.delete(`${TOKEN_BASE_URL}`, AuthController.logout);
 router.post(`${TOKEN_BASE_URL}/refresh`, AuthController.refreshToken);
+router.delete(`${TOKEN_BASE_URL}/:id`, AuthController.logout);
 router.get(`${TOKEN_BASE_URL}/check`, AuthController.checkToken);
+
+// Messaging
+const MESSAGE_BASE_URL = '/messages';
+
+router.get(`user/${MESSAGE_BASE_URL}`, MessagingController.messages);
+router.get(
+  `${MESSAGE_BASE_URL}/unread-amounts`,
+  MessagingController.unreadMessagesAmounts
+);
+router.delete(`${TOKEN_BASE_URL}/:id`, MessagingController.deleteMessage);
+router.patch(`${TOKEN_BASE_URL}/:id`, MessagingController.updateMessage);
 
 // Personal User Settings
 const USER_BASE_URL = '/user';
 
-router.get('/user', UserController.getUser);
-router.post('/users', UserController.signin);
-router.post('/users/verify', UserController.verifyEmail);
-router.patch('/user', UserController.updateUser);
+router.get(USER_BASE_URL, UserController.getUser);
+router.post(USER_BASE_URL, UserController.signin);
+router.post(`${USER_BASE_URL}/verify`, UserController.verifyEmail);
+router.patch(USER_BASE_URL, UserController.updateUser);
 
 // Messaging
 
@@ -102,8 +116,41 @@ router.delete(
 );
 
 // Inventory Management
+const INVENTORY_BASE_URL = '/inventory/items';
+
+router.get(INVENTORY_BASE_URL, InventoryController.getAllInventoryItems);
+
+router.get(`${INVENTORY_BASE_URL}/:id`, InventoryController.getInventoryItem);
+
+router.post(INVENTORY_BASE_URL, InventoryController.createInventoryItem);
+
+router.patch(
+  `${INVENTORY_BASE_URL}/:id`,
+  InventoryController.updateInventoryItem
+);
+
+router.delete(
+  `${INVENTORY_BASE_URL}/:id`,
+  InventoryController.deleteInventoryItem
+);
 
 // Order Management
+const ORDER_BASE_URL = '/orders';
+
+router.get(`${ORDER_BASE_URL}`, OrderController.getAllOrders);
+
+router.get(
+  `${USER_BASE_URL}/:id/orders`,
+  OrderController.getOrdersForCurrentUser
+);
+
+router.get(`${ORDER_BASE_URL}/:id`, OrderController.getOrder);
+
+router.post(`${ORDER_BASE_URL}`, OrderController.createOrder);
+
+router.patch(`${ORDER_BASE_URL}/:id`, OrderController.updateOrder);
+
+router.delete(`${ORDER_BASE_URL}/:id`, OrderController.deleteOrder);
 
 // Livecam
 const LIVECAM_BASE_URL = '/livecam/recordings';
