@@ -11,7 +11,7 @@ const router: Router = Router();
 // General
 
 // Authentication
-const TOKEN_BASE_URL = "/token"
+const TOKEN_BASE_URL = '/token';
 
 router.post(TOKEN_BASE_URL, AuthController.login);
 router.delete(`${TOKEN_BASE_URL}`, AuthController.logout);
@@ -21,10 +21,10 @@ router.get(`${TOKEN_BASE_URL}/check`, AuthController.checkToken);
 // Personal User Settings
 const USER_BASE_URL = '/user';
 
-router.get('/user', UserController.getUser);
-router.post('/users', UserController.signin);
-router.post('/users/verify', UserController.verifyEmail);
-router.patch('/user', UserController.updateUser);
+router.get(USER_BASE_URL, UserController.getUser);
+router.post(USER_BASE_URL, UserController.signin);
+router.post(`${USER_BASE_URL}/verify`, UserController.verifyEmail);
+router.patch(USER_BASE_URL, UserController.updateUser);
 
 // Messaging
 
