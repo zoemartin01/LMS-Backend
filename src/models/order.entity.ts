@@ -1,7 +1,7 @@
 import { Column, Entity, ManyToOne } from 'typeorm';
 import { OrderStatus } from '../types/enums/order-status';
 import { BaseEntity } from './base.entity';
-import { Item } from './item.entity';
+import { InventoryItem } from './inventory-item.entity';
 import { User } from './user.entity';
 
 /**
@@ -24,11 +24,11 @@ export class Order extends BaseEntity {
   /**
    * The item.
    *
-   * @type {Item}
+   * @type {InventoryItem}
    * @nullable if item does not yet exist.
    */
-  @ManyToOne(() => Item, (item) => item.orders, { nullable: true })
-  item: Item;
+  @ManyToOne(() => InventoryItem, (item) => item.orders, { nullable: true })
+  item: InventoryItem;
 
   /**
    * The item name.
