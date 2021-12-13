@@ -53,13 +53,13 @@ export class OrderController {
    */
   public static async createOrder(req: Request, res: Response) {}
 
-  // TODO: item and item name?
   /**
-   * Edit thus update order data
+   * Update the data of an order
    *
    * @route {PATCH} /orders/:id
    * @routeParam {string} id - The id of the order
-   * @bodyParam {string [Optional]} item - name of the order item
+   * @bodyParam {Item [Optional]} item - an item associated with the order
+   * @bodyParam {string [Optional]} itemName - name of the item if no appropriate item exists
    * @bodyParam {number [Optional]} quantity - quantity of the order
    * @bodyParam {string [Optional]} purchaseURL - the purchase url
    * @bodyParam {OrderStatus [Optional]} orderStatus - the status of the order
