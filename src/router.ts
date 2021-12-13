@@ -1,25 +1,35 @@
-import { Request, Response, Router } from 'express';
-import { AuthController } from './controllers/auth.controller';
-import { LivecamController } from './controllers/livecam.controller';
-import { UserController } from './controllers/user.controller';
+import { Router } from 'express';
 import { AdminController } from './controllers/admin.controller';
 import { AppointmentController } from './controllers/appointment.controller';
+import { AuthController } from './controllers/auth.controller';
+import { LivecamController } from './controllers/livecam.controller';
 import { RoomController } from './controllers/room.controller';
 import { OrderController } from './controllers/order.controller';
+import { UserController } from './controllers/user.controller';
 
 const router: Router = Router();
 
 // General
 
 // Authentication
-const AUTH_BASE_URL = '/token';
+const TOKEN_BASE_URL = '/token';
 
-router.post(AUTH_BASE_URL, AuthController.login);
-router.post(`${AUTH_BASE_URL}/refresh`, AuthController.refresh);
-router.delete(`${AUTH_BASE_URL}/:id`, AuthController.logout);
-router.get(`${AUTH_BASE_URL}/check`, AuthController.check);
+router.post(TOKEN_BASE_URL, AuthController.login);
+router.delete(`${TOKEN_BASE_URL}`, AuthController.logout);
+router.post(`${TOKEN_BASE_URL}/refresh`, AuthController.refreshToken);
+router.get(`${TOKEN_BASE_URL}/check`, AuthController.checkToken);
 
-// Settings
+// Personal User Settings
+const USER_BASE_URL = '/user';
+
+router.get('/user', UserController.getUser);
+router.post('/users', UserController.signin);
+router.post('/users/verify', UserController.verifyEmail);
+router.patch('/user', UserController.updateUser);
+
+// Messaging
+
+// Admin (General Settings & User Management)
 const GLOBAL_SETTINGS_BASE_URL = '/global-settings';
 const WHITELIST_BASE_URL = '/global-settings/whitelist-retailer';
 
@@ -39,15 +49,10 @@ router.delete(
   AdminController.deleteWhitelistRetailer
 );
 
-// User Management
-const USERS_BASE_URL = '/users';
-const USER_BASE_URL = '/user';
-
-router.get(USERS_BASE_URL, UserController.getAllUsers);
-router.get(`${USERS_BASE_URL}/:id`, UserController.getUserById);
-router.post(USERS_BASE_URL, UserController.createUser);
-router.put(`${USERS_BASE_URL}/:id`, UserController.updateUser);
-router.delete(`${USERS_BASE_URL}/:id`, UserController.deleteUser);
+router.get(`${USER_BASE_URL}s`, AdminController.getUsers);
+router.get(`${USER_BASE_URL}s/:id`, AdminController.getUserData);
+router.put(`${USER_BASE_URL}s/:id`, AdminController.editUserData);
+router.delete(`${USER_BASE_URL}s/:id`, AdminController.deleteUser);
 
 // Room Management
 const ROOM_BASE_URL = '/rooms';
@@ -97,8 +102,9 @@ router.delete(
   AppointmentController.deleteAppointment
 );
 
-// Inventory & Order Management
-// TODO: change if base url changes for users/admins
+// Inventory Management
+
+// Order Management
 const ORDER_BASE_URL = '/orders';
 
 router.get(`${ORDER_BASE_URL}`, OrderController.getAllOrders);
