@@ -101,13 +101,14 @@ router.delete(
 // TODO: change if base url changes for users/admins
 const ORDER_BASE_URL = '/orders';
 
-router.get(`${ORDER_BASE_URL}/list`, OrderController.getPersonalOrders);
-
 router.get(`${ORDER_BASE_URL}`, OrderController.getAllOrders);
 
-router.get(`${USER_BASE_URL}/:id/orders`, OrderController.getOrdersForUser);
+router.get(
+  `${USER_BASE_URL}/:id/orders`,
+  OrderController.getOrdersForCurrentUser
+);
 
-router.get(`${ORDER_BASE_URL}/:id`, OrderController.getOrderById);
+router.get(`${ORDER_BASE_URL}/:id`, OrderController.getOrder);
 
 router.post(`${ORDER_BASE_URL}`, OrderController.createOrder);
 
