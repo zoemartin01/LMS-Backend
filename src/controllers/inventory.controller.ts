@@ -32,7 +32,7 @@ export class InventoryController {
    *
    * @route {POST} /inventory/items
    * @bodyParam {string} name - the name of the inventory item
-   * @bodyParam {string} description - description of the inventory item
+   * @bodyParam {string [Optional]} description - description of the inventory item
    * @bodyParam {number [Optional]} quantity - quantity of the inventory item
    * @param {Request} req frontend request to create one new inventory item
    * @param {Response} res backend response with data of newly created inventory item
