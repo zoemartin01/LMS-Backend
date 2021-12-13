@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { getRepository } from 'typeorm';
 import { User } from '../models/user.entity';
-const bcrypt = require("bcrypt");
+import bcrypt from 'bcrypt';
 
 /**
  * Controller for User Settings
@@ -12,8 +12,7 @@ export class UserController {
    *
    * @route {GET} /user
    */
-  public static async getUser(req: Request, res: Response) {
-  }
+  public static async getUser(req: Request, res: Response) {}
 
   /**
    * Signs in user with his personal information
@@ -29,7 +28,6 @@ export class UserController {
 
     /*const salt = await bcrypt.genSalt(10);
     user.password = await bcrypt.hash(user.password, salt);*/
-
   }
 
   /**
