@@ -5,6 +5,7 @@ import { AuthController } from './controllers/auth.controller';
 import { LivecamController } from './controllers/livecam.controller';
 import { MessagingController } from './controllers/messaging.controller';
 import { RoomController } from './controllers/room.controller';
+import { OrderController } from './controllers/order.controller';
 import { InventoryController } from './controllers/inventory.controller';
 import { UserController } from './controllers/user.controller';
 
@@ -134,6 +135,22 @@ router.delete(
 );
 
 // Order Management
+const ORDER_BASE_URL = '/orders';
+
+router.get(`${ORDER_BASE_URL}`, OrderController.getAllOrders);
+
+router.get(
+  `${USER_BASE_URL}/:id/orders`,
+  OrderController.getOrdersForCurrentUser
+);
+
+router.get(`${ORDER_BASE_URL}/:id`, OrderController.getOrder);
+
+router.post(`${ORDER_BASE_URL}`, OrderController.createOrder);
+
+router.patch(`${ORDER_BASE_URL}/:id`, OrderController.updateOrder);
+
+router.delete(`${ORDER_BASE_URL}/:id`, OrderController.deleteOrder);
 
 // Livecam
 const LIVECAM_BASE_URL = '/livecam/recordings';
