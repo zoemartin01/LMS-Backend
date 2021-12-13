@@ -1,11 +1,11 @@
 import { Request, Response } from 'express';
-import { Item } from '../models/item.entity';
+import { InventoryItem } from '../models/inventory-item.entity';
 
 /**
  * Controller for inventory management
  *
  * @see InventoryService
- * @see Item
+ * @see InventoryItem
  */
 export class InventoryController {
   /**
