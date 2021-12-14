@@ -61,6 +61,18 @@ router.delete(
   `${WHITELIST_BASE_URL}/:id`,
   AdminController.deleteWhitelistRetailer
 );
+router.delete(
+  `${WHITELIST_BASE_URL}/:id/domain/:id`,
+  AdminController.deleteDomainOfWhitelistRetailer
+);
+router.put(
+  `${WHITELIST_BASE_URL}/:id/domain/:id`,
+  AdminController.editDomainOfWhitelistRetailer
+);
+router.post(
+  `${WHITELIST_BASE_URL}/:id`,
+  AdminController.addDomainToWhitelistRetailer
+);
 
 router.get(`${USER_BASE_URL}s`, AdminController.getUsers);
 router.get(`${USER_BASE_URL}s/:id`, AdminController.getUserData);
