@@ -113,4 +113,28 @@ export class AdminController {
    * @param {Response} res backend response deletion
    */
   public static async deleteWhitelistRetailer(req: Request, res: Response) {}
+
+  /**
+   * Adds domain to whitelist retailer
+   *
+   * @param {Request} req frontend request to add a new domain to the retailer
+   * @param {Response} res backend response addition of a new domain to the retailer
+   */
+  public addDomainToWhitelistRetailer(req: Request, res: Response) {}
+
+  /**
+   * Changes one domain of whitelist retailer
+   *
+   * @param {Request} req frontend request to change one domain of a whitelist retailer
+   * @param {Response} res backend response with data change of one domain of a whitelist retailer
+   */
+  public editDomainOfWhitelistRetailer(req: Request, res: Response) {}
+
+  /**
+   * Deletes one domain of a whitelist retailer
+   *
+   * @param {Request} req frontend request to delete one domain of a whitelist retailer
+   * @param {Response} res backend response deletion
+   */
+  public deleteDomainOfWhitelistRetailer(req: Request, res: Response) {}
 }
