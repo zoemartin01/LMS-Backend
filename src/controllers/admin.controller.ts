@@ -117,6 +117,8 @@ export class AdminController {
   /**
    * Adds domain to whitelist retailer
    *
+   * @route {POST} /global-settings/whitelist-retailer/:id
+   * @bodyParam {string} domain - an additional domain of the retailer
    * @param {Request} req frontend request to add a new domain to the retailer
    * @param {Response} res backend response addition of a new domain to the retailer
    */
@@ -125,6 +127,9 @@ export class AdminController {
   /**
    * Changes one domain of whitelist retailer
    *
+   * @route {PATCH} /global-settings/whitelist-retailers/:id/domain/:id
+   * @routeParam {string} id - a retailer id
+   * @routeParam {string} id - a domain id
    * @param {Request} req frontend request to change one domain of a whitelist retailer
    * @param {Response} res backend response with data change of one domain of a whitelist retailer
    */
@@ -133,6 +138,9 @@ export class AdminController {
   /**
    * Deletes one domain of a whitelist retailer
    *
+   * @route {DELETE} /global-settings/whitelist-retailers/:id/domain/:id
+   * @routeParam {string} id - a retailer id
+   * @routeParam {string} id - a domain id
    * @param {Request} req frontend request to delete one domain of a whitelist retailer
    * @param {Response} res backend response deletion
    */
