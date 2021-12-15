@@ -27,30 +27,6 @@ export class AdminController {
   public static async getUsers(req: Request, res: Response) {}
 
   /**
-   * Gets data of a specific user
-   *
-   * @route {GET} /users/:id
-   * @routeParam {string} id - a user id
-   * @param {Request} req frontend request to get data about one specific user
-   * @param {Response} res backend response with data about one specific user
-   */
-  public static async getUserData(req: Request, res: Response) {}
-
-  /**
-   * Changes data of a specific user
-   *
-   * @route {PATCH} /users/:id
-   * @routeParam {string} id - a user id
-   * @bodyParam {string [Optional]} email - a new email address
-   * @bodyParam {string [Optional]} password - a new password
-   * @bodyParam {UserRole [Optional]} userRole - a new user role
-   * @bodyParam {boolean [Optional]} emailVerification - a new email verification status
-   * @param {Request} req frontend request to change data about one user
-   * @param {Response} res backend response with data change of one user
-   */
-  public static async editUserData(req: Request, res: Response) {}
-
-  /**
    * Changes global settings
    *
    * @route {PATCH} /global-settings/:key
@@ -60,16 +36,8 @@ export class AdminController {
    * @param {Request} req frontend request to change data about global settings
    * @param {Response} res backend response with data change of one global settings
    */
-  public static async updateGlobalSettings(req: Request, res: Response) {}
 
-  /**
-   * Deletes a given user
-   *
-   * @route {DELETE} /users/:id
-   * @param {Request} req frontend request to delete one user
-   * @param {Response} res backend response deletion
-   */
-  public static async deleteUser(req: Request, res: Response) {}
+  public static async updateGlobalSettings(req: Request, res: Response) {}
 
   /**
    * Gets whitelist retailer data

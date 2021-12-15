@@ -8,11 +8,38 @@ import bcrypt from 'bcrypt';
  */
 export class UserController {
   /**
-   * Returns user details
+   * Gets data of a specific user
    *
-   * @route {GET} /user
+   * @route {GET} /users/:id
+   * @routeParam {string} id - a user id
+   * @param {Request} req frontend request to get data about one specific user
+   * @param {Response} res backend response with data about one specific user
    */
-  public static async getUser(req: Request, res: Response) {}
+  public static async getUserData(req: Request, res: Response) {}
+
+  /**
+   * Changes data of a specific user
+   *
+   * @route {PATCH} /users/:id
+   * @routeParam {string} id - a user id
+   * @bodyParam {string [Optional]} email - a new email address
+   * @bodyParam {string [Optional]} password - a new password
+   * @bodyParam {UserRole [Optional]} userRole - a new user role
+   * @bodyParam {NotificationChannel [Optional]} notificationChannel - a new setting for the notification
+   * @bodyParam {boolean [Optional]} emailVerification - a new email verification status
+   * @param {Request} req frontend request to change data about one user
+   * @param {Response} res backend response with data change of one user
+   */
+  public static async editUserData(req: Request, res: Response) {}
+
+  /**
+   * Deletes a given user
+   *
+   * @route {DELETE} /users/:id
+   * @param {Request} req frontend request to delete one user
+   * @param {Response} res backend response deletion
+   */
+  public static async deleteUser(req: Request, res: Response) {}
 
   /**
    * Signs in user with his personal information
@@ -39,16 +66,5 @@ export class UserController {
    */
   public static async verifyEmail(req: Request, res: Response) {
     const { userId, token } = req.body;
-  }
-
-  /**
-   * Updates user's data
-   *
-   * @route {PATCH} /user
-   * @bodyParam {string [Optional]} password - user's new password
-   * @bodyParam {string [Optional]} notificationChannel - user's new notification channel
-   */
-  public static async updateUser(req: Request, res: Response) {
-    const data = req.body;
   }
 }
