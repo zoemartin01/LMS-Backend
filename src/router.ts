@@ -19,7 +19,7 @@ const TOKEN_BASE_URL = '/token';
 router.post(TOKEN_BASE_URL, AuthController.login);
 router.post(`${TOKEN_BASE_URL}/refresh`, AuthController.refreshToken);
 router.delete(`${TOKEN_BASE_URL}/:id`, AuthController.logout);
-router.get(`${TOKEN_BASE_URL}/check`, AuthController.checkToken);
+router.get(`${TOKEN_BASE_URL}/check`, AuthController.checkAuthentication, AuthController.checkToken);
 
 // Messaging
 const MESSAGE_BASE_URL = '/messages';
