@@ -16,6 +16,7 @@ import { User } from './user.entity';
  * @property {Date} end - The end date of the recording.
  * @property {VideoResolution} resolution - The resolution of the recording.
  * @property {number} bitrate - The bitrate of the recording in kbps.
+ * @property {number} size - The size of the recording in bytes.
  */
 @Entity()
 export class Recording extends BaseEntity {
@@ -66,4 +67,13 @@ export class Recording extends BaseEntity {
    */
   @Column()
   readonly bitrate: number;
+
+  /**
+   * The size of the recording in bytes. 0 if the recording is not yet uploaded.
+   *
+   * @type {number}
+   * @default 0
+   */
+  @Column({ default: 0 })
+  size: number;
 }

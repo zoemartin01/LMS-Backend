@@ -161,6 +161,7 @@ router.post(
   `${LIVECAM_BASE_URL}/schedule`,
   LivecamController.scheduleRecording
 );
+router.patch(`${LIVECAM_BASE_URL}/:id`, LivecamController.updateRecording);
 router.get(
   `${LIVECAM_BASE_URL}/:id/download`,
   LivecamController.streamRecording
