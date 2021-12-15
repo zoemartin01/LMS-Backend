@@ -5,7 +5,7 @@ import { BaseEntity } from './base.entity';
 import { Message } from './message.entity';
 import { Order } from './order.entity';
 import { Recording } from './recording.entity';
-import { Token } from "./token.entity";
+import { Token } from './token.entity';
 
 /**
  * A User model.
@@ -13,8 +13,9 @@ import { Token } from "./token.entity";
  * @class
  * @extends BaseEntity
  *
- * @property {string} id - The id of the user.
  * @property {string} email - The email of the user.
+ * @property {string} firstName - The user's first name.
+ * @property {string} lastName - The user's last name.
  * @property {string} password - The password of the user.
  * @property {UserRole} role - The role of the user.
  * @property {boolean} emailVerification - The email verification status of the user.
@@ -33,6 +34,22 @@ export class User extends BaseEntity {
    */
   @Column()
   email: string;
+
+  /**
+   * The user's first name.
+   *
+   * @type {string}
+   */
+  @Column()
+  firstName: string;
+
+  /**
+   * The user's last name.
+   *
+   * @type {string}
+   */
+  @Column()
+  lastName: string;
 
   /**
    * The password of the user.
