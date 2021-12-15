@@ -5,6 +5,7 @@ import { BaseEntity } from './base.entity';
 import { Message } from './message.entity';
 import { Order } from './order.entity';
 import { Recording } from './recording.entity';
+import { Token } from "./token.entity";
 
 /**
  * A User model.
@@ -21,6 +22,7 @@ import { Recording } from './recording.entity';
  * @property {Order[]} orders - The orders of the user.
  * @property {Message[]} messages - The messages the user received.
  * @property {Recording[]} recordings - The recordings of the user.
+ * @property {Token[]} tokens - The tokens of the user.
  */
 @Entity()
 export class User extends BaseEntity {
@@ -93,4 +95,12 @@ export class User extends BaseEntity {
    */
   @OneToMany(() => Recording, (recording) => recording.user)
   recordings: Recording[];
+
+  /**
+   * The tokens of the user.
+   *
+   * @type {Token[]}
+   */
+  @OneToMany(() => Token, (token) => token.user)
+  tokens: Token[];
 }
