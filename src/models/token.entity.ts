@@ -1,7 +1,7 @@
 import { Column, Entity, ManyToOne, UpdateDateColumn } from 'typeorm';
 import { BaseEntity } from './base.entity';
 import { User } from './user.entity';
-import { TokenType } from "../types/enums/token-type";
+import { TokenType } from '../types/enums/token-type';
 
 /**
  * A Token model.
@@ -51,6 +51,6 @@ export class Token extends BaseEntity {
    *
    * @type {Date}
    */
-  @UpdateDateColumn()
+  @Column()
   expiresAt: Date;
 }
