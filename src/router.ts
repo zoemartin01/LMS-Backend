@@ -35,10 +35,11 @@ router.patch(`${TOKEN_BASE_URL}/:id`, MessagingController.updateMessage);
 // Personal User Settings
 const USER_BASE_URL = '/user';
 
-router.get(USER_BASE_URL, UserController.getUser);
 router.post(USER_BASE_URL, UserController.signin);
 router.post(`${USER_BASE_URL}/verify`, UserController.verifyEmail);
-router.patch(USER_BASE_URL, UserController.updateUser);
+router.get(`${USER_BASE_URL}s/:id`, UserController.getUserData);
+router.put(`${USER_BASE_URL}s/:id`, UserController.editUserData);
+router.delete(`${USER_BASE_URL}s/:id`, UserController.deleteUser);
 
 // Messaging
 
@@ -73,11 +74,7 @@ router.post(
   `${WHITELIST_BASE_URL}/:id`,
   AdminController.addDomainToWhitelistRetailer
 );
-
 router.get(`${USER_BASE_URL}s`, AdminController.getUsers);
-router.get(`${USER_BASE_URL}s/:id`, AdminController.getUserData);
-router.put(`${USER_BASE_URL}s/:id`, AdminController.editUserData);
-router.delete(`${USER_BASE_URL}s/:id`, AdminController.deleteUser);
 
 // Room Management
 const ROOM_BASE_URL = '/rooms';
