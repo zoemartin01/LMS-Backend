@@ -44,6 +44,7 @@ export class RoomController {
    * @bodyParam {string} description - description of the room
    * @bodyParam {number [Optional]} maxConcurrentBooking - max number of concurrent bookings
    * @bodyParam {boolean [Optional]} autoAcceptBookings - if bookings are automatically accepted
+   * // TODO: we have to look at this again. In my mind (zoe) i can't think of a UI to provide both available and unavailable timeslots
    * @bodyParam {AvailableTimeslot[]} availableTimeSlots - The available time slots in the room.
    * @bodyParam {UnavailableTimeslot[] [Optional]} unavailableTimeSlots - The unavailable time slots in the room.
    * @param {Request} req frontend request to create a new room
@@ -55,9 +56,10 @@ export class RoomController {
   }
 
   /**
-   * Edit thus update room
+   * Update one room
    *
    * @route {PATCH} /rooms/:id
+   * @routeParam {string} id - id of the room
    * @bodyParam {string [Optional]} name - name of the room
    * @bodyParam {string [Optional]} description - description of the room
    * @bodyParam {number [Optional]} maxConcurrentBooking - max number of concurrent bookings
@@ -75,6 +77,7 @@ export class RoomController {
    * Delete one room
    *
    * @route {DELETE} /rooms/:id
+   * @routeParam {string} id - id of the room
    * @param {Request} req frontend request to delete one room
    * @param {Response} res backend response deletion
    */
@@ -87,16 +90,16 @@ export class RoomController {
   /**
    * Create a new available timeslot
    *
-   * @route {POST} /rooms
-   * @bodyParam {string} id - id of the timeslot
+   * @route {POST} /rooms/:id/timeslots
+   * @routeParam {string} id - id of the room
    * @bodyParam {string} seriesId - The id of the series the time slot belongs to.
    * @bodyParam {Date} start - The start time of the time slot.
    * @bodyParam {Date} end - The end time of the time slot.
    * @bodyParam {Room} room - The room the time slot belongs to.
    * @bodyParam {User} user - The user associated with the time slot.
    * @bodyParam {TimeSlotType} type - The type of the time slot.
-   * @bodyParam {Request} req frontend request to create a new available timeslot of a room
-   * @bodyParam {Response} res backend response creation of a new available timeslot of a room
+   * @param {Request} req frontend request to create a new available timeslot of a room
+   * @param {Response} res backend response creation of a new available timeslot of a room
    */
   public static async createTimeslot(req: Request, res: Response) {
     const timeslot = await getRepository(TimeSlot).save(req.body);
@@ -106,13 +109,11 @@ export class RoomController {
   /**
    * Delete one timeslot
    *
-   * @route {DELETE} /rooms/:id
+   * @route {DELETE} /rooms/:roomId/timeslots/:timeslotId
+   * @routeParam {string} roomId - id of the room
+   * @routeParam {string} timeslotId - id of the timeslot
    * @param {Request} req frontend request to delete one room
    * @param {Response} res backend response deletion
    */
-  public static async deleteTimeslot(req: Request, res: Response) {
-    const id = req.params.id;
-    const timeslot = await getRepository(TimeSlot).delete(id);
-    res.send(timeslot);
-  }
+  public static async deleteTimeslot(req: Request, res: Response) {}
 }
