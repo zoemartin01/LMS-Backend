@@ -20,6 +20,8 @@ export class AuthController {
    * @route {POST} /token
    * @bodyParam {string} email - user's email address
    * @bodyParam {string} password - user's password
+   * @param {Request} req frontend request to login user with his credentials
+   * @param {Response} res backend response with authentication and refresh token
    */
   public static async login(req: Request, res: Response) {
     const { email, password } = req.body;
@@ -59,6 +61,8 @@ export class AuthController {
    *
    * @route {DELETE} /token
    * @bodyParam {string} token - user's token to delete
+   * @param {Request} req frontend request to logout user
+   * @param {Response} res backend response
    */
   public static async logout(req: Request, res: Response) {
     //@todo logout current user
@@ -71,6 +75,8 @@ export class AuthController {
    *
    * @route {POST} /token/refresh
    * @bodyParam {string} refreshToken - user's refresh token
+   * @param {Request} req frontend request to refresh the authentication token
+   * @param {Response} res backend response with a new authentication token
    */
   public static async refreshToken(req: Request, res: Response) {
     const { refreshToken } = req.body;
@@ -102,13 +108,19 @@ export class AuthController {
    * Checks token of current user
    *
    * @route {GET} /token/check
+   * @param {Request} req frontend request to check if current user's token is valid
+   * @param {Response} res backend response
    */
   public static async checkToken(req: Request, res: Response) {
-    res.sendStatus(200);
+    res.sendStatus(204);
   }
 
   /**
    * Middleware that checks if auth token matches a user
+   *
+   * @param {Request} req current http-request
+   * @param {Response} res response to current http-request
+   * @param {NextFunction} next next function that handles the request
    */
   public static async checkAuthenticationMiddleware(
     req: Request,
@@ -139,6 +151,8 @@ export class AuthController {
 
   /**
    * Returns current user
+   *
+   * @param {Request} req current http-request
    */
   public static async getCurrentUser(req: Request): Promise<User | null> {
     const authHeader = req.headers['authorization'];
@@ -161,6 +175,8 @@ export class AuthController {
 
   /**
    * Checks if current user is admin
+   *
+   * @param {Request} req current http-request
    */
   private static async checkAdmin(req: Request): Promise<boolean> {
     return this.getCurrentUser(req).then((user: User | null) => {
@@ -170,6 +186,10 @@ export class AuthController {
 
   /**
    * Middleware that checks if current user is admin
+   *
+   * @param {Request} req current http-request
+   * @param {Response} res response to current http-request
+   * @param {NextFunction} next next function that handles the request
    */
   public static async checkAdminMiddleware(
     req: Request,

@@ -11,6 +11,8 @@ export class UserController {
    * Returns user details
    *
    * @route {GET} /user
+   * @param {Request} req frontend request to get data of one inventory item
+   * @param {Response} res backend response with data of one inventory item
    */
   public static async getUser(req: Request, res: Response) {
   }
@@ -23,6 +25,8 @@ export class UserController {
    * @bodyParam {string} lastname - new user's lastname
    * @bodyParam {string} email - new user's email address
    * @bodyParam {string} password - new user's password
+   * @param {Request} req frontend request to get data of one inventory item
+   * @param {Response} res backend response with data of one inventory item
    */
   public static async signin(req: Request, res: Response) {
     const { firstname, lastname, email, password } = req.body;
@@ -37,6 +41,8 @@ export class UserController {
    * @route {POST} /user/verify-email
    * @bodyParam {string} userId - user's id
    * @bodyParam {string} token - token to verify email
+   * @param {Request} req frontend request to get data of one inventory item
+   * @param {Response} res backend response with data of one inventory item
    */
   public static async verifyEmail(req: Request, res: Response) {
     const { userId, token } = req.body;
@@ -48,6 +54,8 @@ export class UserController {
    * @route {PATCH} /user
    * @bodyParam {string [Optional]} password - user's new password
    * @bodyParam {string [Optional]} notificationChannel - user's new notification channel
+   * @param {Request} req frontend request to get data of one inventory item
+   * @param {Response} res backend response with data of one inventory item
    */
   public static async updateUser(req: Request, res: Response) {
     const data = req.body;

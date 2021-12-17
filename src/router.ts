@@ -17,7 +17,6 @@ const TOKEN_BASE_URL = '/token';
 router.post(TOKEN_BASE_URL, AuthController.login);
 router.delete(TOKEN_BASE_URL, AuthController.logout);
 router.post(`${TOKEN_BASE_URL}/refresh`, AuthController.refreshToken);
-router.delete(`${TOKEN_BASE_URL}/:id`, AuthController.logout);
 router.get(
   `${TOKEN_BASE_URL}/check`,
   AuthController.checkAuthenticationMiddleware,
@@ -75,7 +74,7 @@ router.get(`${ROOM_BASE_URL}/:id`, RoomController.getRoomById);
 router.post(ROOM_BASE_URL, RoomController.createRoom);
 router.patch(`${ROOM_BASE_URL}/:id`, RoomController.updateRoom);
 router.delete(`${ROOM_BASE_URL}/:id`, RoomController.deleteRoom);
-router.post(`${ROOM_TIMESLOT_URL}/:timeslotId`, RoomController.createTimeslot);
+router.post(`${ROOM_TIMESLOT_URL}`, RoomController.createTimeslot);
 router.delete(
   `${ROOM_TIMESLOT_URL}/:timeslotId`,
   RoomController.deleteTimeslot

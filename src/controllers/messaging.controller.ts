@@ -8,6 +8,8 @@ export class MessagingController {
    * Returns all messages for current user
    *
    * @route {GET} /user/messages
+   * @param {Request} req frontend request to get data of one inventory item
+   * @param {Response} res backend response with data of one inventory item
    */
   public static async getMessages(req: Request, res: Response) {
   }
@@ -16,6 +18,8 @@ export class MessagingController {
    * Returns the amounts of unread messages for current user
    *
    * @route {GET} /user/messages/unread-amounts
+   * @param {Request} req frontend request to get data of one inventory item
+   * @param {Response} res backend response with data of one inventory item
    */
   public static async getUnreadMessagesAmounts(req: Request, res: Response) {
   }
@@ -25,6 +29,8 @@ export class MessagingController {
    *
    * @route {DELETE} /messages/:id
    * @routeParam {string} id - id of the message
+   * @param {Request} req frontend request to get data of one inventory item
+   * @param {Response} res backend response with data of one inventory item
    */
   public static async deleteMessage(req: Request, res: Response) {
     const id = req.params.id;
@@ -36,6 +42,8 @@ export class MessagingController {
    * @route {PATCH} /messages/:id
    * @routeParam {string} id - id of the message
    * @bodyParam {boolean [Optional]} readStatus - message is read
+   * @param {Request} req frontend request to get data of one inventory item
+   * @param {Response} res backend response with data of one inventory item
    */
   public static async updateMessage(req: Request, res: Response) {
     const id = req.params.id;
