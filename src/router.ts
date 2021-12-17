@@ -17,7 +17,12 @@ const TOKEN_BASE_URL = '/token';
 router.post(TOKEN_BASE_URL, AuthController.login);
 router.delete(TOKEN_BASE_URL, AuthController.logout);
 router.post(`${TOKEN_BASE_URL}/refresh`, AuthController.refreshToken);
-router.get(`${TOKEN_BASE_URL}/check`, AuthController.checkToken);
+router.delete(`${TOKEN_BASE_URL}/:id`, AuthController.logout);
+router.get(
+  `${TOKEN_BASE_URL}/check`,
+  AuthController.checkAuthenticationMiddleware,
+  AuthController.checkToken
+);
 
 // Messaging
 const MESSAGE_BASE_URL = '/messages';
@@ -44,10 +49,7 @@ const WHITELIST_BASE_URL = `${GLOBAL_SETTINGS_BASE_URL}/whitelist-retailers`;
 
 router.get(GLOBAL_SETTINGS_BASE_URL, AdminController.getGlobalSettings);
 router.patch(GLOBAL_SETTINGS_BASE_URL, AdminController.updateGlobalSettings);
-router.get(
-  `${WHITELIST_BASE_URL}/:id`,
-  AdminController.getWhitelistRetailer
-);
+router.get(`${WHITELIST_BASE_URL}/:id`, AdminController.getWhitelistRetailer);
 router.post(WHITELIST_BASE_URL, AdminController.createWhitelistRetailer);
 router.patch(
   `${WHITELIST_BASE_URL}/:id`,
@@ -66,20 +68,23 @@ router.delete(`${USER_BASE_URL}s/:id`, AdminController.deleteUser);
 
 // Room Management
 const ROOM_BASE_URL = '/rooms';
+const ROOM_TIMESLOT_URL = `${ROOM_BASE_URL}/:roomId/timeslots`;
 
 router.get(ROOM_BASE_URL, RoomController.getAllRooms);
 router.get(`${ROOM_BASE_URL}/:id`, RoomController.getRoomById);
 router.post(ROOM_BASE_URL, RoomController.createRoom);
 router.patch(`${ROOM_BASE_URL}/:id`, RoomController.updateRoom);
 router.delete(`${ROOM_BASE_URL}/:id`, RoomController.deleteRoom);
+router.post(`${ROOM_TIMESLOT_URL}/:timeslotId`, RoomController.createTimeslot);
+router.delete(
+  `${ROOM_TIMESLOT_URL}/:timeslotId`,
+  RoomController.deleteTimeslot
+);
 
 // Appointment Management
 const APPOINTMENTS_BASE_URL = '/appointments';
 
-router.get(
-  APPOINTMENTS_BASE_URL,
-  AppointmentController.getAllAppointments
-);
+router.get(APPOINTMENTS_BASE_URL, AppointmentController.getAllAppointments);
 
 router.get(
   `${USER_BASE_URL}/appointments`,
@@ -135,10 +140,7 @@ const ORDER_BASE_URL = '/orders';
 
 router.get(ORDER_BASE_URL, OrderController.getAllOrders);
 
-router.get(
-  `${USER_BASE_URL}/orders`,
-  OrderController.getOrdersForCurrentUser
-);
+router.get(`${USER_BASE_URL}/orders`, OrderController.getOrdersForCurrentUser);
 
 router.get(`${ORDER_BASE_URL}/:id`, OrderController.getOrder);
 
@@ -157,6 +159,7 @@ router.post(
   `${LIVECAM_BASE_URL}/schedule`,
   LivecamController.scheduleRecording
 );
+router.patch(`${LIVECAM_BASE_URL}/:id`, LivecamController.updateRecording);
 router.get(
   `${LIVECAM_BASE_URL}/:id/download`,
   LivecamController.streamRecording

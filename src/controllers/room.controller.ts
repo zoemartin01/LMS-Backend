@@ -1,6 +1,7 @@
 import { getRepository } from 'typeorm';
 import { Room } from '../models/room.entity';
 import { Request, Response } from 'express';
+import { TimeSlot } from '../models/timeslot.entity';
 
 /**
  * Controller for room management
@@ -55,6 +56,7 @@ export class RoomController {
    * Updates a room
    *
    * @route {PATCH} /rooms/:id
+   * @routeParam {string} id - id of the room
    * @bodyParam {string [Optional]} name - name of the room
    * @bodyParam {string [Optional]} description - description of the room
    * @bodyParam {number [Optional]} maxConcurrentBooking - max number of concurrent bookings
@@ -72,6 +74,7 @@ export class RoomController {
    * Deletes one room
    *
    * @route {DELETE} /rooms/:id
+   * @routeParam {string} id - id of the room
    * @param {Request} req frontend request to delete one room
    * @param {Response} res backend response deletion
    */
@@ -80,4 +83,34 @@ export class RoomController {
     const room = await getRepository(Room).delete(id);
     res.send(room);
   }
+
+  /**
+   * Create a new available timeslot
+   *
+   * @route {POST} /rooms/:id/timeslots
+   * @routeParam {string} id - id of the room
+   * @bodyParam {string} seriesId - The id of the series the time slot belongs to.
+   * @bodyParam {Date} start - The start time of the time slot.
+   * @bodyParam {Date} end - The end time of the time slot.
+   * @bodyParam {Room} room - The room the time slot belongs to.
+   * @bodyParam {User} user - The user associated with the time slot.
+   * @bodyParam {TimeSlotType} type - The type of the time slot.
+   * @param {Request} req frontend request to create a new available timeslot of a room
+   * @param {Response} res backend response creation of a new available timeslot of a room
+   */
+  public static async createTimeslot(req: Request, res: Response) {
+    const timeslot = await getRepository(TimeSlot).save(req.body);
+    res.send(timeslot);
+  }
+
+  /**
+   * Delete one timeslot
+   *
+   * @route {DELETE} /rooms/:roomId/timeslots/:timeslotId
+   * @routeParam {string} roomId - id of the room
+   * @routeParam {string} timeslotId - id of the timeslot
+   * @param {Request} req frontend request to delete one room
+   * @param {Response} res backend response deletion
+   */
+  public static async deleteTimeslot(req: Request, res: Response) {}
 }
