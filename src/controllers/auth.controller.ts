@@ -55,6 +55,7 @@ export class AuthController {
    * Logs out current user
    *
    * @route {DELETE} /token
+   * @bodyParam {string} token - user's token to delete
    */
   public static async logout(req: Request, res: Response) {
     //@todo logout current user

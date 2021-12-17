@@ -9,14 +9,16 @@ export class MessagingController {
    *
    * @route {GET} /user/messages
    */
-  public static async messages(req: Request, res: Response) {}
+  public static async getMessages(req: Request, res: Response) {
+  }
 
   /**
    * Returns the amounts of unread messages for current user
    *
-   * @route {GET} /messages/unread-amounts
+   * @route {GET} /user/messages/unread-amounts
    */
-  public static async unreadMessagesAmounts(req: Request, res: Response) {}
+  public static async getUnreadMessagesAmounts(req: Request, res: Response) {
+  }
 
   /**
    * Deletes a message from database
@@ -55,5 +57,6 @@ export class MessagingController {
     content: string,
     linkText: string | null = null,
     linkUrl: string | null = null
-  ) {}
+  ) {
+  }
 }

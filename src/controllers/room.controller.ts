@@ -10,7 +10,7 @@ import { Request, Response } from 'express';
  */
 export class RoomController {
   /**
-   * Get all rooms
+   * Returns all rooms
    *
    * @route {GET} /rooms
    * @param {Request} req frontend request to get data about all rooms
@@ -22,7 +22,7 @@ export class RoomController {
   }
 
   /**
-   * Get one room with an id
+   * Returns one room with an id
    *
    * @route {GET} /rooms/:id
    * @routeParam {string} id - id of the room
@@ -36,13 +36,13 @@ export class RoomController {
   }
 
   /**
-   * Create a new room
+   * Creates a new room
    *
    * @route {POST} /rooms
    * @bodyParam {string} name - name of the room
    * @bodyParam {string [Optional]} description - description of the room
-   * @bodyParam {number [Optional]} maxConcurrentBooking - max number of concurrent bookings
-   * @bodyParam {boolean [Optional]} autoAcceptBookings - if bookings are automatically accepted
+   * @bodyParam {number [Optional]} maxConcurrentBooking - max number of concurrent bookings (default: 1)
+   * @bodyParam {boolean [Optional]} autoAcceptBookings - if bookings are automatically accepted (default: false)
    * @param {Request} req frontend request to create a new room
    * @param {Response} res backend response creation of a new room
    */
@@ -52,7 +52,7 @@ export class RoomController {
   }
 
   /**
-   * Edit thus update room
+   * Updates a room
    *
    * @route {PATCH} /rooms/:id
    * @bodyParam {string [Optional]} name - name of the room
@@ -69,7 +69,7 @@ export class RoomController {
   }
 
   /**
-   * Delete one room
+   * Deletes one room
    *
    * @route {DELETE} /rooms/:id
    * @param {Request} req frontend request to delete one room

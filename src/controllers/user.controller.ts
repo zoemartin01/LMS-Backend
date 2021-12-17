@@ -12,7 +12,8 @@ export class UserController {
    *
    * @route {GET} /user
    */
-  public static async getUser(req: Request, res: Response) {}
+  public static async getUser(req: Request, res: Response) {
+  }
 
   /**
    * Signs in user with his personal information
@@ -33,7 +34,7 @@ export class UserController {
   /**
    * Verifies email address using a token sent on signin
    *
-   * @route {POST} /users/verify
+   * @route {POST} /user/verify-email
    * @bodyParam {string} userId - user's id
    * @bodyParam {string} token - token to verify email
    */
