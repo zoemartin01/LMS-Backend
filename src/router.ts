@@ -31,8 +31,8 @@ router.get(
   `/user${MESSAGE_BASE_URL}/unread-amounts`,
   MessagingController.getUnreadMessagesAmounts
 );
-router.delete(`${TOKEN_BASE_URL}/:id`, MessagingController.deleteMessage);
-router.patch(`${TOKEN_BASE_URL}/:id`, MessagingController.updateMessage);
+router.delete(`${MESSAGE_BASE_URL}/:id`, MessagingController.deleteMessage);
+router.patch(`${MESSAGE_BASE_URL}/:id`, MessagingController.updateMessage);
 
 // Personal User Settings
 const USER_BASE_URL = '/user';
@@ -49,6 +49,7 @@ const WHITELIST_BASE_URL = `${GLOBAL_SETTINGS_BASE_URL}/whitelist-retailers`;
 
 router.get(GLOBAL_SETTINGS_BASE_URL, AdminController.getGlobalSettings);
 router.patch(GLOBAL_SETTINGS_BASE_URL, AdminController.updateGlobalSettings);
+
 router.get(`${WHITELIST_BASE_URL}/:id`, AdminController.getWhitelistRetailer);
 router.post(WHITELIST_BASE_URL, AdminController.createWhitelistRetailer);
 router.patch(
