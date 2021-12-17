@@ -41,6 +41,7 @@ router.get(USER_BASE_URL, UserController.getUser);
 router.post(`${USER_BASE_URL}s`, UserController.signin);
 router.post(`${USER_BASE_URL}/verify-email`, UserController.verifyEmail);
 router.patch(USER_BASE_URL, UserController.updateUser);
+router.delete(`${USER_BASE_URL}`, UserController.deleteUser);
 
 // Admin (General Settings & User Management)
 const GLOBAL_SETTINGS_BASE_URL = '/global-settings';
@@ -54,10 +55,22 @@ router.patch(
   `${WHITELIST_BASE_URL}/:id`,
   AdminController.updateWhitelistRetailer
 );
-//@todo additional domain create/delete/update routes missing
 router.delete(
   `${WHITELIST_BASE_URL}/:id`,
   AdminController.deleteWhitelistRetailer
+);
+
+router.post(
+  `${WHITELIST_BASE_URL}/:id/domains`,
+  AdminController.addDomainToWhitelistRetailer
+);
+router.patch(
+  `${WHITELIST_BASE_URL}/:id/domains/:did`,
+  AdminController.editDomainOfWhitelistRetailer
+);
+router.delete(
+  `${WHITELIST_BASE_URL}/:id/domains/:did`,
+  AdminController.deleteDomainOfWhitelistRetailer
 );
 
 router.get(`${USER_BASE_URL}s`, AdminController.getUsers);

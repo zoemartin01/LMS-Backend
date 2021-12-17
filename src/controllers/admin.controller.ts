@@ -82,6 +82,51 @@ export class AdminController {
   }
 
   /**
+   * Adds domain to whitelist retailer
+   *
+   * @route {POST} /global-settings/whitelist-retailers/:id/domains
+   * @bodyParam {string} domain - an additional domain of the retailer
+   * @param {Request} req frontend request to add a new domain to the retailer
+   * @param {Response} res backend response addition of a new domain to the retailer
+   */
+  public static async addDomainToWhitelistRetailer(
+    req: Request,
+    res: Response
+  ) {
+  }
+
+  /**
+   * Changes one domain of whitelist retailer
+   *
+   * @route {PATCH} /global-settings/whitelist-retailers/:id/domains/:did
+   * @routeParam {string} id - a retailer id
+   * @routeParam {string} did - a domain id
+   * @bodyParam {string} domain - the new value of the domain of the retailer
+   * @param {Request} req frontend request to change one domain of a whitelist retailer
+   * @param {Response} res backend response with data change of one domain of a whitelist retailer
+   */
+  public static async editDomainOfWhitelistRetailer(
+    req: Request,
+    res: Response
+  ) {
+  }
+
+  /**
+   * Deletes one domain of a whitelist retailer
+   *
+   * @route {DELETE} /global-settings/whitelist-retailers/:id/domains/:did
+   * @routeParam {string} id - a retailer id
+   * @routeParam {string} did - a domain id
+   * @param {Request} req frontend request to delete one domain of a whitelist retailer
+   * @param {Response} res backend response deletion
+   */
+  public static async deleteDomainOfWhitelistRetailer(
+    req: Request,
+    res: Response
+  ) {
+  }
+
+  /**
    * Returns users
    *
    * @route {GET} /users
