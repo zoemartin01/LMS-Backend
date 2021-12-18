@@ -165,19 +165,24 @@ router.patch(`${ORDER_BASE_URL}/:id`, OrderController.updateOrder);
 router.delete(`${ORDER_BASE_URL}/:id`, OrderController.deleteOrder);
 
 // Livecam
-const LIVECAM_BASE_URL = '/livecam-recordings';
+const LIVECAM_BASE_URL = '/livecam';
+const LIVECAM_RECORDING_URL = `${LIVECAM_BASE_URL}/recordings`;
 
-router.get(LIVECAM_BASE_URL, LivecamController.getRecordings);
-router.get(`${LIVECAM_BASE_URL}/:id`, LivecamController.getRecordingById);
+router.get(LIVECAM_RECORDING_URL, LivecamController.getRecordings);
+router.get(`${LIVECAM_RECORDING_URL}/:id`, LivecamController.getRecordingById);
 router.post(
-  `${LIVECAM_BASE_URL}/schedule`,
+  `${LIVECAM_RECORDING_URL}/schedule`,
   LivecamController.scheduleRecording
 );
-router.patch(`${LIVECAM_BASE_URL}/:id`, LivecamController.updateRecording);
+router.patch(`${LIVECAM_RECORDING_URL}/:id`, LivecamController.updateRecording);
 router.get(
-  `${LIVECAM_BASE_URL}/:id/download`,
+  `${LIVECAM_RECORDING_URL}/:id/download`,
   LivecamController.streamRecording
 );
-router.delete(`${LIVECAM_BASE_URL}/:id`, LivecamController.deleteRecording);
+router.delete(
+  `${LIVECAM_RECORDING_URL}/:id`,
+  LivecamController.deleteRecording
+);
+router.get(`${LIVECAM_BASE_URL}/stream`, LivecamController.getLiveCameraFeed);
 
 export default router;

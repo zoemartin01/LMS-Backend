@@ -16,7 +16,7 @@ export class LivecamController {
   /**
    * Returns the data for all recordings
    *
-   * @route {GET} /livecam-recordings
+   * @route {GET} /livecam/recordings
    * @param {Request} req frontend request to get data of all recordings
    * @param {Response} res backend response with data of all recordings
    */
@@ -31,7 +31,7 @@ export class LivecamController {
   /**
    * Returns the recording data for a specific recording
    *
-   * @route {GET} /livecam-recordings/:id
+   * @route {GET} /livecam/recordings/:id
    * @routeParam {string} id - The id of the recording
    * @param {Request} req frontend request to get recording data
    * @param {Response} res backend response with data of recording
@@ -47,7 +47,7 @@ export class LivecamController {
   /**
    * Updates a specific recording
    *
-   * @route {PATCH} /livecam-recordings/:id
+   * @route {PATCH} /livecam/recordings/:id
    * @routeParam {string} id - The id of the recording
    * @bodyParam {number [Optional]} size - The size of the recording
    * @param {Request} req frontend request to update a specific recording
@@ -61,7 +61,7 @@ export class LivecamController {
   /**
    * Schedules a new recording
    *
-   * @route {POST} /livecam-recordings/schedule
+   * @route {POST} /livecam/recordings/schedule
    * @bodyParam {User} user - The user scheduling the recording
    * @bodyParam {Date} start - The start of the recording
    * @bodyParam {Date} end - The end of the recording
@@ -90,7 +90,7 @@ export class LivecamController {
   /**
    * Streams the file for a given recording
    *
-   * @route {GET} /livecam-recordings/:id/download
+   * @route {GET} /livecam/recordings/:id/download
    * @routeParam {string} id - The id of the recording
    * @param {Request} req frontend request to get the stream of a recording
    * @param {Response} res backend response with stream
@@ -115,7 +115,7 @@ export class LivecamController {
   /**
    * Deletes a given recording
    *
-   * @route {DELETE} /livecam-recordings/:id
+   * @route {DELETE} /livecam/recordings/:id
    * @routeParam {string} id - The id of the recording
    * @param {Request} req frontend request to delete recording
    * @param {Response} res backend response
@@ -127,4 +127,13 @@ export class LivecamController {
         res.sendStatus(204);
       });
   }
+
+  /**
+   * Returns the live camera feed
+   *
+   * @route {GET} /livecam/stream
+   * @param {Request} req frontend request to get the live camera feed
+   * @param {Response} res backend response with the live camera feed
+   */
+  public static async getLiveCameraFeed(req: Request, res: Response) {}
 }
