@@ -78,7 +78,8 @@ export class AdminController {
   /**
    * Adds domain to whitelist retailer
    *
-   * @route {POST} /global-settings/whitelist-retailers/:id/domains
+   * @route {POST} /global-settings/whitelist-retailers/:retailerId/domains
+   * @routeParam {string} retailerId - a retailer id
    * @bodyParam {string} domain - an additional domain of the retailer
    * @param {Request} req frontend request to add a new domain to the retailer
    * @param {Response} res backend response addition of a new domain to the retailer

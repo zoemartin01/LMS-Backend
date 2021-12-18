@@ -63,7 +63,7 @@ router.delete(
 );
 
 router.post(
-  `${WHITELIST_BASE_URL}/:id/domains`,
+  `${WHITELIST_RETAILER_DOMAINS_URL}`,
   AdminController.addDomainToWhitelistRetailer
 );
 router.patch(
