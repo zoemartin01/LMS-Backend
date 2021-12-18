@@ -10,7 +10,6 @@ import { User } from './user.entity';
  * @class
  * @extends BaseEntity
  *
- * @property {string} id - The recording id.
  * @property {User} user - The user who created the recording.
  * @property {Date} start - The start date of the recording.
  * @property {Date} end - The end date of the recording.

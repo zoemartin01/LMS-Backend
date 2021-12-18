@@ -11,7 +11,6 @@ import { User } from './user.entity';
  * @class
  * @extends BaseEntity
  *
- * @property {string} id - The order id.
  * @property {Item} item - The item.
  * @property {String} itemName - The item name.
  * @property {User} user - The user.
