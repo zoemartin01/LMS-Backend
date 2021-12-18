@@ -20,7 +20,7 @@ export class AuthController {
    * @route {POST} /token
    * @bodyParam {string} email - user's email address
    * @bodyParam {string} password - user's password
-   * @param {Request} req frontend request to login user with his credentials
+   * @param {Request} req frontend request to login user with their credentials
    * @param {Response} res backend response with authentication and refresh token
    */
   public static async login(req: Request, res: Response) {
