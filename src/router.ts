@@ -96,7 +96,7 @@ router.get(
 );
 
 router.get(
-  `${USER_BASE_URL}/appointments`, //TODO
+  `${USER_BASE_URL}/appointments/series/:seriesId`,
   AppointmentController.getAppointmentsForSeries
 );
 

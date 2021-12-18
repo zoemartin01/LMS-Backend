@@ -45,7 +45,7 @@ export class AppointmentController {
   /**
    * Get all appointments related to a series of appointments
    *
-   * @route {GET} /user/appointments //TODO
+   * @route {GET} /user/appointments/series/:seriesId
    * @routeParam {string} id - id of the series
    * @param {Request} req frontend request to get data about all appointments for a series
    * @param {Response} res backend response with data about all appointments for a series
