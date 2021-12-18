@@ -1,4 +1,5 @@
 import { Entity, Column, OneToMany } from 'typeorm';
+import { NotificationChannel } from '../types/enums/notification-channel';
 import { UserRole } from '../types/enums/user-role';
 import { AppointmentTimeslot } from './appointment.timeslot.entity';
 import { BaseEntity } from './base.entity';
@@ -19,6 +20,7 @@ import { Token } from './token.entity';
  * @property {string} password - The password of the user.
  * @property {UserRole} role - The role of the user.
  * @property {boolean} emailVerification - The email verification status of the user.
+ * @property {NotificationChannel} notificationChannel - The chosen notification channel of the user.
  * @property {AppointmentTimeslot[]} bookings - The bookings of the user.
  * @property {Order[]} orders - The orders of the user.
  * @property {Message[]} messages - The messages the user received.
@@ -80,6 +82,19 @@ export class User extends BaseEntity {
    */
   @Column({ default: false })
   emailVerification: boolean;
+
+  /**
+   * The chosen notification channel of the user.
+   *
+   * @type {NotificationChannel}
+   * @default NotificationChannel.emailOnly
+   */
+  @Column({
+    type: 'enum',
+    enum: NotificationChannel,
+    default: NotificationChannel.emailOnly,
+  })
+  notificationChannel: NotificationChannel;
 
   /**
    * The bookings of the user.

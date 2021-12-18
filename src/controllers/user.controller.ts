@@ -14,20 +14,18 @@ export class UserController {
    * @param {Request} req frontend request to get personal user data
    * @param {Response} res backend response with personal user data
    */
-  public static async getUser(req: Request, res: Response) {
-  }
+  public static async getUser(req: Request, res: Response) {}
 
   /**
    * Changes personal user data
    *
    * @route {PATCH} /user
    * @bodyParam {string [Optional]} password - user's new password
-   * @bodyParam {string [Optional]} notificationChannel - user's new notification channel
+   * @bodyParam {NotificationChannel [Optional]} notificationChannel - user's new notification channel
    * @param {Request} req frontend request to change personal user data
    * @param {Response} res backend response
    */
-  public static async updateUser(req: Request, res: Response) {
-  }
+  public static async updateUser(req: Request, res: Response) {}
 
   /**
    * Deletes own user
@@ -36,8 +34,7 @@ export class UserController {
    * @param {Request} req frontend request to delete own user
    * @param {Response} res backend response deletion
    */
-  public static async deleteUser(req: Request, res: Response) {
-  }
+  public static async deleteUser(req: Request, res: Response) {}
 
   /**
    * Signs in user with his personal information
