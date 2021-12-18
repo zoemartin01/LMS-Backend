@@ -66,11 +66,11 @@ router.post(
   AdminController.addDomainToWhitelistRetailer
 );
 router.patch(
-  `${WHITELIST_BASE_URL}/:id/domains/:did`,
+  `${WHITELIST_BASE_URL}/:retailer_id/domains/:domain_id`,
   AdminController.editDomainOfWhitelistRetailer
 );
 router.delete(
-  `${WHITELIST_BASE_URL}/:id/domains/:did`,
+  `${WHITELIST_BASE_URL}/:retailer_id/domains/:domain_id`,
   AdminController.deleteDomainOfWhitelistRetailer
 );
 
