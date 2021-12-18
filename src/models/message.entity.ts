@@ -5,7 +5,7 @@ import { User } from './user.entity';
 /**
  * A message model.
  *
- * @typedef {Object} Message
+ * @typedef {Entity} Message
  * @class
  * @extends BaseEntity
  *

@@ -5,7 +5,7 @@ import { TimeSlot } from './timeslot.entity';
 /**
  * Available Timeslot
  *
- * @typedef {Object} AvailableTimeslot
+ * @typedef {Entity} AvailableTimeslot
  * @class
  * @extends TimeSlot
  *

@@ -6,7 +6,7 @@ import { User } from './user.entity';
 /**
  * A recording model.
  *
- * @typedef {Object} Recording
+ * @typedef {Entity} Recording
  * @class
  * @extends BaseEntity
  *

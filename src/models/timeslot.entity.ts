@@ -5,7 +5,7 @@ import { BaseEntity } from './base.entity';
 /**
  * A model for a time slot.
  *
- * @typedef {Object} TimeSlot
+ * @typedef {Entity} TimeSlot
  * @class
  * @extends BaseEntity
  *

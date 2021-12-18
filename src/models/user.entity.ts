@@ -10,7 +10,7 @@ import { Token } from './token.entity';
 
 /**
  * A User model.
- * @typedef {Object} User
+ * @typedef {Entity} User
  * @class
  * @extends BaseEntity
  *

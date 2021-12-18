@@ -5,7 +5,7 @@ import { Order } from './order.entity';
 /**
  * An inventory item model
  *
- * @typedef {Object} InventoryItem
+ * @typedef {Entity} InventoryItem
  * @class
  * @extends BaseEntity
  *
