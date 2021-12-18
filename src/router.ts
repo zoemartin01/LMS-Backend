@@ -17,7 +17,7 @@ const TOKEN_BASE_URL = '/token';
 router.post(TOKEN_BASE_URL, AuthController.login);
 router.delete(TOKEN_BASE_URL, AuthController.logout);
 router.post(`${TOKEN_BASE_URL}/refresh`, AuthController.refreshToken);
-router.get(
+router.post(
   `${TOKEN_BASE_URL}/check`,
   AuthController.checkAuthenticationMiddleware,
   AuthController.checkToken
@@ -97,6 +97,7 @@ router.delete(
 
 // Appointment Management
 const APPOINTMENTS_BASE_URL = '/appointments';
+const APPOINTMENT_SERIES_URL = `${APPOINTMENTS_BASE_URL}/series`;
 
 router.get(APPOINTMENTS_BASE_URL, AppointmentController.getAllAppointments);
 
@@ -111,6 +112,11 @@ router.get(
 );
 
 router.get(
+  `${USER_BASE_URL}/appointments/series/:id`,
+  AppointmentController.getAppointmentsForSeries
+);
+
+router.get(
   `${APPOINTMENTS_BASE_URL}/:id`,
   AppointmentController.getAppointment
 );
@@ -120,14 +126,29 @@ router.post(
   AppointmentController.createAppointment
 );
 
+router.post(
+  `${APPOINTMENT_SERIES_URL}`,
+  AppointmentController.createAppointmentSeries
+);
+
 router.patch(
   `${APPOINTMENTS_BASE_URL}/:id`,
   AppointmentController.updateAppointment
 );
 
+router.put(
+  `${APPOINTMENT_SERIES_URL}/:id`,
+  AppointmentController.updateAppointmentSeries
+);
+
 router.delete(
   `${APPOINTMENTS_BASE_URL}/:id`,
   AppointmentController.deleteAppointment
+);
+
+router.delete(
+  `${APPOINTMENT_SERIES_URL}/:id`,
+  AppointmentController.deleteAppointmentSeries
 );
 
 // Inventory Management

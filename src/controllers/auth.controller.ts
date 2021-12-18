@@ -107,7 +107,7 @@ export class AuthController {
   /**
    * Checks token of current user
    *
-   * @route {GET} /token/check
+   * @route {POST} /token/check
    * @param {Request} req frontend request to check if current user's token is valid
    * @param {Response} res backend response
    */
