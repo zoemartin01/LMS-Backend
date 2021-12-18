@@ -161,4 +161,16 @@ export class AdminController {
    * @param {Response} res backend response deletion
    */
   public static async deleteUser(req: Request, res: Response) {}
+
+  /**
+   * Checks domain against a whitelist
+   *
+   * @route {POST} /global-settings/whitelist-retailers/check
+   * @param {Request} req frontend request to check a domain against whitelist
+   * @param {Response} res backend response to check a domain against whitelist
+   */
+  public static async checkDomainAgainstWhitelist(
+    req: Request,
+    res: Response
+  ) {}
 }
