@@ -96,6 +96,11 @@ router.get(
 );
 
 router.get(
+  `${USER_BASE_URL}/appointments`, //TODO
+  AppointmentController.getAppointmentsForSeries
+);
+
+router.get(
   `${APPOINTMENTS_BASE_URL}/:id`,
   AppointmentController.getAppointment
 );
@@ -105,14 +110,29 @@ router.post(
   AppointmentController.createAppointment
 );
 
+router.post(
+  `${APPOINTMENTS_BASE_URL}`,
+  AppointmentController.createAppointmentSeries
+);
+
 router.put(
   `${APPOINTMENTS_BASE_URL}/:id`,
   AppointmentController.updateAppointment
 );
 
+router.put(
+  `${APPOINTMENTS_BASE_URL}/:id`,
+  AppointmentController.updateAppointmentSeries
+);
+
 router.delete(
   `${APPOINTMENTS_BASE_URL}/:id`,
   AppointmentController.deleteAppointment
+);
+
+router.delete(
+  `${APPOINTMENTS_BASE_URL}/:id`,
+  AppointmentController.deleteAppointmentSeries
 );
 
 // Inventory Management
