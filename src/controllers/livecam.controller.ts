@@ -14,9 +14,11 @@ import { VideoResolution } from '../types/enums/video-resolution';
  */
 export class LivecamController {
   /**
-   * Get the data for all recordings
+   * Returns the data for all recordings
    *
-   * @route {GET} /livecam/recordings
+   * @route {GET} /livecam-recordings
+   * @param {Request} req frontend request to get data of all recordings
+   * @param {Response} res backend response with data of all recordings
    */
   public static async getRecordings(req: Request, res: Response) {
     await getRepository(Recording)
@@ -27,10 +29,12 @@ export class LivecamController {
   }
 
   /**
-   * Get the recording data for a specific recording
+   * Returns the recording data for a specific recording
    *
-   * @route {GET} /livecam/recordings/:id
+   * @route {GET} /livecam-recordings/:id
    * @routeParam {string} id - The id of the recording
+   * @param {Request} req frontend request to get recording data
+   * @param {Response} res backend response with data of recording
    */
   public static async getRecordingById(req: Request, res: Response) {
     await getRepository(Recording)
@@ -41,11 +45,13 @@ export class LivecamController {
   }
 
   /**
-   * Update a specific recording
+   * Updates a specific recording
    *
-   * @route {PATCH} /livecam/recordings/:id
+   * @route {PATCH} /livecam-recordings/:id
    * @routeParam {string} id - The id of the recording
    * @bodyParam {number [Optional]} size - The size of the recording
+   * @param {Request} req frontend request to update a specific recording
+   * @param {Response} res backend response
    */
   public static async updateRecording(req: Request, res: Response) {
     await getRepository(Recording).update({ id: req.params.id }, req.body);
@@ -53,14 +59,16 @@ export class LivecamController {
   }
 
   /**
-   * Schedule a new recording
+   * Schedules a new recording
    *
-   * @route {POST} /livecam/recordings/schedule
+   * @route {POST} /livecam-recordings/schedule
    * @bodyParam {User} user - The user scheduling the recording
    * @bodyParam {Date} start - The start of the recording
    * @bodyParam {Date} end - The end of the recording
    * @bodyParam {VideoResolution} resolution - The resolution of the recording
    * @bodyParam {number} bitrate - The bitrate of the recording
+   * @param {Request} req frontend request to schedule recording
+   * @param {Response} res backend response
    */
   public static async scheduleRecording(req: Request, res: Response) {
     const recording = await getRepository(Recording).save(req.body);
@@ -80,10 +88,12 @@ export class LivecamController {
   }
 
   /**
-   * Stream the file for a given recording
+   * Streams the file for a given recording
    *
-   * @route {GET} /livecam/recordings/:id/download
+   * @route {GET} /livecam-recordings/:id/download
    * @routeParam {string} id - The id of the recording
+   * @param {Request} req frontend request to get the stream of a recording
+   * @param {Response} res backend response with stream
    */
   public static async streamRecording(req: Request, res: Response) {
     const response = await axios.get(
@@ -103,16 +113,18 @@ export class LivecamController {
   }
 
   /**
-   * Delete a given recording
+   * Deletes a given recording
    *
-   * @route {DELETE} /livecam/recordings/:id
+   * @route {DELETE} /livecam-recordings/:id
    * @routeParam {string} id - The id of the recording
+   * @param {Request} req frontend request to delete recording
+   * @param {Response} res backend response
    */
   public static async deleteRecording(req: Request, res: Response) {
     await getRepository(Recording)
       .delete(req.params.id)
       .then(() => {
-        res.sendStatus(200);
+        res.sendStatus(204);
       });
   }
 }

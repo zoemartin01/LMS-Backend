@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+
 /**
  * Controller for Admin Management
  *
@@ -9,7 +10,7 @@ import { Request, Response } from 'express';
  */
 export class AdminController {
   /**
-   * Gets global settings
+   * Returns global settings
    *
    * @route {GET} /global-settings
    * @param {Request} req frontend request to get data about global settings
@@ -18,16 +19,7 @@ export class AdminController {
   public static async getGlobalSettings(req: Request, res: Response) {}
 
   /**
-   * Gets users
-   *
-   * @route {GET} /users
-   * @param {Request} req frontend request to get data about all users
-   * @param {Response} res backend response with data about all user
-   */
-  public static async getUsers(req: Request, res: Response) {}
-
-  /**
-   * Changes global settings
+   * Updates global settings
    *
    * @route {PATCH} /global-settings/:key
    * @routeParam {string} key - a global setting key
@@ -36,24 +28,24 @@ export class AdminController {
    * @param {Request} req frontend request to change data about global settings
    * @param {Response} res backend response with data change of one global settings
    */
-
   public static async updateGlobalSettings(req: Request, res: Response) {}
 
   /**
-   * Gets whitelist retailer data
+   * Returns whitelist retailer data
    *
-   * @route {GET} /global-settings/whitelist-retailers
+   * @route {GET} /global-settings/whitelist-retailers/:id
+   * @routeParam {string} id - a retailer id
    * @param {Request} req frontend request to get data about one whitelist retailer
    * @param {Response} res backend response with data about one whitelist retailer
    */
-  public static async getWhitelistRetailerData(req: Request, res: Response) {}
+  public static async getWhitelistRetailer(req: Request, res: Response) {}
 
   /**
    * Creates whitelist retailer with data
    *
    * @route {POST} /global-settings/whitelist-retailers
    * @bodyParam {string} name - a name of the retailer
-   * @bodyParam {string [Optional]} domain - a domain of the retailer
+   * @bodyParam {string[] [Optional]} domains - one or more domains of the retailer
    * @param {Request} req frontend request to create a new retailer
    * @param {Response} res backend response creation of a new retailer
    */
@@ -68,9 +60,10 @@ export class AdminController {
    * @param {Request} req frontend request to change data about one whitelist retailer
    * @param {Response} res backend response with data change of one whitelist retailer
    */
-  public static async editWhitelistRetailerData(req: Request, res: Response) {}
+  public static async updateWhitelistRetailer(req: Request, res: Response) {}
 
-  //TODO: additional domain add/remove/edit routes missing
+  //@todo additional domain create/delete/update routes missing
+  //@todo check whitelist (param: domain)
 
   /**
    * Deletes whitelist retailer
@@ -85,7 +78,8 @@ export class AdminController {
   /**
    * Adds domain to whitelist retailer
    *
-   * @route {POST} /global-settings/whitelist-retailer/:id
+   * @route {POST} /global-settings/whitelist-retailers/:retailerId/domains
+   * @routeParam {string} retailerId - a retailer id
    * @bodyParam {string} domain - an additional domain of the retailer
    * @param {Request} req frontend request to add a new domain to the retailer
    * @param {Response} res backend response addition of a new domain to the retailer
@@ -98,9 +92,10 @@ export class AdminController {
   /**
    * Changes one domain of whitelist retailer
    *
-   * @route {PATCH} /global-settings/whitelist-retailers/:id/domain/:id
-   * @routeParam {string} id - a retailer id
-   * @routeParam {string} id - a domain id
+   * @route {PATCH} /global-settings/whitelist-retailers/:retailerId/domains/:domainId
+   * @routeParam {string} retailerId - a retailer id
+   * @routeParam {string} domainId - a domain id
+   * @bodyParam {string} domain - the new value of the domain of the retailer
    * @param {Request} req frontend request to change one domain of a whitelist retailer
    * @param {Response} res backend response with data change of one domain of a whitelist retailer
    */
@@ -112,9 +107,9 @@ export class AdminController {
   /**
    * Deletes one domain of a whitelist retailer
    *
-   * @route {DELETE} /global-settings/whitelist-retailers/:id/domain/:id
-   * @routeParam {string} id - a retailer id
-   * @routeParam {string} id - a domain id
+   * @route {DELETE} /global-settings/whitelist-retailers/:retailerId/domains/:domainId
+   * @routeParam {string} retailerId - a retailer id
+   * @routeParam {string} domainId - a domain id
    * @param {Request} req frontend request to delete one domain of a whitelist retailer
    * @param {Response} res backend response deletion
    */
@@ -122,4 +117,48 @@ export class AdminController {
     req: Request,
     res: Response
   ) {}
+
+  /**
+   * Returns users
+   *
+   * @route {GET} /users
+   * @param {Request} req frontend request to get data about all users
+   * @param {Response} res backend response with data about all user
+   */
+  public static async getUsers(req: Request, res: Response) {}
+
+  /**
+   * Returns data of a specific user
+   *
+   * @route {GET} /users/:id
+   * @routeParam {string} id - a user id
+   * @param {Request} req frontend request to get data about one specific user
+   * @param {Response} res backend response with data about one specific user
+   */
+  public static async getUser(req: Request, res: Response) {}
+
+  /**
+   * Changes data of a specific user
+   *
+   * @route {PATCH} /users/:id
+   * @routeParam {string} id - a user id
+   * @bodyParam {string [Optional]} firstname - a new firstname
+   * @bodyParam {string [Optional]} lastname - a new lastname
+   * @bodyParam {string [Optional]} email - a new email address
+   * @bodyParam {string [Optional]} password - a new password
+   * @bodyParam {UserRole [Optional]} userRole - a new user role
+   * @bodyParam {boolean [Optional]} emailVerification - a new email verification status
+   * @param {Request} req frontend request to change data about one user
+   * @param {Response} res backend response with data change of one user
+   */
+  public static async updateUser(req: Request, res: Response) {}
+
+  /**
+   * Deletes a given user
+   *
+   * @route {DELETE} /users/:id
+   * @param {Request} req frontend request to delete one user
+   * @param {Response} res backend response deletion
+   */
+  public static async deleteUser(req: Request, res: Response) {}
 }

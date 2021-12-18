@@ -1,11 +1,11 @@
 import { NextFunction, Request, Response } from 'express';
 import { getRepository } from 'typeorm';
 import jsonwebtoken from 'jsonwebtoken';
-const bcrypt = require("bcrypt");
+const bcrypt = require('bcrypt');
 import { User } from '../models/user.entity';
-import { Token } from "../models/token.entity";
-import { TokenType } from "../types/enums/token-type";
-import { UserRole } from "../types/enums/user-role";
+import { Token } from '../models/token.entity';
+import { TokenType } from '../types/enums/token-type';
+import { UserRole } from '../types/enums/user-role';
 
 const accessTokenSecret = 'V50jPXQVocPUSPHl0yzPJhXZzh32bp';
 const refreshTokenSecret = '3pqOHs7R1TrCgsRKksPp4J3Kfs0l0X';
@@ -20,6 +20,8 @@ export class AuthController {
    * @route {POST} /token
    * @bodyParam {string} email - user's email address
    * @bodyParam {string} password - user's password
+   * @param {Request} req frontend request to login user with his credentials
+   * @param {Response} res backend response with authentication and refresh token
    */
   public static async login(req: Request, res: Response) {
     const { email, password } = req.body;
@@ -58,6 +60,9 @@ export class AuthController {
    * Logs out current user
    *
    * @route {DELETE} /token
+   * @bodyParam {string} token - user's token to delete
+   * @param {Request} req frontend request to logout user
+   * @param {Response} res backend response
    */
   public static async logout(req: Request, res: Response) {
     //@todo logout current user
@@ -70,6 +75,8 @@ export class AuthController {
    *
    * @route {POST} /token/refresh
    * @bodyParam {string} refreshToken - user's refresh token
+   * @param {Request} req frontend request to refresh the authentication token
+   * @param {Response} res backend response with a new authentication token
    */
   public static async refreshToken(req: Request, res: Response) {
     const { refreshToken } = req.body;
@@ -101,15 +108,25 @@ export class AuthController {
    * Checks token of current user
    *
    * @route {GET} /token/check
+   * @param {Request} req frontend request to check if current user's token is valid
+   * @param {Response} res backend response
    */
   public static async checkToken(req: Request, res: Response) {
-    res.sendStatus(200);
-  };
+    res.sendStatus(204);
+  }
 
   /**
    * Middleware that checks if auth token matches a user
+   *
+   * @param {Request} req current http-request
+   * @param {Response} res response to current http-request
+   * @param {NextFunction} next next function that handles the request
    */
-  public static async checkAuthenticationMiddleware(req: Request, res: Response, next: NextFunction) {
+  public static async checkAuthenticationMiddleware(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) {
     const authHeader = req.headers['authorization'];
 
     if (authHeader) {
@@ -117,60 +134,76 @@ export class AuthController {
 
       jsonwebtoken.verify(token, accessTokenSecret, (err: any) => {
         if (!err) {
-          getRepository(Token).findOne({
-            where: { token, type: TokenType.authenticationToken },
-          }).then((tokenObject: Token|undefined) => {
-            if (tokenObject != undefined) {
-              next();
-            }
-          });
+          getRepository(Token)
+            .findOne({
+              where: { token, type: TokenType.authenticationToken },
+            })
+            .then((tokenObject: Token | undefined) => {
+              if (tokenObject != undefined) {
+                next();
+              }
+            });
         }
       });
     }
     res.sendStatus(401);
-  };
+  }
 
   /**
    * Returns current user
+   *
+   * @param {Request} req current http-request
    */
-  public static async getCurrentUser(req: Request): Promise<User|null> {
+  public static async getCurrentUser(req: Request): Promise<User | null> {
     const authHeader = req.headers['authorization'];
 
     if (authHeader) {
       const token = authHeader.split(' ')[1];
 
-      getRepository(Token).findOne({
-        where: { token, type: TokenType.authenticationToken },
-      }).then((tokenObject: Token|undefined) => {
-        if (tokenObject != undefined) {
-          return tokenObject.user;
-        }
-      });
+      getRepository(Token)
+        .findOne({
+          where: { token, type: TokenType.authenticationToken },
+        })
+        .then((tokenObject: Token | undefined) => {
+          if (tokenObject != undefined) {
+            return tokenObject.user;
+          }
+        });
     }
     return null;
-  };
+  }
 
   /**
    * Checks if current user is admin
+   *
+   * @param {Request} req current http-request
    */
   private static async checkAdmin(req: Request): Promise<boolean> {
-    return this.getCurrentUser(req).then((user: User|null) => {
-      return user === null || (user.role == UserRole.admin);
+    return this.getCurrentUser(req).then((user: User | null) => {
+      return user === null || user.role == UserRole.admin;
     });
-  };
+  }
 
   /**
    * Middleware that checks if current user is admin
+   *
+   * @param {Request} req current http-request
+   * @param {Response} res response to current http-request
+   * @param {NextFunction} next next function that handles the request
    */
-  public static async checkAdminMiddleware(req: Request, res: Response, next: NextFunction) {
+  public static async checkAdminMiddleware(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) {
     this.checkAdmin(req).then((isAdmin: boolean) => {
       if (isAdmin) {
         next();
-      }else{
+      } else {
         res.sendStatus(403);
       }
     });
-  };
+  }
 
   //@todo add jwt tokens to db
   //@todo hash passwords
