@@ -5,7 +5,7 @@ import { Retailer } from './retailer.entity';
 /**
  * Retailer domain entity
  *
- * @typedef {Object} RetailerDomain
+ * @typedef {Entity} RetailerDomain
  * @class
  * @extends BaseEntity
  *

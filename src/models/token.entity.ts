@@ -6,7 +6,7 @@ import { TokenType } from '../types/enums/token-type';
 /**
  * A Token model.
  *
- * @typedef {Token} Token
+ * @typedef {Entity} Token
  * @class
  * @extends BaseEntity
  *
