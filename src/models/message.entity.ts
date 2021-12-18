@@ -9,7 +9,6 @@ import { User } from './user.entity';
  * @class
  * @extends BaseEntity
  *
- * @property {string} id - The message id.
  * @property {string} title - The message title.
  * @property {string} content - The message content.
  * @property {string} correspondingUrl - The message corresponding url.
