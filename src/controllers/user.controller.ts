@@ -37,7 +37,7 @@ export class UserController {
   public static async deleteUser(req: Request, res: Response) {}
 
   /**
-   * Registers new user with his personal information
+   * Registers new user with their personal information
    *
    * @route {POST} /users
    * @bodyParam {string} firstName - new user's first name
