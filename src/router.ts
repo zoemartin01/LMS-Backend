@@ -38,7 +38,7 @@ router.patch(`${MESSAGE_BASE_URL}/:id`, MessagingController.updateMessage);
 const USER_BASE_URL = '/user';
 
 router.get(USER_BASE_URL, UserController.getUser);
-router.post(`${USER_BASE_URL}s`, UserController.signin);
+router.post(`${USER_BASE_URL}s`, UserController.register);
 router.post(`${USER_BASE_URL}/verify-email`, UserController.verifyEmail);
 router.patch(USER_BASE_URL, UserController.updateUser);
 router.delete(`${USER_BASE_URL}`, UserController.deleteUser);

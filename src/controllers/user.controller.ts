@@ -37,25 +37,25 @@ export class UserController {
   public static async deleteUser(req: Request, res: Response) {}
 
   /**
-   * Signs in user with his personal information
+   * Registers new user with his personal information
    *
    * @route {POST} /users
-   * @bodyParam {string} firstname - new user's firstname
-   * @bodyParam {string} lastname - new user's lastname
+   * @bodyParam {string} firstName - new user's first name
+   * @bodyParam {string} lastName - new user's last name
    * @bodyParam {string} email - new user's email address
    * @bodyParam {string} password - new user's password
    * @param {Request} req frontend request to get data of one inventory item
    * @param {Response} res backend response with data of one inventory item
    */
-  public static async signin(req: Request, res: Response) {
-    const { firstname, lastname, email, password } = req.body;
+  public static async register(req: Request, res: Response) {
+    const { firstName, lastName, email, password } = req.body;
 
     /*const salt = await bcrypt.genSalt(10);
     user.password = await bcrypt.hash(user.password, salt);*/
   }
 
   /**
-   * Verifies email address using a token sent on signin
+   * Verifies email address using a token sent on registration
    *
    * @route {POST} /user/verify-email
    * @bodyParam {string} userId - user's id
