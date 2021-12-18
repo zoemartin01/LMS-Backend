@@ -46,6 +46,7 @@ router.delete(`${USER_BASE_URL}`, UserController.deleteUser);
 // Admin (General Settings & User Management)
 const GLOBAL_SETTINGS_BASE_URL = '/global-settings';
 const WHITELIST_BASE_URL = `${GLOBAL_SETTINGS_BASE_URL}/whitelist-retailers`;
+const WHITELIST_RETAILER_DOMAINS_URL = `${WHITELIST_BASE_URL}/:retailerId/domains`;
 
 router.get(GLOBAL_SETTINGS_BASE_URL, AdminController.getGlobalSettings);
 router.patch(GLOBAL_SETTINGS_BASE_URL, AdminController.updateGlobalSettings);
@@ -66,11 +67,11 @@ router.post(
   AdminController.addDomainToWhitelistRetailer
 );
 router.patch(
-  `${WHITELIST_BASE_URL}/:retailer_id/domains/:domain_id`,
+  `${WHITELIST_RETAILER_DOMAINS_URL}/:domainId`,
   AdminController.editDomainOfWhitelistRetailer
 );
 router.delete(
-  `${WHITELIST_BASE_URL}/:retailer_id/domains/:domain_id`,
+  `${WHITELIST_RETAILER_DOMAINS_URL}/:domainId`,
   AdminController.deleteDomainOfWhitelistRetailer
 );
 
