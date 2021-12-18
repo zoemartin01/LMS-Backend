@@ -74,9 +74,7 @@ export class AppointmentController {
    * @param {Response} res backend response creation of a new appointment
    */
   public static async createAppointment(req: Request, res: Response) {}
-  //TODO appointment id
 
-  //TODO series id
   /**
    * Creates a new series of appointment
    *
@@ -119,7 +117,6 @@ export class AppointmentController {
    * @param {Response} res backend response with data change of one appointment
    */
   public static async updateAppointmentSeries(req: Request, res: Response) {}
-  //TODO one appointment of a series of appointments
 
   /**
    * Deletes one appointment
@@ -140,6 +137,4 @@ export class AppointmentController {
    * @param {Response} res backend response deletion
    */
   public static async deleteAppointmentSeries(req: Request, res: Response) {}
-
-  //TODO delete one appointment of a series of appointments
 }
