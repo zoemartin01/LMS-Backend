@@ -7,7 +7,7 @@ import { UnavailableTimeslot } from './unavaliable.timeslot.entity';
 /**
  * A room model.
  *
- * @typedef {Object} Room
+ * @typedef {Entity} Room
  * @class
  * @extends BaseEntity
  *

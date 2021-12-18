@@ -5,7 +5,7 @@ import { RetailerDomain } from './retailer.domain.entity';
 /**
  * Whitelisted Retailer Entity
  *
- * @typedef {Object} Retailer
+ * @typedef {Entity} Retailer
  * @class
  * @extends BaseEntity
  *

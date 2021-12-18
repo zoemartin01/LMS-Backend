@@ -7,7 +7,7 @@ import { User } from './user.entity';
 /**
  * An Order model.
  *
- * @typedef {Object} Order
+ * @typedef {Entity} Order
  * @class
  * @extends BaseEntity
  *
