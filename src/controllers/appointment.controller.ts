@@ -18,8 +18,7 @@ export class AppointmentController {
    * @param {Request} req frontend request to get data about all appointments
    * @param {Response} res backend response with data about all appointments
    */
-  public static async getAllAppointments(req: Request, res: Response) {
-  }
+  public static async getAllAppointments(req: Request, res: Response) {}
 
   /**
    * Returns all appointments for the current user
@@ -31,8 +30,7 @@ export class AppointmentController {
   public static async getAppointmentsForCurrentUser(
     req: Request,
     res: Response
-  ) {
-  }
+  ) {}
 
   /**
    * Returns all appointments related to a specific room
@@ -42,19 +40,17 @@ export class AppointmentController {
    * @param {Request} req frontend request to get data about all appointments for room
    * @param {Response} res backend response with data about all appointments for room
    */
-  public static async getAppointmentsForRoom(req: Request, res: Response) {
-  }
+  public static async getAppointmentsForRoom(req: Request, res: Response) {}
 
   /**
    * Returns all appointments related to a series of appointments
    *
-   * @route {GET} /user/appointments/series/:seriesId
+   * @route {GET} /user/appointments/series/:id
    * @routeParam {string} id - id of the series
    * @param {Request} req frontend request to get data about all appointments for a series
    * @param {Response} res backend response with data about all appointments for a series
    */
-  public static async getAppointmentsForSeries(req: Request, res: Response) {
-  }
+  public static async getAppointmentsForSeries(req: Request, res: Response) {}
 
   /**
    * Returns one appointment with an id
@@ -64,8 +60,7 @@ export class AppointmentController {
    * @param {Request} req frontend request to get data about one appointment
    * @param {Response} res backend response with data about one appointment
    */
-  public static async getAppointment(req: Request, res: Response) {
-  }
+  public static async getAppointment(req: Request, res: Response) {}
 
   /**
    * Creates a new appointment
@@ -78,15 +73,14 @@ export class AppointmentController {
    * @param {Request} req frontend request to create a new appointment
    * @param {Response} res backend response creation of a new appointment
    */
-  public static async createAppointment(req: Request, res: Response) {
-  }
+  public static async createAppointment(req: Request, res: Response) {}
   //TODO appointment id
 
   //TODO series id
   /**
    * Creates a new series of appointment
    *
-   * @route {POST} /appointments
+   * @route {POST} /appointments/series
    * @bodyParam {Date} start - start date and time of the appointment
    * @bodyParam {Date} end - end date and time of the appointment
    * @bodyParam {Room} room - the room associated with the appointment
@@ -97,8 +91,7 @@ export class AppointmentController {
    * @param {Request} req frontend request to create a new appointment
    * @param {Response} res backend response creation of a new appointment
    */
-  public static async createAppointmentSeries(req: Request, res: Response) {
-  }
+  public static async createAppointmentSeries(req: Request, res: Response) {}
 
   /**
    * Updates an appointment
@@ -111,13 +104,12 @@ export class AppointmentController {
    * @param {Request} req frontend request to change data about one appointment
    * @param {Response} res backend response with data change of one appointment
    */
-  public static async updateAppointment(req: Request, res: Response) {
-  }
+  public static async updateAppointment(req: Request, res: Response) {}
 
   /**
    * Updates series of appointments
    *
-   * @route {PATCH} /appointments/:id/edit
+   * @route {PATCH} /appointments/series/:id
    * @routeParam {string} id - id of the series
    * @routeParam {number} difference - time difference in milliseconds between the appointments, regularity
    * @routeParam {number} amount - amount of appointments wanted for the series, 2-2048
@@ -126,8 +118,7 @@ export class AppointmentController {
    * @param {Request} req frontend request to change data about one appointment
    * @param {Response} res backend response with data change of one appointment
    */
-  public static async updateAppointmentSeries(req: Request, res: Response) {
-  }
+  public static async updateAppointmentSeries(req: Request, res: Response) {}
   //TODO one appointment of a series of appointments
 
   /**
@@ -138,13 +129,12 @@ export class AppointmentController {
    * @param {Request} req frontend request to delete one appointment
    * @param {Response} res backend response deletion
    */
-  public static async deleteAppointment(req: Request, res: Response) {
-  }
+  public static async deleteAppointment(req: Request, res: Response) {}
 
   /**
    * Deletes a series of appointments
    *
-   * @route {DELETE} /appointments/:id
+   * @route {DELETE} /appointments/series/:id
    * @routeParam {string} id - id of the series
    * @param {Request} req frontend request to delete one appointment
    * @param {Response} res backend response deletion
