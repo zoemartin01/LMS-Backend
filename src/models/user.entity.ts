@@ -1,26 +1,31 @@
 import { Entity, Column, OneToMany } from 'typeorm';
+import { NotificationChannel } from '../types/enums/notification-channel';
 import { UserRole } from '../types/enums/user-role';
 import { AppointmentTimeslot } from './appointment.timeslot.entity';
 import { BaseEntity } from './base.entity';
 import { Message } from './message.entity';
 import { Order } from './order.entity';
 import { Recording } from './recording.entity';
+import { Token } from './token.entity';
 
 /**
  * A User model.
- * @typedef {Object} User
+ * @typedef {Entity} User
  * @class
  * @extends BaseEntity
  *
- * @property {string} id - The id of the user.
  * @property {string} email - The email of the user.
+ * @property {string} firstName - The user's first name.
+ * @property {string} lastName - The user's last name.
  * @property {string} password - The password of the user.
  * @property {UserRole} role - The role of the user.
  * @property {boolean} emailVerification - The email verification status of the user.
+ * @property {NotificationChannel} notificationChannel - The chosen notification channel of the user.
  * @property {AppointmentTimeslot[]} bookings - The bookings of the user.
  * @property {Order[]} orders - The orders of the user.
  * @property {Message[]} messages - The messages the user received.
  * @property {Recording[]} recordings - The recordings of the user.
+ * @property {Token[]} tokens - The tokens of the user.
  */
 @Entity()
 export class User extends BaseEntity {
@@ -31,6 +36,22 @@ export class User extends BaseEntity {
    */
   @Column()
   email: string;
+
+  /**
+   * The user's first name.
+   *
+   * @type {string}
+   */
+  @Column()
+  firstName: string;
+
+  /**
+   * The user's last name.
+   *
+   * @type {string}
+   */
+  @Column()
+  lastName: string;
 
   /**
    * The password of the user.
@@ -63,6 +84,19 @@ export class User extends BaseEntity {
   emailVerification: boolean;
 
   /**
+   * The chosen notification channel of the user.
+   *
+   * @type {NotificationChannel}
+   * @default NotificationChannel.emailOnly
+   */
+  @Column({
+    type: 'enum',
+    enum: NotificationChannel,
+    default: NotificationChannel.emailOnly,
+  })
+  notificationChannel: NotificationChannel;
+
+  /**
    * The bookings of the user.
    *
    * @type {AppointmentTimeslot[]}
@@ -93,4 +127,12 @@ export class User extends BaseEntity {
    */
   @OneToMany(() => Recording, (recording) => recording.user)
   recordings: Recording[];
+
+  /**
+   * The tokens of the user.
+   *
+   * @type {Token[]}
+   */
+  @OneToMany(() => Token, (token) => token.user)
+  tokens: Token[];
 }

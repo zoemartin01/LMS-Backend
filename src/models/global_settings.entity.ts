@@ -3,7 +3,7 @@ import { Column, Entity, PrimaryColumn } from 'typeorm';
 /**
  * Global Setting
  *
- * @typedef {Object} GlobalSetting
+ * @typedef {Entity} GlobalSetting
  * @class
  *
  * @property {string} key - The key of the setting

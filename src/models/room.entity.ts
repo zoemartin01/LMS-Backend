@@ -7,11 +7,10 @@ import { UnavailableTimeslot } from './unavaliable.timeslot.entity';
 /**
  * A room model.
  *
- * @typedef {Object} Room
+ * @typedef {Entity} Room
  * @class
  * @extends BaseEntity
  *
- * @property {string} id - The room id.
  * @property {string} name - The name of the room.
  * @property {string} description - The description of the room.
  * @property {number} maxConcurrentBookings - The maximum number of concurrent bookings allowed in the room.

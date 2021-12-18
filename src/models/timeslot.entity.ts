@@ -5,11 +5,10 @@ import { BaseEntity } from './base.entity';
 /**
  * A model for a time slot.
  *
- * @typedef {Object} TimeSlot
+ * @typedef {Entity} TimeSlot
  * @class
  * @extends BaseEntity
  *
- * @property {string} id - The id of the time slot.
  * @property {string} seriesId - The id of the series the time slot belongs to.
  * @property {Date} start - The start time of the time slot.
  * @property {Date} end - The end time of the time slot.

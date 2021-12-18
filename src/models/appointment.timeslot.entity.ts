@@ -7,7 +7,7 @@ import { User } from './user.entity';
 /**
  * Appointment Timeslot
  *
- * @typedef {Object} AppointmentTimeslot
+ * @typedef {Entity} AppointmentTimeslot
  * @class
  * @extends TimeSlot
  *

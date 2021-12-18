@@ -5,11 +5,10 @@ import { Order } from './order.entity';
 /**
  * An inventory item model
  *
- * @typedef {Object} InventoryItem
+ * @typedef {Entity} InventoryItem
  * @class
  * @extends BaseEntity
  *
- * @property {string} id - The inventory item's id
  * @property {string} name - The inventory item's name
  * @property {string} description - The inventory item's description
  * @property {number} quantity - The inventory item's quantity in inventory
