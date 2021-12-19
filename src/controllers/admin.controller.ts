@@ -7,6 +7,7 @@ import { Request, Response } from 'express';
  * @see User
  * @see GlobalSetting
  * @see Retailer
+ * @see RetailerDomain
  */
 export class AdminController {
   /**
@@ -119,6 +120,18 @@ export class AdminController {
   ) {}
 
   /**
+   * Checks domain against a whitelist
+   *
+   * @route {POST} /global-settings/whitelist-retailers/check
+   * @param {Request} req frontend request to check a domain against whitelist
+   * @param {Response} res backend response to check a domain against whitelist
+   */
+  public static async checkDomainAgainstWhitelist(
+    req: Request,
+    res: Response
+  ) {}
+
+  /**
    * Returns users
    *
    * @route {GET} /users
@@ -157,20 +170,9 @@ export class AdminController {
    * Deletes a given user
    *
    * @route {DELETE} /users/:id
+   * @routeParam {string} id - a user id
    * @param {Request} req frontend request to delete one user
    * @param {Response} res backend response deletion
    */
   public static async deleteUser(req: Request, res: Response) {}
-
-  /**
-   * Checks domain against a whitelist
-   *
-   * @route {POST} /global-settings/whitelist-retailers/check
-   * @param {Request} req frontend request to check a domain against whitelist
-   * @param {Response} res backend response to check a domain against whitelist
-   */
-  public static async checkDomainAgainstWhitelist(
-    req: Request,
-    res: Response
-  ) {}
 }

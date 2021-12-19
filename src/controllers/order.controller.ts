@@ -9,7 +9,8 @@ import { User } from '../models/user.entity';
  * @see OrderService
  * @see Order
  * @see OrderStatus
- * @see User
+ * @see Retailer
+ * @see RetailerDomain
  */
 export class OrderController {
   /**
