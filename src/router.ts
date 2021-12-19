@@ -194,9 +194,13 @@ const LIVECAM_BASE_URL = '/livecam';
 const LIVECAM_RECORDING_URL = `${LIVECAM_BASE_URL}/recordings`;
 
 router.get(LIVECAM_RECORDING_URL, LivecamController.getRecordings);
+router.get(
+  `${LIVECAM_RECORDING_URL}/schedules`,
+  LivecamController.getScheduledRecordings
+);
 router.get(`${LIVECAM_RECORDING_URL}/:id`, LivecamController.getRecordingById);
 router.post(
-  `${LIVECAM_RECORDING_URL}/schedule`,
+  `${LIVECAM_RECORDING_URL}/schedules`,
   LivecamController.scheduleRecording
 );
 router.patch(`${LIVECAM_RECORDING_URL}/:id`, LivecamController.updateRecording);
