@@ -8,6 +8,8 @@ import { TimeSlot } from '../models/timeslot.entity';
  *
  * @see RoomService
  * @see Room
+ * @see AvailableTimeslot
+ * @see UnavailableTimeslot
  */
 export class RoomController {
   /**

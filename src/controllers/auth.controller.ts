@@ -12,6 +12,10 @@ const refreshTokenSecret = '3pqOHs7R1TrCgsRKksPp4J3Kfs0l0X';
 
 /**
  * Controller for Authentication
+ *
+ * @see AuthService
+ * @see User
+ * @see Token
  */
 export class AuthController {
   /**

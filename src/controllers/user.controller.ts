@@ -5,6 +5,9 @@ import bcrypt from 'bcrypt';
 
 /**
  * Controller for User Settings
+ *
+ * @see UserService
+ * @see User
  */
 export class UserController {
   /**

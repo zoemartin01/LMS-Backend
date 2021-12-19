@@ -10,6 +10,7 @@ import { VideoResolution } from '../types/enums/video-resolution';
 /**
  * Controller for the LiveCam System
  *
+ * @see LivecamService
  * @see Recording
  */
 export class LivecamController {

@@ -2,6 +2,9 @@ import { Request, Response } from 'express';
 
 /**
  * Controller for messaging
+ *
+ * @see MessagingService
+ * @see Message
  */
 export class MessagingController {
   /**
