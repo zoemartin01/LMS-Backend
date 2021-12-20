@@ -93,6 +93,7 @@ export class LivecamController {
       ${environment.livecam_server.apiPath}
       ${environment.livecam_server.endpoints.schedule}`,
       {
+        // TODO: only pass recording
         id: recording.id,
         start: recording.start.getTime(),
         end: recording.end.getTime(),
