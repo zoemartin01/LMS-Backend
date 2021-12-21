@@ -20,6 +20,7 @@ import { Token } from './token.entity';
  * @property {string} password - The password of the user.
  * @property {UserRole} role - The role of the user.
  * @property {boolean} emailVerification - The email verification status of the user.
+ * @property {boolean} isActiveDirectory - Whether the user is an active directory user.
  * @property {NotificationChannel} notificationChannel - The chosen notification channel of the user.
  * @property {AppointmentTimeslot[]} bookings - The bookings of the user.
  * @property {Order[]} orders - The orders of the user.
@@ -82,6 +83,16 @@ export class User extends BaseEntity {
    */
   @Column({ default: false })
   emailVerification: boolean;
+
+  /**
+   * Whether the user is an active directory user.
+   *
+   * @type {boolean}
+   * @default false
+   * @readonly
+   */
+  @Column({ default: false })
+  isActiveDirectory: boolean;
 
   /**
    * The chosen notification channel of the user.

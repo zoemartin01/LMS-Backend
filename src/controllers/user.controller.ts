@@ -46,7 +46,8 @@ export class UserController {
    * @bodyParam {string} firstName - new user's first name
    * @bodyParam {string} lastName - new user's last name
    * @bodyParam {string} email - new user's email address
-   * @bodyParam {string} password - new user's password
+   * @bodyParam {string [Optional]} password - new user's password. Optional if user uses active directory for authentication
+   * @bodyParam {isActiveDirectory [Optional]} isActiveDirectory - true if user uses active directory for authentication
    * @param {Request} req frontend request to get data of one inventory item
    * @param {Response} res backend response with data of one inventory item
    */
