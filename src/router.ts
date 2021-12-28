@@ -8,210 +8,271 @@ import { MessagingController } from './controllers/messaging.controller';
 import { OrderController } from './controllers/order.controller';
 import { RoomController } from './controllers/room.controller';
 import { UserController } from './controllers/user.controller';
+import environment from './environment';
 
 const router: Router = Router();
 
 // Authentication
-const TOKEN_BASE_URL = '/token';
-
-router.post(TOKEN_BASE_URL, AuthController.login);
-router.delete(TOKEN_BASE_URL, AuthController.logout);
-router.post(`${TOKEN_BASE_URL}/refresh`, AuthController.refreshToken);
+router.post(environment.apiRoutes.auth.login, AuthController.login);
+router.delete(environment.apiRoutes.auth.logout, AuthController.logout);
 router.post(
-  `${TOKEN_BASE_URL}/check`,
+  environment.apiRoutes.auth.tokenRefresh,
+  AuthController.refreshToken
+);
+router.post(
+  environment.apiRoutes.auth.tokenCheck,
   AuthController.checkAuthenticationMiddleware,
   AuthController.checkToken
 );
 
 // Messaging
-const MESSAGE_BASE_URL = '/messages';
-
-router.get(`/user${MESSAGE_BASE_URL}`, MessagingController.getMessages);
 router.get(
-  `/user${MESSAGE_BASE_URL}/unread-amounts`,
+  environment.apiRoutes.messages.getCurrentUserMessages,
+  MessagingController.getMessages
+);
+router.get(
+  environment.apiRoutes.messages.getCurrentUserUnreadMessagesAmounts,
   MessagingController.getUnreadMessagesAmounts
 );
-router.delete(`${MESSAGE_BASE_URL}/:id`, MessagingController.deleteMessage);
-router.patch(`${MESSAGE_BASE_URL}/:id`, MessagingController.updateMessage);
+router.delete(
+  environment.apiRoutes.messages.deleteMessage,
+  MessagingController.deleteMessage
+);
+router.patch(
+  environment.apiRoutes.messages.updateMessage,
+  MessagingController.updateMessage
+);
 
 // Personal User Settings
-const USER_BASE_URL = '/user';
-
-router.get(USER_BASE_URL, UserController.getUser);
-router.post(`${USER_BASE_URL}s`, UserController.register);
-router.post(`${USER_BASE_URL}/verify-email`, UserController.verifyEmail);
-router.patch(USER_BASE_URL, UserController.updateUser);
-router.delete(`${USER_BASE_URL}`, UserController.deleteUser);
+router.get(
+  environment.apiRoutes.user_settings.getCurrentUser,
+  UserController.getUser
+);
+router.post(
+  environment.apiRoutes.user_settings.register,
+  UserController.register
+);
+router.post(
+  environment.apiRoutes.user_settings.verifyEmail,
+  UserController.verifyEmail
+);
+router.patch(
+  environment.apiRoutes.user_settings.updateCurrentUser,
+  UserController.updateUser
+);
+router.delete(
+  environment.apiRoutes.user_settings.deleteCurrentUser,
+  UserController.deleteUser
+);
 
 // Admin (General Settings & User Management)
-const GLOBAL_SETTINGS_BASE_URL = '/global-settings';
-const WHITELIST_BASE_URL = `${GLOBAL_SETTINGS_BASE_URL}/whitelist-retailers`;
-const WHITELIST_RETAILER_DOMAINS_URL = `${WHITELIST_BASE_URL}/:retailerId/domains`;
-
-router.get(GLOBAL_SETTINGS_BASE_URL, AdminController.getGlobalSettings);
-router.patch(GLOBAL_SETTINGS_BASE_URL, AdminController.updateGlobalSettings);
-
-router.get(`${WHITELIST_BASE_URL}/:id`, AdminController.getWhitelistRetailer);
-router.post(WHITELIST_BASE_URL, AdminController.createWhitelistRetailer);
+router.get(
+  environment.apiRoutes.admin_settings.getGlobalSettings,
+  AdminController.getGlobalSettings
+);
 router.patch(
-  `${WHITELIST_BASE_URL}/:id`,
+  environment.apiRoutes.admin_settings.updateGlobalSettings,
+  AdminController.updateGlobalSettings
+);
+
+router.get(
+  environment.apiRoutes.admin_settings.getWhitelistRetailer,
+  AdminController.getWhitelistRetailer
+);
+router.post(
+  environment.apiRoutes.admin_settings.createWhitelistRetailer,
+  AdminController.createWhitelistRetailer
+);
+router.patch(
+  environment.apiRoutes.admin_settings.updateWhitelistRetailer,
   AdminController.updateWhitelistRetailer
 );
 router.delete(
-  `${WHITELIST_BASE_URL}/:id`,
+  environment.apiRoutes.admin_settings.deleteWhitelistRetailer,
   AdminController.deleteWhitelistRetailer
 );
 
 router.post(
-  `${WHITELIST_RETAILER_DOMAINS_URL}`,
+  environment.apiRoutes.admin_settings.addDomainToWhitelistRetailer,
   AdminController.addDomainToWhitelistRetailer
 );
 router.patch(
-  `${WHITELIST_RETAILER_DOMAINS_URL}/:domainId`,
+  environment.apiRoutes.admin_settings.updateDomainOfWhitelistRetailer,
   AdminController.editDomainOfWhitelistRetailer
 );
 router.delete(
-  `${WHITELIST_RETAILER_DOMAINS_URL}/:domainId`,
+  environment.apiRoutes.admin_settings.deleteDomainOfWhitelistRetailer,
   AdminController.deleteDomainOfWhitelistRetailer
 );
 router.post(
-  `${WHITELIST_BASE_URL}/check`,
+  environment.apiRoutes.admin_settings.checkDomainAgainstWhitelist,
   AdminController.checkDomainAgainstWhitelist
 );
 
-router.get(`${USER_BASE_URL}s`, AdminController.getUsers);
-router.get(`${USER_BASE_URL}s/:id`, AdminController.getUser);
-router.patch(`${USER_BASE_URL}s/:id`, AdminController.updateUser);
-router.delete(`${USER_BASE_URL}s/:id`, AdminController.deleteUser);
+router.get(
+  environment.apiRoutes.user_management.getAllUsers,
+  AdminController.getUsers
+);
+router.get(
+  environment.apiRoutes.user_management.getSingleUser,
+  AdminController.getUser
+);
+router.patch(
+  environment.apiRoutes.user_management.updateUser,
+  AdminController.updateUser
+);
+router.delete(
+  environment.apiRoutes.user_management.deleteUser,
+  AdminController.deleteUser
+);
 
 // Room Management
-const ROOM_BASE_URL = '/rooms';
-const ROOM_TIMESLOT_URL = `${ROOM_BASE_URL}/:roomId/timeslots`;
-
-router.get(ROOM_BASE_URL, RoomController.getAllRooms);
-router.get(`${ROOM_BASE_URL}/:id`, RoomController.getRoomById);
-router.post(ROOM_BASE_URL, RoomController.createRoom);
-router.patch(`${ROOM_BASE_URL}/:id`, RoomController.updateRoom);
-router.delete(`${ROOM_BASE_URL}/:id`, RoomController.deleteRoom);
-router.post(`${ROOM_TIMESLOT_URL}`, RoomController.createTimeslot);
+router.get(environment.apiRoutes.rooms.getAllRooms, RoomController.getAllRooms);
+router.get(
+  environment.apiRoutes.rooms.getSingleRoom,
+  RoomController.getRoomById
+);
+router.post(environment.apiRoutes.rooms.createRoom, RoomController.createRoom);
+router.patch(environment.apiRoutes.rooms.updateRoom, RoomController.updateRoom);
 router.delete(
-  `${ROOM_TIMESLOT_URL}/:timeslotId`,
+  environment.apiRoutes.rooms.deleteRoom,
+  RoomController.deleteRoom
+);
+router.post(
+  environment.apiRoutes.rooms.createTimeslot,
+  RoomController.createTimeslot
+);
+router.delete(
+  environment.apiRoutes.rooms.deleteTimeslot,
   RoomController.deleteTimeslot
 );
 
 // Appointment Management
-const APPOINTMENTS_BASE_URL = '/appointments';
-const APPOINTMENT_SERIES_URL = `${APPOINTMENTS_BASE_URL}/series`;
-
-router.get(APPOINTMENTS_BASE_URL, AppointmentController.getAllAppointments);
-
 router.get(
-  `${USER_BASE_URL}/appointments`,
+  environment.apiRoutes.appointments.getAllAppointments,
+  AppointmentController.getAllAppointments
+);
+router.get(
+  environment.apiRoutes.appointments.getCurrentUserAppointments,
   AppointmentController.getAppointmentsForCurrentUser
 );
-
 router.get(
-  `${ROOM_BASE_URL}/:id/appointments`,
+  environment.apiRoutes.appointments.getRoomAppointments,
   AppointmentController.getAppointmentsForRoom
 );
-
 router.get(
-  `${APPOINTMENTS_BASE_URL}/series/:id`,
+  environment.apiRoutes.appointments.getSeriesAppointments,
   AppointmentController.getAppointmentsForSeries
 );
-
 router.get(
-  `${APPOINTMENTS_BASE_URL}/:id`,
+  environment.apiRoutes.appointments.getSingleAppointment,
   AppointmentController.getAppointment
 );
-
 router.post(
-  `${APPOINTMENTS_BASE_URL}`,
+  environment.apiRoutes.appointments.createAppointment,
   AppointmentController.createAppointment
 );
-
 router.post(
-  `${APPOINTMENT_SERIES_URL}`,
+  environment.apiRoutes.appointments.createAppointmentSeries,
   AppointmentController.createAppointmentSeries
 );
-
 router.patch(
-  `${APPOINTMENTS_BASE_URL}/:id`,
+  environment.apiRoutes.appointments.updateAppointment,
   AppointmentController.updateAppointment
 );
-
 router.put(
-  `${APPOINTMENT_SERIES_URL}/:id`,
+  environment.apiRoutes.appointments.updateAppointmentSeries,
   AppointmentController.updateAppointmentSeries
 );
-
 router.delete(
-  `${APPOINTMENTS_BASE_URL}/:id`,
+  environment.apiRoutes.appointments.deleteAppointment,
   AppointmentController.deleteAppointment
 );
-
 router.delete(
-  `${APPOINTMENT_SERIES_URL}/:id`,
+  environment.apiRoutes.appointments.deleteAppointmentSeries,
   AppointmentController.deleteAppointmentSeries
 );
 
 // Inventory Management
-const INVENTORY_BASE_URL = '/inventory-items';
-
-router.get(INVENTORY_BASE_URL, InventoryController.getAllInventoryItems);
-
-router.get(`${INVENTORY_BASE_URL}/:id`, InventoryController.getInventoryItem);
-
-router.post(INVENTORY_BASE_URL, InventoryController.createInventoryItem);
-
+router.get(
+  environment.apiRoutes.inventory_item.getAllItems,
+  InventoryController.getAllInventoryItems
+);
+router.get(
+  environment.apiRoutes.inventory_item.getSingleItem,
+  InventoryController.getInventoryItem
+);
+router.post(
+  environment.apiRoutes.inventory_item.createItem,
+  InventoryController.createInventoryItem
+);
 router.patch(
-  `${INVENTORY_BASE_URL}/:id`,
+  environment.apiRoutes.inventory_item.updateItem,
   InventoryController.updateInventoryItem
 );
-
 router.delete(
-  `${INVENTORY_BASE_URL}/:id`,
+  environment.apiRoutes.inventory_item.deleteItem,
   InventoryController.deleteInventoryItem
 );
 
 // Order Management
-const ORDER_BASE_URL = '/orders';
-
-router.get(ORDER_BASE_URL, OrderController.getAllOrders);
-
-router.get(`${USER_BASE_URL}/orders`, OrderController.getOrdersForCurrentUser);
-
-router.get(`${ORDER_BASE_URL}/:id`, OrderController.getOrder);
-
-router.post(`${ORDER_BASE_URL}`, OrderController.createOrder);
-
-router.patch(`${ORDER_BASE_URL}/:id`, OrderController.updateOrder);
-
-router.delete(`${ORDER_BASE_URL}/:id`, OrderController.deleteOrder);
+router.get(
+  environment.apiRoutes.orders.getAllOrders,
+  OrderController.getAllOrders
+);
+router.get(
+  environment.apiRoutes.orders.getCurrentUserOrders,
+  OrderController.getOrdersForCurrentUser
+);
+router.get(
+  environment.apiRoutes.orders.getSingleOrder,
+  OrderController.getOrder
+);
+router.post(
+  environment.apiRoutes.orders.createOrder,
+  OrderController.createOrder
+);
+router.patch(
+  environment.apiRoutes.orders.updateOrder,
+  OrderController.updateOrder
+);
+router.delete(
+  environment.apiRoutes.orders.deleteOrder,
+  OrderController.deleteOrder
+);
 
 // Livecam
-const LIVECAM_BASE_URL = '/livecam';
-const LIVECAM_RECORDING_URL = `${LIVECAM_BASE_URL}/recordings`;
-
-router.get(LIVECAM_RECORDING_URL, LivecamController.getRecordings);
 router.get(
-  `${LIVECAM_RECORDING_URL}/schedules`,
+  environment.apiRoutes.livecam.getAllRecordings,
+  LivecamController.getRecordings
+);
+router.get(
+  environment.apiRoutes.livecam.getAllScheduled,
   LivecamController.getScheduledRecordings
 );
-router.get(`${LIVECAM_RECORDING_URL}/:id`, LivecamController.getRecordingById);
+router.get(
+  environment.apiRoutes.livecam.getSingleRecording,
+  LivecamController.getRecordingById
+);
 router.post(
-  `${LIVECAM_RECORDING_URL}/schedules`,
+  environment.apiRoutes.livecam.createSchedule,
   LivecamController.scheduleRecording
 );
-router.patch(`${LIVECAM_RECORDING_URL}/:id`, LivecamController.updateRecording);
+router.patch(
+  environment.apiRoutes.livecam.updateRecording,
+  LivecamController.updateRecording
+);
 router.get(
-  `${LIVECAM_RECORDING_URL}/:id/download`,
+  environment.apiRoutes.livecam.downloadRecording,
   LivecamController.streamRecording
 );
 router.delete(
-  `${LIVECAM_RECORDING_URL}/:id`,
+  environment.apiRoutes.livecam.deleteRecording,
   LivecamController.deleteRecording
 );
-router.get(`${LIVECAM_BASE_URL}/stream`, LivecamController.getLiveCameraFeed);
+router.get(
+  environment.apiRoutes.livecam.streamFeed,
+  LivecamController.getLiveCameraFeed
+);
 
 export default router;
