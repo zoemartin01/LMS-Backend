@@ -34,7 +34,27 @@ export class MessagingController {
    * @param {Request} req frontend request to get data of one inventory item
    * @param {Response} res backend response with data of one inventory item
    */
-  public static async getUnreadMessagesAmounts(req: Request, res: Response) {
+  public static async getUnreadMessagesAmounts(req: Request, res: Response): Promise<void> {
+    const messageRepository = await getRepository(Message);
+
+    const unreadMessagesSum = await messageRepository.createQueryBuilder("message")
+      .select("COUNT(*)", "sum")
+      .getRawOne();
+
+    const unreadMessages = await messageRepository.createQueryBuilder("message")
+      .select("message.correspondingUrl")
+      .addSelect("COUNT(*)", "sum")
+      .groupBy("message.correspondingUrl")
+      .getRawMany();
+
+    //@todo categorize unreadMessages
+
+    res.json({
+      sum: unreadMessagesSum.sum,
+      appointments: 0,
+      orders: 0,
+      users: 0,
+    });
   }
 
   /**
