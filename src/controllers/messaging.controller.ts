@@ -1,4 +1,7 @@
 import { Request, Response } from 'express';
+import { getRepository } from "typeorm";
+import { AuthController } from "./auth.controller";
+import { Message } from "../models/message.entity";
 
 /**
  * Controller for messaging
@@ -14,7 +17,14 @@ export class MessagingController {
    * @param {Request} req frontend request to get data of one inventory item
    * @param {Response} res backend response with data of one inventory item
    */
-  public static async getMessages(req: Request, res: Response) {
+  public static async getMessages(req: Request, res: Response): Promise<void> {
+    const messageRepository = await getRepository(Message);
+
+    const messages = messageRepository.find({
+      where: { recipient: AuthController.getCurrentUser(req) },
+    });
+
+    res.json(messages);
   }
 
   /**
