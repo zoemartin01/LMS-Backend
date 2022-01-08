@@ -1,8 +1,11 @@
 import { Request, Response } from 'express';
 import { getRepository } from 'typeorm';
-import { User } from '../models/user.entity';
 import bcrypt from 'bcrypt';
 import environment from "../environment";
+import { MessagingController } from "./messaging.controller";
+import { User } from '../models/user.entity';
+import { Token } from "../models/token.entity";
+import { TokenType } from "../types/enums/token-type";
 
 /**
  * Controller for User Settings
@@ -56,6 +59,7 @@ export class UserController {
     const { firstName, lastName, email, password } = req.body;
 
     const userRepository = await getRepository(User);
+    const tokenRepository = await getRepository(Token);
 
     //create user with specified personal information an hashed password
     bcrypt.hash(password, environment.pwHashSaltRound, async (err: Error|undefined, hash) => {
@@ -66,9 +70,19 @@ export class UserController {
         password: hash,
       }));
 
-      //@todo send email to verify email
+      const token: Token = await tokenRepository.save(tokenRepository.create({
+        token: Math.random().toString(36).replace(/[^a-z]+/g, '').substring(0, 10),
+        user: user,
+        type: TokenType.emailVerificationToken,
+      }));
 
-      //@todo send notification to admin
+      await MessagingController.sendMessage(
+        user,
+        'Verify Email to confirm account',
+        'You need to click on this link to confirm your account.',
+        'Verify Email',
+        `${environment.frontendUrl}/user/verify-email/${user.id}/${token.token}`,
+      );
     });
   }
 

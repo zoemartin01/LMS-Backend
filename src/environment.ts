@@ -1,4 +1,5 @@
 const environment = {
+  frontendUrl: ' http://localhost:4200',
   pwHashSaltRound: 10,
   accessTokenSecret: 'V50jPXQVocPUSPHl0yzPJhXZzh32bp',
   refreshTokenSecret: '3pqOHs7R1TrCgsRKksPp4J3Kfs0l0X',
