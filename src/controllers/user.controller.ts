@@ -55,7 +55,7 @@ export class UserController {
   public static async register(req: Request, res: Response) {
     const { firstName, lastName, email, password } = req.body;
 
-    const userRepository = getRepository(User);
+    const userRepository = await getRepository(User);
 
     //create user with specified personal information an hashed password
     bcrypt.hash(password, environment.pwHashSaltRound, async (err: Error|undefined, hash) => {

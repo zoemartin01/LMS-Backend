@@ -33,7 +33,9 @@ export class Token extends BaseEntity {
    * @type {User}
    * @readonly
    */
-  @ManyToOne(() => User, (user) => user.tokens)
+  @ManyToOne(() => User, (user) => user.tokens, {
+    eager: true,
+  })
   readonly user: User;
 
   /**
