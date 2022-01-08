@@ -1,5 +1,5 @@
 import { NextFunction, Request, Response } from 'express';
-import { getRepository, LessThan } from 'typeorm';
+import { getRepository, MoreThan } from 'typeorm';
 import jsonwebtoken, { VerifyErrors } from 'jsonwebtoken';
 const activedirectory = require('activedirectory');
 const bcrypt = require('bcrypt');
@@ -320,28 +320,38 @@ export class AuthController {
   ) {
     const authHeader = req.headers['authorization'];
 
-    if (authHeader) {
-      const token = authHeader.split(' ')[1];
-
-      jsonwebtoken.verify(token, environment.accessTokenSecret, (err) => {
-        if (!err) {
-          getRepository(Token)
-            .findOne({
-              where: {
-                token,
-                type: TokenType.authenticationToken,
-                expiresAt: LessThan(new Date()),
-              },
-            })
-            .then((tokenObject: Token|undefined) => {
-              if (tokenObject != undefined) {
-                next();
-              }
-            });
-        }
-      });
+    if (!authHeader) {
+      res.sendStatus(400);
+      return;
     }
-    res.sendStatus(401);
+
+    const token = authHeader.split(' ')[1];
+
+    jsonwebtoken.verify(token, environment.accessTokenSecret, async (err) => {
+      if (err) {
+        res.status(400).json({
+          message: 'Malformed token.',
+        });
+        return;
+      }
+
+      let tokenObject: Token|undefined = await getRepository(Token)
+        .findOne({
+          where: {
+            token,
+            type: TokenType.authenticationToken,
+            expiresAt: MoreThan(new Date()),
+          },
+        })
+      if (err) {
+        res.status(401).json({
+          message: 'There is a problem with your token.',
+        });
+        return;
+      }
+
+      next();
+    });
   }
 
   /**
