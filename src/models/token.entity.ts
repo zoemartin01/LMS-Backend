@@ -14,7 +14,6 @@ import { TokenType } from '../types/enums/token-type';
  * @property {User} user - The user that created this token.
  * @property {TokenType} type - The type of the token.
  * @property {Token} refreshToken - The refresh token linked to this token.
- * @property {Token[]} generatedTokens - The tokens generated with this token as refresh token.
  * @property {Date} expiresAt - The date the token will expire.
  */
 @Entity()
@@ -51,26 +50,20 @@ export class Token extends BaseEntity {
 
   /**
    * The refresh token linked to this token.
+   * Is null for a refresh token.
    *
    * @type {Token}
    * @readonly
    */
-  @ManyToOne(() => Token, token => token.generatedTokens, {
+  @ManyToOne(() => Token, {
     nullable: true,
+    cascade: true,
   })
   readonly refreshToken: Token;
 
   /**
-   * The tokens generated with this token as refresh token.
-   * This only has entries if token is a refresh token.
-   *
-   * @type {Token[]}
-   */
-  @OneToMany(() => Token, (token) => token.refreshToken)
-  generatedTokens: Token[];
-
-  /**
    * The date the token will expire.
+   * Is null for a refresh token.
    *
    * @type {Date}
    * @readonly

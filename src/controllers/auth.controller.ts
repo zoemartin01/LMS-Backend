@@ -1,6 +1,6 @@
 import { NextFunction, Request, Response } from 'express';
 import { getRepository, LessThan } from 'typeorm';
-import jsonwebtoken, { JwtPayload, VerifyErrors } from 'jsonwebtoken';
+import jsonwebtoken, { VerifyErrors } from 'jsonwebtoken';
 const activedirectory = require('activedirectory');
 const bcrypt = require('bcrypt');
 import moment from "moment";
@@ -86,7 +86,7 @@ export class AuthController {
     const userRepository = getRepository(User);
 
     return ad.findUser(email, async (err: boolean, adUser: { givenName: string, surname: string } ) => {
-      const user: User = await userRepository.save(userRepository.create({
+      return await userRepository.save(userRepository.create({
         email,
         firstName: adUser.givenName,
         lastName: adUser.surname,
@@ -94,7 +94,6 @@ export class AuthController {
         emailVerification: true,
         isActiveDirectory: true,
       }));
-      return user;
     });
   }
 
@@ -215,10 +214,24 @@ export class AuthController {
    * @param {Request} req frontend request to logout user
    * @param {Response} res backend response
    */
-  public static async logout(req: Request, res: Response) {
-    //@todo logout current user
+  public static async logout(req: Request, res: Response): Promise<void> {
+    const token = req.headers['authorization']?.split(' ')[1];
 
-    res.sendStatus(204);
+    const tokenRepository = getRepository(Token);
+
+    tokenRepository.findOne({
+      where: { token, type: TokenType.authenticationToken },
+    })
+      .then((tokenObject: Token|undefined) => {
+        if (tokenObject === undefined) {
+          return;
+        }
+
+        //all authentication tokens linked to this refresh token are also deleted because of cascading
+        tokenRepository.remove(tokenObject.refreshToken);
+
+        res.sendStatus(204);
+      });
   }
 
   /**
@@ -239,7 +252,7 @@ export class AuthController {
     jsonwebtoken.verify(
       refreshToken,
       environment.refreshTokenSecret,
-      (err: VerifyErrors|null, payload: JwtPayload|undefined) => {
+      (err: VerifyErrors|null) => {
         if (err) {
           res.sendStatus(401);
           return;
@@ -248,7 +261,7 @@ export class AuthController {
         const tokenRepository = getRepository(Token);
 
         tokenRepository.findOne({
-          where: { refreshToken, type: TokenType.refreshToken },
+          where: { token: refreshToken, type: TokenType.refreshToken },
         })
         .then((tokenObject: Token|undefined) => {
           if (tokenObject === undefined) {
