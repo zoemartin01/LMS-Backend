@@ -2,6 +2,8 @@ import { Request, Response } from 'express';
 import { getRepository } from "typeorm";
 import { AuthController } from "./auth.controller";
 import { Message } from "../models/message.entity";
+import { User } from "../models/user.entity";
+import { UserRole } from "../types/enums/user-role";
 
 /**
  * Controller for messaging
@@ -129,12 +131,31 @@ export class MessagingController {
    * @param {string|null} linkText - message link text (optional)
    * @param {string|null} linkUrl - message link url (optional)
    */
-  public sendMessage(
-    recipient: string,
+  public static async sendMessage(
+    recipient: User,
     title: string,
     content: string,
-    linkText: string | null = null,
-    linkUrl: string | null = null
-  ) {
+    linkText: string|null = null,
+    linkUrl: string|null = null
+  ): Promise<Message> {
+    const messageRepository = await getRepository(Message);
+
+    const message = (linkText === null || linkUrl === null)
+      ? messageRepository.create({
+      recipient,
+      title,
+      content,
+    })
+      : messageRepository.create({
+      recipient,
+      title,
+      content,
+      correspondingUrlText: linkText,
+      correspondingUrl: linkUrl,
+    });
+
+    messageRepository.save(message);
+
+    return message;
   }
 }
