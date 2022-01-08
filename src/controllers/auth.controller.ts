@@ -47,6 +47,7 @@ export class AuthController {
   private static async loginWithActiveDirectory(email: string, password: string, res: Response): Promise<void> {
     const ad = new activedirectory.ActiveDirectory(environment.activeDirectoryConfig);
 
+    //@todo Adrian: test AD autentication
     ad.authenticate(email, password, async (err: object, auth: boolean) => {
       if (err) {
         res.status(500).json(err);
@@ -86,6 +87,7 @@ export class AuthController {
     const ad = new activedirectory.ActiveDirectory(environment.activeDirectoryConfig);
     const userRepository = await getRepository(User);
 
+    //@todo Adrian: test retrieving user data from AD
     return ad.findUser(email, async (err: boolean, adUser: { givenName: string, surname: string } ) => {
       return await userRepository.save(userRepository.create({
         email,
@@ -125,7 +127,7 @@ export class AuthController {
 
     bcrypt.compare(password, user.password, (err: any, result: boolean) => {
       AuthController.loginCallback(
-        result ? user : undefined,
+        result ? user: undefined,
         res);
     });
   }
@@ -230,12 +232,14 @@ export class AuthController {
           return;
         }
 
+        //delete linked authentication tokens
         await createQueryBuilder()
           .delete()
           .from(Token)
           .where("refreshTokenId = :id", { id: tokenObject.refreshTokenId })
           .execute();
 
+        //delete refresh token
         await createQueryBuilder()
           .delete()
           .from(Token)
@@ -353,7 +357,8 @@ export class AuthController {
             expiresAt: MoreThan(new Date()),
           },
         })
-      if (err) {
+
+      if (tokenObject === undefined) {
         res.status(401).json({
           message: 'There is a problem with your token.',
         });
