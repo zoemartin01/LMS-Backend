@@ -63,9 +63,6 @@ export class AdminController {
    */
   public static async updateWhitelistRetailer(req: Request, res: Response) {}
 
-  //@todo additional domain create/delete/update routes missing
-  //@todo check whitelist (param: domain)
-
   /**
    * Deletes whitelist retailer
    *
