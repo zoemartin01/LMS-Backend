@@ -158,4 +158,38 @@ export class MessagingController {
 
     return message;
   }
+
+  /**
+   * Sends a message to all admins
+   *
+   * @param {string} title - message title
+   * @param {string} content - message content
+   * @param {string|null} linkText - message link text (optional)
+   * @param {string|null} linkUrl - message link url (optional)
+   */
+  public static async sendMessageToAllAdmins(
+    title: string,
+    content: string,
+    linkText: string|null = null,
+    linkUrl: string|null = null
+  ): Promise<Message[]> {
+    const userRepository = await getRepository(User);
+
+    const admins: User[] = await userRepository.find({
+      where: { type: UserRole.admin },
+    });
+
+    let messages: Message[] = [];
+    for (let recipient of admins) {
+      messages.push(await this.sendMessage(
+        recipient,
+        title,
+        content,
+        linkText,
+        linkUrl
+      ));
+    }
+
+    return messages;
+  }
 }
