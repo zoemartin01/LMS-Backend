@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { getRepository } from 'typeorm';
 import { User } from '../models/user.entity';
 import bcrypt from 'bcrypt';
+import environment from "../environment";
 
 /**
  * Controller for User Settings
@@ -54,8 +55,21 @@ export class UserController {
   public static async register(req: Request, res: Response) {
     const { firstName, lastName, email, password } = req.body;
 
-    /*const salt = await bcrypt.genSalt(10);
-    user.password = await bcrypt.hash(user.password, salt);*/
+    const userRepository = getRepository(User);
+
+    //create user with specified personal information an hashed password
+    bcrypt.hash(password, environment.pwHashSaltRound, async (err: Error|undefined, hash) => {
+      const user: User = await userRepository.save(userRepository.create({
+        email,
+        firstName,
+        lastName,
+        password: hash,
+      }));
+
+      //@todo send email to verify email
+
+      //@todo send notification to admin
+    });
   }
 
   /**
