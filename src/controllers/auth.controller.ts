@@ -1,5 +1,5 @@
 import { NextFunction, Request, Response } from 'express';
-import { getRepository } from 'typeorm';
+import { getRepository, LessThan } from 'typeorm';
 import jsonwebtoken, { JwtPayload, VerifyErrors } from 'jsonwebtoken';
 const activedirectory = require('activedirectory');
 const bcrypt = require('bcrypt');
@@ -311,7 +311,11 @@ export class AuthController {
         if (!err) {
           getRepository(Token)
             .findOne({
-              where: { token, type: TokenType.authenticationToken },
+              where: {
+                token,
+                type: TokenType.authenticationToken,
+                expiresAt: LessThan(new Date()),
+              },
             })
             .then((tokenObject: Token|undefined) => {
               if (tokenObject != undefined) {
