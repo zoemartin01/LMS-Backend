@@ -229,7 +229,7 @@ export class AuthController {
    * @param {Request} req frontend request to refresh the authentication token
    * @param {Response} res backend response with a new authentication token
    */
-  public static async refreshToken(req: Request, res: Response) {
+  public static async refreshToken(req: Request, res: Response): Promise<void> {
     const { refreshToken } = req.body;
 
     if (!refreshToken) {
@@ -239,20 +239,44 @@ export class AuthController {
     jsonwebtoken.verify(
       refreshToken,
       environment.refreshTokenSecret,
-      (err: any, user: any) => {
+      (err: VerifyErrors|null, payload: JwtPayload|undefined) => {
         if (err) {
           res.sendStatus(401);
+          return;
         }
 
-        const accessToken = jsonwebtoken.sign(
-          { email: user.email, role: user.role },
-          environment.accessTokenSecret,
-          { expiresIn: '20m' }
-        );
+        const tokenRepository = getRepository(Token);
 
-        res.json({ accessToken });
-      }
-    );
+        tokenRepository.findOne({
+          where: { refreshToken, type: TokenType.refreshToken },
+        })
+        .then((tokenObject: Token|undefined) => {
+          if (tokenObject === undefined) {
+            res.sendStatus(401);
+            return;
+          }
+
+          const expiration = moment().add(20, 'minutes').unix();
+
+          const accessToken = jsonwebtoken.sign(
+            {
+              exp: expiration,
+              userId: tokenObject.user.id,
+            },
+            environment.accessTokenSecret,
+          );
+
+          tokenRepository.save(tokenRepository.create({
+            token: accessToken,
+            user: refreshToken.user,
+            type: TokenType.authenticationToken,
+            refreshToken: refreshToken,
+            expiresAt: new Date(expiration),
+          }));
+
+          res.json({ accessToken });
+        });
+    });
   }
 
   /**
