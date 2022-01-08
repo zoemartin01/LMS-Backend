@@ -1,4 +1,4 @@
-import { Column, Entity, ManyToOne, UpdateDateColumn } from 'typeorm';
+import {Column, Entity, ManyToOne, OneToMany} from 'typeorm';
 import { BaseEntity } from './base.entity';
 import { User } from './user.entity';
 import { TokenType } from '../types/enums/token-type';
@@ -11,8 +11,10 @@ import { TokenType } from '../types/enums/token-type';
  * @extends BaseEntity
  *
  * @property {String} token - The token value.
- * @property {User} user - The user.
+ * @property {User} user - The user that created this token.
  * @property {TokenType} type - The type of the token.
+ * @property {Token} refreshToken - The refresh token linked to this token.
+ * @property {Token[]} generatedTokens - The tokens generated with this token as refresh token.
  * @property {Date} expiresAt - The date the token will expire.
  */
 @Entity()
@@ -21,12 +23,13 @@ export class Token extends BaseEntity {
    * The token value.
    *
    * @type {String}
+   * @readonly
    */
-  @Column({ nullable: true })
-  token: string;
+  @Column()
+  readonly token: string;
 
   /**
-   * The user.
+   * The user that created this token.
    *
    * @type {User}
    * @readonly
@@ -47,10 +50,33 @@ export class Token extends BaseEntity {
   readonly type: TokenType;
 
   /**
+   * The refresh token linked to this token.
+   *
+   * @type {Token}
+   * @readonly
+   */
+  @ManyToOne(() => Token, token => token.generatedTokens, {
+    nullable: true,
+  })
+  readonly refreshToken: Token;
+
+  /**
+   * The tokens generated with this token as refresh token.
+   * This only has entries if token is a refresh token.
+   *
+   * @type {Token[]}
+   */
+  @OneToMany(() => Token, (token) => token.refreshToken)
+  generatedTokens: Token[];
+
+  /**
    * The date the token will expire.
    *
    * @type {Date}
+   * @readonly
    */
-  @Column()
-  expiresAt: Date;
+  @Column({
+    nullable: true,
+  })
+  readonly expiresAt: Date;
 }
