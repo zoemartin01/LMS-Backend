@@ -78,9 +78,31 @@ export class MessagingController {
    * @param {Request} req frontend request to get data of one inventory item
    * @param {Response} res backend response with data of one inventory item
    */
-  public static async updateMessage(req: Request, res: Response) {
-    const id = req.params.id;
-    const data = req.body;
+  public static async updateMessage(req: Request, res: Response): Promise<void> {
+    const messageRepository = await getRepository(Message);
+
+    if (req.body != { readStatus: true } || req.body != { readStatus: false }) {
+      res.status(400).json({
+        message: 'Malformed request.',
+      });
+      return;
+    }
+
+    const message: Message|undefined = await messageRepository.findOne({
+      where: { id: req.params.id },
+    });
+
+    if (message === undefined) {
+      res.status(404).json({
+        message: 'Message not found.',
+      });
+      return;
+    }
+
+    message.readStatus = req.body.readStatus;
+    messageRepository.save(message);
+
+    res.json(message);
   }
 
   /**
