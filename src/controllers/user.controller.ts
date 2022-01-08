@@ -97,5 +97,37 @@ export class UserController {
    */
   public static async verifyEmail(req: Request, res: Response) {
     const { userId, token } = req.body;
+
+    const userRepository = await getRepository(User);
+    const tokenRepository = await getRepository(Token);
+
+    const user: User|undefined = await userRepository.findOne({
+      where: { id: userId },
+    });
+
+    if (user === undefined) {
+      res.status(404).json({
+        message: 'User not found.',
+      });
+      return;
+    }
+
+    const tokenObject: Token|undefined = await tokenRepository.findOne({
+      where: { token, user },
+    });
+
+    if (tokenObject === undefined) {
+      res.status(400).json({
+        message: 'Token doesn\'t match.',
+      });
+      return;
+    }
+
+    await MessagingController.sendMessageToAllAdmins(
+      'Accept User Registration',
+      'You have an open user registration request.',
+      'Accept User',
+      `${environment.frontendUrl}/users`,
+    );
   }
 }
