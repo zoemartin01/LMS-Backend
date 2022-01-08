@@ -1,5 +1,5 @@
 import { NextFunction, Request, Response } from 'express';
-import { getRepository, MoreThan } from 'typeorm';
+import { getRepository, MoreThan, createQueryBuilder } from 'typeorm';
 import jsonwebtoken, { VerifyErrors } from 'jsonwebtoken';
 const activedirectory = require('activedirectory');
 const bcrypt = require('bcrypt');
@@ -224,13 +224,23 @@ export class AuthController {
     tokenRepository.findOne({
       where: { token, type: TokenType.authenticationToken },
     })
-      .then((tokenObject: Token|undefined) => {
+      .then(async (tokenObject: Token|undefined) => {
+        //as request passed middleware tokenObject can't be undefined
         if (tokenObject === undefined) {
           return;
         }
 
-        //all authentication tokens linked to this refresh token are also deleted because of cascading
-        tokenRepository.remove(tokenObject.refreshToken);
+        await createQueryBuilder()
+          .delete()
+          .from(Token)
+          .where("refreshTokenId = :id", { id: tokenObject.refreshTokenId })
+          .execute();
+
+        await createQueryBuilder()
+          .delete()
+          .from(Token)
+          .where("id = :id", { id: tokenObject.refreshTokenId })
+          .execute();
 
         res.sendStatus(204);
       });
@@ -266,8 +276,8 @@ export class AuthController {
         tokenRepository.findOne({
           where: { token: refreshToken, type: TokenType.refreshToken },
         })
-        .then((tokenObject: Token|undefined) => {
-          if (tokenObject === undefined) {
+        .then((refreshTokenObject: Token|undefined) => {
+          if (refreshTokenObject === undefined) {
             res.sendStatus(401);
             return;
           }
@@ -277,16 +287,16 @@ export class AuthController {
           const accessToken = jsonwebtoken.sign(
             {
               exp: expiration,
-              userId: tokenObject.user.id,
+              userId: refreshTokenObject.userId,
             },
             environment.accessTokenSecret,
           );
 
           tokenRepository.save(tokenRepository.create({
             token: accessToken,
-            user: tokenObject.user,
+            userId: refreshTokenObject.userId,
             type: TokenType.authenticationToken,
-            refreshToken: tokenObject.refreshToken,
+            refreshToken: refreshTokenObject,
             expiresAt: new Date(1000*expiration),
           }));
 

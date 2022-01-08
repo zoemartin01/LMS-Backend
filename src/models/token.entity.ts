@@ -28,14 +28,21 @@ export class Token extends BaseEntity {
   readonly token: string;
 
   /**
+   * The id of the user that created this token.
+   *
+   * @type {string}
+   * @readonly
+   */
+  @Column()
+  readonly userId: string;
+
+  /**
    * The user that created this token.
    *
    * @type {User}
    * @readonly
    */
-  @ManyToOne(() => User, (user) => user.tokens, {
-    eager: true,
-  })
+  @ManyToOne(() => User, (user) => user.tokens)
   readonly user: User;
 
   /**
@@ -51,6 +58,18 @@ export class Token extends BaseEntity {
   readonly type: TokenType;
 
   /**
+   * The id of the refresh token linked to this token.
+   * Is null for a refresh token.
+   *
+   * @type {string}
+   * @readonly
+   */
+  @Column({
+    nullable: true,
+  })
+  readonly refreshTokenId: string;
+
+  /**
    * The refresh token linked to this token.
    * Is null for a refresh token.
    *
@@ -59,7 +78,6 @@ export class Token extends BaseEntity {
    */
   @ManyToOne(() => Token, {
     nullable: true,
-    cascade: true,
   })
   readonly refreshToken: Token;
 
