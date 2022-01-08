@@ -65,8 +65,23 @@ export class MessagingController {
    * @param {Request} req frontend request to get data of one inventory item
    * @param {Response} res backend response with data of one inventory item
    */
-  public static async deleteMessage(req: Request, res: Response) {
-    const id = req.params.id;
+  public static async deleteMessage(req: Request, res: Response): Promise<void> {
+    const messageRepository = await getRepository(Message);
+
+    const message: Message|undefined = await messageRepository.findOne({
+      where: { id: req.params.id },
+    });
+
+    if (message === undefined) {
+      res.status(404).json({
+        message: 'Message not found.',
+      });
+      return;
+    }
+
+    messageRepository.delete(message);
+
+    res.sendStatus(204);
   }
 
   /**
