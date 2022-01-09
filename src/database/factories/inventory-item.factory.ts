@@ -5,7 +5,7 @@ import { InventoryItem } from '../../models/inventory-item.entity';
 define(InventoryItem, (faker: typeof Faker) => {
   const name = faker.commerce.productName();
   const description = faker.lorem.sentence();
-  const quantity = faker.datatype.number();
+  const quantity = faker.random.number();
 
   const item = new InventoryItem();
   item.name = name;

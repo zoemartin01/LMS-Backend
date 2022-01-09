@@ -14,8 +14,7 @@ define(User, (faker: typeof Faker) => {
     UserRole.visitor,
     UserRole.admin,
   ]);
-  // TODO: fix?
-  //const emailVerification = faker.datatype.boolean();
+  const emailVerification = faker.random.boolean();
 
   const user = new User();
   user.email = email;
@@ -23,6 +22,6 @@ define(User, (faker: typeof Faker) => {
   user.lastName = lastName;
   user.password = password;
   user.role = role;
-  //user.emailVerification = emailVerification;
+  user.emailVerification = emailVerification;
   return user;
 });
