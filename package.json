@@ -8,7 +8,9 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "ts-node ./src/server.ts",
     "prettier": "prettier --write src/**/*.{ts,js,css,html}",
-    "prepare": "husky install"
+    "prepare": "husky install",
+    "seed:config": "ts-node ./node_modules/typeorm-seeding/dist/cli.js config",
+    "seed:run": "ts-node ./node_modules/typeorm-seeding/dist/cli.js seed"
   },
   "keywords": [],
   "author": "",
