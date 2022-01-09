@@ -4,6 +4,10 @@ import { GlobalSetting } from '../../models/global_settings.entity';
 
 export default class CreateGlobalSettings implements Seeder {
   public async run(factory: Factory, connection: Connection): Promise<any> {
+    if (await connection.manager.find(GlobalSetting)) {
+      return;
+    }
+
     await connection
       .createQueryBuilder()
       .insert()
