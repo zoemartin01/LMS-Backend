@@ -42,7 +42,9 @@ export class Message extends BaseEntity {
    * @type {string}
    * @readonly
    */
-  @Column()
+  @Column({
+    nullable: true,
+  })
   correspondingUrl: string;
 
   /**
@@ -51,7 +53,9 @@ export class Message extends BaseEntity {
    * @type {string}
    * @readonly
    */
-  @Column()
+  @Column({
+    nullable: true,
+  })
   correspondingUrlText: string;
 
   /**
