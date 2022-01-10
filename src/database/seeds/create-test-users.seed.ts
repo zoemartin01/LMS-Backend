@@ -2,6 +2,7 @@ import faker from 'faker';
 import { Connection, getRepository } from 'typeorm';
 import { Factory, Seeder } from 'typeorm-seeding';
 import { AppointmentTimeslot } from '../../models/appointment.timeslot.entity';
+import { InventoryItem } from '../../models/inventory-item.entity';
 import { Message } from '../../models/message.entity';
 import { Order } from '../../models/order.entity';
 import { Recording } from '../../models/recording.entity';
@@ -30,14 +31,39 @@ export default class CreateTestUsers implements Seeder {
     });
 
     const rooms = await connection.getRepository(Room).find();
+    const items = await connection.getRepository(InventoryItem).find();
 
     await factory(Message)({ recipient: admin }).createMany(10);
-    await factory(Order)({ user: admin }).createMany(10);
     await factory(Recording)({ user: admin }).createMany(10);
 
+    for (var i = 0; i < 10; i++) {
+      if (faker.random.boolean()) {
+        await factory(Order)({
+          user: admin,
+          item: faker.random.arrayElement(items),
+        }).create();
+      } else {
+        await factory(Order)({
+          user: admin,
+        }).create();
+      }
+    }
+
     await factory(Message)({ recipient: visitor }).createMany(10);
-    await factory(Order)({ user: visitor }).createMany(10);
     await factory(Recording)({ user: visitor }).createMany(10);
+
+    for (var i = 0; i < 10; i++) {
+      if (faker.random.boolean()) {
+        await factory(Order)({
+          user: visitor,
+          item: faker.random.arrayElement(items),
+        }).create();
+      } else {
+        await factory(Order)({
+          user: visitor,
+        }).create();
+      }
+    }
 
     await factory(AppointmentTimeslot)({
       user: admin,
