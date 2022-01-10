@@ -25,7 +25,7 @@ export class Message extends BaseEntity {
    * @readonly
    */
   @Column()
-  readonly title: string;
+  title: string;
 
   /**
    * The message content.
@@ -34,7 +34,7 @@ export class Message extends BaseEntity {
    * @readonly
    */
   @Column()
-  readonly content: string;
+  content: string;
 
   /**
    * The message corresponding url.
@@ -43,7 +43,7 @@ export class Message extends BaseEntity {
    * @readonly
    */
   @Column()
-  readonly correspondingUrl: string;
+  correspondingUrl: string;
 
   /**
    * The message corresponding url text.
@@ -52,7 +52,7 @@ export class Message extends BaseEntity {
    * @readonly
    */
   @Column()
-  readonly correspondingUrlText: string;
+  correspondingUrlText: string;
 
   /**
    * The message recipient.
@@ -61,7 +61,7 @@ export class Message extends BaseEntity {
    * @readonly
    */
   @ManyToOne(() => User, (user) => user.messages)
-  readonly recipient: User;
+  recipient: User;
 
   /**
    * The message is read.
