@@ -1,4 +1,4 @@
-import { Entity, ManyToOne } from 'typeorm';
+import { Column, Entity, ManyToOne } from 'typeorm';
 import { BaseEntity } from './base.entity';
 import { Retailer } from './retailer.entity';
 
@@ -27,5 +27,6 @@ export class RetailerDomain extends BaseEntity {
    *
    * @type {string}
    */
+  @Column()
   domain: string;
 }

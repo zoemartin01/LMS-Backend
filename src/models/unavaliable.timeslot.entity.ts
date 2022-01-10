@@ -1,4 +1,5 @@
 import { ChildEntity, ManyToOne } from 'typeorm';
+import { TimeSlotType } from '../types/enums/timeslot-type';
 import { Room } from './room.entity';
 import { TimeSlot } from './timeslot.entity';
 
@@ -11,7 +12,7 @@ import { TimeSlot } from './timeslot.entity';
  *
  * @property {Room} room - The room the time slot belongs to.
  */
-@ChildEntity()
+@ChildEntity(TimeSlotType.unavailable)
 export class UnavailableTimeslot extends TimeSlot {
   /**
    * The room the time slot belongs to.
