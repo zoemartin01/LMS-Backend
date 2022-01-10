@@ -1,9 +1,9 @@
 import { Request, Response } from 'express';
-import { getRepository } from "typeorm";
-import { AuthController } from "./auth.controller";
-import { Message } from "../models/message.entity";
-import { User } from "../models/user.entity";
-import { UserRole } from "../types/enums/user-role";
+import { getRepository } from 'typeorm';
+import { AuthController } from './auth.controller';
+import { Message } from '../models/message.entity';
+import { User } from '../models/user.entity';
+import { UserRole } from '../types/enums/user-role';
 
 /**
  * Controller for messaging
@@ -36,17 +36,22 @@ export class MessagingController {
    * @param {Request} req frontend request to get data of one inventory item
    * @param {Response} res backend response with data of one inventory item
    */
-  public static async getUnreadMessagesAmounts(req: Request, res: Response): Promise<void> {
+  public static async getUnreadMessagesAmounts(
+    req: Request,
+    res: Response
+  ): Promise<void> {
     const messageRepository = await getRepository(Message);
 
-    const unreadMessagesSum = await messageRepository.createQueryBuilder("message")
-      .select("COUNT(*)", "sum")
+    const unreadMessagesSum = await messageRepository
+      .createQueryBuilder('message')
+      .select('COUNT(*)', 'sum')
       .getRawOne();
 
-    const unreadMessages = await messageRepository.createQueryBuilder("message")
-      .select("message.correspondingUrl")
-      .addSelect("COUNT(*)", "sum")
-      .groupBy("message.correspondingUrl")
+    const unreadMessages = await messageRepository
+      .createQueryBuilder('message')
+      .select('message.correspondingUrl')
+      .addSelect('COUNT(*)', 'sum')
+      .groupBy('message.correspondingUrl')
       .getRawMany();
 
     //@todo categorize unreadMessages
@@ -67,10 +72,13 @@ export class MessagingController {
    * @param {Request} req frontend request to get data of one inventory item
    * @param {Response} res backend response with data of one inventory item
    */
-  public static async deleteMessage(req: Request, res: Response): Promise<void> {
+  public static async deleteMessage(
+    req: Request,
+    res: Response
+  ): Promise<void> {
     const messageRepository = await getRepository(Message);
 
-    const message: Message|undefined = await messageRepository.findOne({
+    const message: Message | undefined = await messageRepository.findOne({
       where: { id: req.params.id },
     });
 
@@ -95,7 +103,10 @@ export class MessagingController {
    * @param {Request} req frontend request to get data of one inventory item
    * @param {Response} res backend response with data of one inventory item
    */
-  public static async updateMessage(req: Request, res: Response): Promise<void> {
+  public static async updateMessage(
+    req: Request,
+    res: Response
+  ): Promise<void> {
     const messageRepository = await getRepository(Message);
 
     if (req.body != { readStatus: true } || req.body != { readStatus: false }) {
@@ -105,7 +116,7 @@ export class MessagingController {
       return;
     }
 
-    const message: Message|undefined = await messageRepository.findOne({
+    const message: Message | undefined = await messageRepository.findOne({
       where: { id: req.params.id },
     });
 
@@ -135,24 +146,25 @@ export class MessagingController {
     recipient: User,
     title: string,
     content: string,
-    linkText: string|null = null,
-    linkUrl: string|null = null
+    linkText: string | null = null,
+    linkUrl: string | null = null
   ): Promise<Message> {
     const messageRepository = await getRepository(Message);
 
-    const message = (linkText === null || linkUrl === null)
-      ? messageRepository.create({
-      recipient,
-      title,
-      content,
-    })
-      : messageRepository.create({
-      recipient,
-      title,
-      content,
-      correspondingUrlText: linkText,
-      correspondingUrl: linkUrl,
-    });
+    const message =
+      linkText === null || linkUrl === null
+        ? messageRepository.create({
+            recipient,
+            title,
+            content,
+          })
+        : messageRepository.create({
+            recipient,
+            title,
+            content,
+            correspondingUrlText: linkText,
+            correspondingUrl: linkUrl,
+          });
 
     messageRepository.save(message);
 
@@ -170,8 +182,8 @@ export class MessagingController {
   public static async sendMessageToAllAdmins(
     title: string,
     content: string,
-    linkText: string|null = null,
-    linkUrl: string|null = null
+    linkText: string | null = null,
+    linkUrl: string | null = null
   ): Promise<Message[]> {
     const userRepository = await getRepository(User);
 
@@ -181,13 +193,9 @@ export class MessagingController {
 
     let messages: Message[] = [];
     for (let recipient of admins) {
-      messages.push(await this.sendMessage(
-        recipient,
-        title,
-        content,
-        linkText,
-        linkUrl
-      ));
+      messages.push(
+        await this.sendMessage(recipient, title, content, linkText, linkUrl)
+      );
     }
 
     return messages;

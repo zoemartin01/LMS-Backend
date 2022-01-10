@@ -1,4 +1,14 @@
 const environment = {
+  frontendUrl: ' http://localhost:4200',
+  pwHashSaltRound: 10,
+  accessTokenSecret: 'V50jPXQVocPUSPHl0yzPJhXZzh32bp',
+  refreshTokenSecret: '3pqOHs7R1TrCgsRKksPp4J3Kfs0l0X',
+  activeDirectoryConfig: {
+    url: 'ldap://',
+    baseDN: 'dc=',
+    username: '',
+    password: '',
+  },
   livecam_server: {
     host: 'localhost',
     port: 7000,
