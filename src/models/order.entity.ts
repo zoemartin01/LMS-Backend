@@ -45,7 +45,7 @@ export class Order extends BaseEntity {
    * @readonly
    */
   @ManyToOne(() => User, (user) => user.orders)
-  readonly user: User;
+  user: User;
 
   /**
    * The order status.
