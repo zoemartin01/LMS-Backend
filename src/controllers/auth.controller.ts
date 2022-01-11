@@ -204,7 +204,7 @@ export class AuthController {
   private static async generateLoginTokens(
     user: User
   ): Promise<{ accessToken: string; refreshToken: string }> {
-    const tokenRepository = await getRepository(Token);
+    const tokenRepository = getRepository(Token);
 
     const expiration = moment().add(20, 'minutes').unix();
 
@@ -255,7 +255,7 @@ export class AuthController {
   public static async logout(req: Request, res: Response): Promise<void> {
     const token = req.headers['authorization']?.split(' ')[1];
 
-    const tokenRepository = await getRepository(Token);
+    const tokenRepository = getRepository(Token);
 
     tokenRepository
       .findOne({
@@ -310,7 +310,7 @@ export class AuthController {
           return;
         }
 
-        const tokenRepository = await getRepository(Token);
+        const tokenRepository = getRepository(Token);
 
         tokenRepository
           .findOne({
