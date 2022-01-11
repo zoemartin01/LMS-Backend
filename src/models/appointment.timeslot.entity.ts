@@ -1,5 +1,6 @@
 import { ChildEntity, Column, ManyToOne } from 'typeorm';
 import { ConfirmationStatus } from '../types/enums/confirmation-status';
+import { TimeSlotType } from '../types/enums/timeslot-type';
 import { Room } from './room.entity';
 import { TimeSlot } from './timeslot.entity';
 import { User } from './user.entity';
@@ -15,7 +16,7 @@ import { User } from './user.entity';
  * @property {User} user - The user who booked the appointment.
  * @property {ConfirmationStatus} confirmationStatus - The confirmation status of the time slot.
  */
-@ChildEntity()
+@ChildEntity(TimeSlotType.booked)
 export class AppointmentTimeslot extends TimeSlot {
   /**
    * The room the time slot belongs to.
@@ -24,7 +25,7 @@ export class AppointmentTimeslot extends TimeSlot {
    * @readonly
    */
   @ManyToOne(() => Room, (room) => room.appointments)
-  readonly room: Room;
+  room: Room;
 
   /**
    * If TimeSlotType is booked, the user associated with the time slot.
@@ -33,7 +34,7 @@ export class AppointmentTimeslot extends TimeSlot {
    * @readonly
    */
   @ManyToOne(() => User, (user) => user.bookings)
-  readonly user: User;
+  user: User;
 
   /**
    * The confirmation status of the time slot.

@@ -1,5 +1,3 @@
-import { getRepository } from 'typeorm';
-import { AppointmentTimeslot } from '../models/appointment.timeslot.entity';
 import { Request, Response } from 'express';
 
 /**

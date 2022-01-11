@@ -1,7 +1,4 @@
 import { Request, Response } from 'express';
-import { Order } from '../models/order.entity';
-import { OrderStatus } from '../types/enums/order-status';
-import { User } from '../models/user.entity';
 
 /**
  * Controller for order management
@@ -20,8 +17,7 @@ export class OrderController {
    * @param {Request} req frontend request to get data of all orders
    * @param {Response} res backend response with data of all orders
    */
-  public static async getAllOrders(req: Request, res: Response) {
-  }
+  public static async getAllOrders(req: Request, res: Response) {}
 
   /**
    * Returns all orders related to the current user
@@ -30,8 +26,7 @@ export class OrderController {
    * @param {Request} req frontend request to get data of all orders for the current user
    * @param {Response} res backend response with data of all orders for the current user
    */
-  public static async getOrdersForCurrentUser(req: Request, res: Response) {
-  }
+  public static async getOrdersForCurrentUser(req: Request, res: Response) {}
 
   /**
    * Returns the order data of a specific order
@@ -41,8 +36,7 @@ export class OrderController {
    * @param {Request} req frontend request to get data of one order
    * @param {Response} res backend response with data of one order
    */
-  public static async getOrder(req: Request, res: Response) {
-  }
+  public static async getOrder(req: Request, res: Response) {}
 
   /**
    * Creates a new order
@@ -56,8 +50,7 @@ export class OrderController {
    * @param {Request} req frontend request to create a new order
    * @param {Response} res backend response creation of a new order
    */
-  public static async createOrder(req: Request, res: Response) {
-  }
+  public static async createOrder(req: Request, res: Response) {}
 
   /**
    * Updates the data of an order
@@ -72,8 +65,7 @@ export class OrderController {
    * @param {Request} req frontend request to change data of an order
    * @param {Response} res backend response with changed data of the order
    */
-  public static async updateOrder(req: Request, res: Response) {
-  }
+  public static async updateOrder(req: Request, res: Response) {}
 
   /**
    * Deletes one order
@@ -83,6 +75,5 @@ export class OrderController {
    * @param {Request} req frontend request to delete one order
    * @param {Response} res backend response deletion
    */
-  public static async deleteOrder(req: Request, res: Response) {
-  }
+  public static async deleteOrder(req: Request, res: Response) {}
 }

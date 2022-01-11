@@ -1,4 +1,4 @@
-import { Entity, ManyToOne } from 'typeorm';
+import { Column, Entity, ManyToOne } from 'typeorm';
 import { BaseEntity } from './base.entity';
 import { Retailer } from './retailer.entity';
 
@@ -19,7 +19,9 @@ export class RetailerDomain extends BaseEntity {
    *
    * @type {Retailer}
    */
-  @ManyToOne(() => Retailer, (retailer) => retailer.domains)
+  @ManyToOne(() => Retailer, (retailer) => retailer.domains, {
+    onDelete: 'CASCADE',
+  })
   public retailer: Retailer;
 
   /**
@@ -27,5 +29,6 @@ export class RetailerDomain extends BaseEntity {
    *
    * @type {string}
    */
+  @Column()
   domain: string;
 }
