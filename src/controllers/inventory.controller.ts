@@ -1,5 +1,4 @@
 import { Request, Response } from 'express';
-import { InventoryItem } from '../models/inventory-item.entity';
 
 /**
  * Controller for inventory management
@@ -15,8 +14,7 @@ export class InventoryController {
    * @param {Request} req frontend request to get data of all inventory items
    * @param {Response} res backend response with data of all inventory items
    */
-  public static async getAllInventoryItems(req: Request, res: Response) {
-  }
+  public static async getAllInventoryItems(req: Request, res: Response) {}
 
   /**
    * Returns the inventory item data of a specific inventory item
@@ -26,8 +24,7 @@ export class InventoryController {
    * @param {Request} req frontend request to get data of one inventory item
    * @param {Response} res backend response with data of one inventory item
    */
-  public static async getInventoryItem(req: Request, res: Response) {
-  }
+  public static async getInventoryItem(req: Request, res: Response) {}
 
   /**
    * Creates a new inventory item
@@ -39,8 +36,7 @@ export class InventoryController {
    * @param {Request} req frontend request to create one new inventory item
    * @param {Response} res backend response with data of newly created inventory item
    */
-  public static async createInventoryItem(req: Request, res: Response) {
-  }
+  public static async createInventoryItem(req: Request, res: Response) {}
 
   /**
    * Update an inventory item's data
@@ -53,8 +49,7 @@ export class InventoryController {
    * @param {Request} req frontend request to change data of one inventory item
    * @param {Response} res backend response with (changed) data of inventory item
    */
-  public static async updateInventoryItem(req: Request, res: Response) {
-  }
+  public static async updateInventoryItem(req: Request, res: Response) {}
 
   /**
    * Deletes one inventory item
@@ -64,6 +59,5 @@ export class InventoryController {
    * @param {Request} req frontend request to delete one inventory item
    * @param {Response} res backend response deletion
    */
-  public static async deleteInventoryItem(req: Request, res: Response) {
-  }
+  public static async deleteInventoryItem(req: Request, res: Response) {}
 }

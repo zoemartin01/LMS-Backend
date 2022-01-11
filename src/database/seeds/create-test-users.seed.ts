@@ -11,7 +11,7 @@ import { User } from '../../models/user.entity';
 import { UserRole } from '../../types/enums/user-role';
 
 export default class CreateTestUsers implements Seeder {
-  public async run(factory: Factory, connection: Connection): Promise<any> {
+  public async run(factory: Factory, connection: Connection): Promise<void> {
     const admin = await getRepository(User).save({
       firstName: 'Admin',
       lastName: 'Admin',
@@ -36,7 +36,7 @@ export default class CreateTestUsers implements Seeder {
     await factory(Message)({ recipient: admin }).createMany(10);
     await factory(Recording)({ user: admin }).createMany(10);
 
-    for (var i = 0; i < 10; i++) {
+    for (let i = 0; i < 10; i++) {
       if (faker.random.boolean()) {
         await factory(Order)({
           user: admin,
@@ -52,7 +52,7 @@ export default class CreateTestUsers implements Seeder {
     await factory(Message)({ recipient: visitor }).createMany(10);
     await factory(Recording)({ user: visitor }).createMany(10);
 
-    for (var i = 0; i < 10; i++) {
+    for (let i = 0; i < 10; i++) {
       if (faker.random.boolean()) {
         await factory(Order)({
           user: visitor,

@@ -191,8 +191,8 @@ export class MessagingController {
       where: { type: UserRole.admin },
     });
 
-    let messages: Message[] = [];
-    for (let recipient of admins) {
+    const messages: Message[] = [];
+    for (const recipient of admins) {
       messages.push(
         await this.sendMessage(recipient, title, content, linkText, linkUrl)
       );

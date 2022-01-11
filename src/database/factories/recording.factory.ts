@@ -5,7 +5,8 @@ import { VideoResolution } from '../../types/enums/video-resolution';
 import { User } from '../../models/user.entity';
 
 define(Recording, (faker: typeof Faker, context?: { user: User }) => {
-  const user = context!.user;
+  if (!context) throw new Error('Factory Recording requires user');
+  const user = context.user;
   const start = faker.date.past();
   const end = faker.date.future();
   const resolution = faker.random.arrayElement([
