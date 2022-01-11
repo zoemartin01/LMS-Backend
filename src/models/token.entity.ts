@@ -1,4 +1,4 @@
-import {Column, Entity, ManyToOne, OneToMany} from 'typeorm';
+import { Column, Entity, ManyToOne } from 'typeorm';
 import { BaseEntity } from './base.entity';
 import { User } from './user.entity';
 import { TokenType } from '../types/enums/token-type';
