@@ -1,10 +1,11 @@
 import { NextFunction, Request, Response } from 'express';
 import { getRepository, MoreThan, createQueryBuilder } from 'typeorm';
 import jsonwebtoken, { VerifyErrors } from 'jsonwebtoken';
+// eslint-disable-next-line @typescript-eslint/no-var-requires
 const activedirectory = require('activedirectory');
-const bcrypt = require('bcrypt');
-import moment from "moment";
-import environment from "../environment";
+import bcrypt from 'bcrypt';
+import moment from 'moment';
+import environment from '../environment';
 import { User } from '../models/user.entity';
 import { Token } from '../models/token.entity';
 import { TokenType } from '../types/enums/token-type';
@@ -44,8 +45,14 @@ export class AuthController {
    * @param {Response} res backend response with authentication and refresh token
    * @private
    */
-  private static async loginWithActiveDirectory(email: string, password: string, res: Response): Promise<void> {
-    const ad = new activedirectory.ActiveDirectory(environment.activeDirectoryConfig);
+  private static async loginWithActiveDirectory(
+    email: string,
+    password: string,
+    res: Response
+  ): Promise<void> {
+    const ad = new activedirectory.ActiveDirectory(
+      environment.activeDirectoryConfig
+    );
 
     //@todo Adrian: test AD autentication
     ad.authenticate(email, password, async (err: object, auth: boolean) => {
@@ -59,21 +66,27 @@ export class AuthController {
         return;
       }
 
-      const userRepository = await getRepository(User);
-      userRepository.findOne({
-        where: { email },
-      }).then(async (user: User|undefined) => {
-        if (user === undefined) {
-          await AuthController.loginCallback(await AuthController.createActiveDirectoryUser(email), res);
-        }else if (!user.isActiveDirectory) {
-          res.status(400).json({
-            message: 'Your account ist not linked to active directory, use regular login.',
-          });
-          return;
-        }
+      const userRepository = getRepository(User);
+      userRepository
+        .findOne({
+          where: { email },
+        })
+        .then(async (user: User | undefined) => {
+          if (user === undefined) {
+            await AuthController.loginCallback(
+              await AuthController.createActiveDirectoryUser(email),
+              res
+            );
+          } else if (!user.isActiveDirectory) {
+            res.status(400).json({
+              message:
+                'Your account ist not linked to active directory, use regular login.',
+            });
+            return;
+          }
 
-        await AuthController.loginCallback(user, res);
-      });
+          await AuthController.loginCallback(user, res);
+        });
     });
   }
 
@@ -84,20 +97,27 @@ export class AuthController {
    * @private
    */
   private static async createActiveDirectoryUser(email: string): Promise<User> {
-    const ad = new activedirectory.ActiveDirectory(environment.activeDirectoryConfig);
-    const userRepository = await getRepository(User);
+    const ad = new activedirectory.ActiveDirectory(
+      environment.activeDirectoryConfig
+    );
+    const userRepository = getRepository(User);
 
     //@todo Adrian: test retrieving user data from AD
-    return ad.findUser(email, async (err: boolean, adUser: { givenName: string, surname: string } ) => {
-      return await userRepository.save(userRepository.create({
-        email,
-        firstName: adUser.givenName,
-        lastName: adUser.surname,
-        password: '',
-        emailVerification: true,
-        isActiveDirectory: true,
-      }));
-    });
+    return ad.findUser(
+      email,
+      async (err: boolean, adUser: { givenName: string; surname: string }) => {
+        return await userRepository.save(
+          userRepository.create({
+            email,
+            firstName: adUser.givenName,
+            lastName: adUser.surname,
+            password: '',
+            emailVerification: true,
+            isActiveDirectory: true,
+          })
+        );
+      }
+    );
   }
 
   /**
@@ -108,8 +128,12 @@ export class AuthController {
    * @param {Response} res backend response with authentication and refresh token
    * @private
    */
-  private static async loginWithCredentials(email: string, password: string, res: Response): Promise<void> {
-    const user: User|undefined = await getRepository(User).findOne({
+  private static async loginWithCredentials(
+    email: string,
+    password: string,
+    res: Response
+  ): Promise<void> {
+    const user: User | undefined = await getRepository(User).findOne({
       where: { email },
     });
 
@@ -120,15 +144,14 @@ export class AuthController {
 
     if (user.isActiveDirectory) {
       res.status(400).json({
-        message: 'Your account ist linked to active directory, use active directory login.',
+        message:
+          'Your account ist linked to active directory, use active directory login.',
       });
       return;
     }
 
-    bcrypt.compare(password, user.password, (err: any, result: boolean) => {
-      AuthController.loginCallback(
-        result ? user: undefined,
-        res);
+    bcrypt.compare(password, user.password, (_err, result: boolean) => {
+      AuthController.loginCallback(result ? user : undefined, res);
     });
   }
 
@@ -139,7 +162,10 @@ export class AuthController {
    * @param {Response} res backend response with authentication and refresh token
    * @private
    */
-  private static async loginCallback(user: User|undefined, res: Response): Promise<void> {
+  private static async loginCallback(
+    user: User | undefined,
+    res: Response
+  ): Promise<void> {
     if (user === undefined) {
       res.status(400).json({
         message: 'Invalid email or password.',
@@ -161,10 +187,12 @@ export class AuthController {
       return;
     }
 
-    let accessToken: string, refreshToken: string;
-    ({ accessToken, refreshToken } = await AuthController.generateLoginTokens(user));
+    const { accessToken, refreshToken } =
+      await AuthController.generateLoginTokens(user);
 
-    res.status(201).json({ accessToken, refreshToken, role: user.role, userId: user.id });
+    res
+      .status(201)
+      .json({ accessToken, refreshToken, role: user.role, userId: user.id });
   }
 
   /**
@@ -173,7 +201,9 @@ export class AuthController {
    * @param {User} user a user
    * @private
    */
-  private static async generateLoginTokens(user: User): Promise<{ accessToken: string, refreshToken: string }> {
+  private static async generateLoginTokens(
+    user: User
+  ): Promise<{ accessToken: string; refreshToken: string }> {
     const tokenRepository = await getRepository(Token);
 
     const expiration = moment().add(20, 'minutes').unix();
@@ -182,30 +212,34 @@ export class AuthController {
       {
         userId: user.id,
       },
-      environment.refreshTokenSecret,
+      environment.refreshTokenSecret
     );
 
-    const refreshTokenModel = await tokenRepository.save(tokenRepository.create({
-      token: refreshToken,
-      user: user,
-      type: TokenType.refreshToken,
-    }));
+    const refreshTokenModel = await tokenRepository.save(
+      tokenRepository.create({
+        token: refreshToken,
+        user: user,
+        type: TokenType.refreshToken,
+      })
+    );
 
     const accessToken = jsonwebtoken.sign(
       {
         exp: expiration,
         userId: user.id,
       },
-      environment.accessTokenSecret,
+      environment.accessTokenSecret
     );
 
-    await tokenRepository.save(tokenRepository.create({
-      token: accessToken,
-      user: user,
-      type: TokenType.authenticationToken,
-      refreshToken: refreshTokenModel,
-      expiresAt: new Date(1000*expiration),
-    }));
+    await tokenRepository.save(
+      tokenRepository.create({
+        token: accessToken,
+        user: user,
+        type: TokenType.authenticationToken,
+        refreshToken: refreshTokenModel,
+        expiresAt: new Date(1000 * expiration),
+      })
+    );
 
     return { accessToken, refreshToken };
   }
@@ -223,10 +257,11 @@ export class AuthController {
 
     const tokenRepository = await getRepository(Token);
 
-    tokenRepository.findOne({
-      where: { token, type: TokenType.authenticationToken },
-    })
-      .then(async (tokenObject: Token|undefined) => {
+    tokenRepository
+      .findOne({
+        where: { token, type: TokenType.authenticationToken },
+      })
+      .then(async (tokenObject: Token | undefined) => {
         //as request passed middleware tokenObject can't be undefined
         if (tokenObject === undefined) {
           return;
@@ -236,14 +271,14 @@ export class AuthController {
         await createQueryBuilder()
           .delete()
           .from(Token)
-          .where("refreshTokenId = :id", { id: tokenObject.refreshTokenId })
+          .where('refreshTokenId = :id', { id: tokenObject.refreshTokenId })
           .execute();
 
         //delete refresh token
         await createQueryBuilder()
           .delete()
           .from(Token)
-          .where("id = :id", { id: tokenObject.refreshTokenId })
+          .where('id = :id', { id: tokenObject.refreshTokenId })
           .execute();
 
         res.sendStatus(204);
@@ -269,7 +304,7 @@ export class AuthController {
     jsonwebtoken.verify(
       refreshToken,
       environment.refreshTokenSecret,
-      async (err: VerifyErrors|null) => {
+      async (err: VerifyErrors | null) => {
         if (err) {
           res.sendStatus(401);
           return;
@@ -277,36 +312,40 @@ export class AuthController {
 
         const tokenRepository = await getRepository(Token);
 
-        tokenRepository.findOne({
-          where: { token: refreshToken, type: TokenType.refreshToken },
-        })
-        .then((refreshTokenObject: Token|undefined) => {
-          if (refreshTokenObject === undefined) {
-            res.sendStatus(401);
-            return;
-          }
+        tokenRepository
+          .findOne({
+            where: { token: refreshToken, type: TokenType.refreshToken },
+          })
+          .then((refreshTokenObject: Token | undefined) => {
+            if (refreshTokenObject === undefined) {
+              res.sendStatus(401);
+              return;
+            }
 
-          const expiration = moment().add(20, 'minutes').unix();
+            const expiration = moment().add(20, 'minutes').unix();
 
-          const accessToken = jsonwebtoken.sign(
-            {
-              exp: expiration,
-              userId: refreshTokenObject.userId,
-            },
-            environment.accessTokenSecret,
-          );
+            const accessToken = jsonwebtoken.sign(
+              {
+                exp: expiration,
+                userId: refreshTokenObject.userId,
+              },
+              environment.accessTokenSecret
+            );
 
-          tokenRepository.save(tokenRepository.create({
-            token: accessToken,
-            userId: refreshTokenObject.userId,
-            type: TokenType.authenticationToken,
-            refreshToken: refreshTokenObject,
-            expiresAt: new Date(1000*expiration),
-          }));
+            tokenRepository.save(
+              tokenRepository.create({
+                token: accessToken,
+                userId: refreshTokenObject.userId,
+                type: TokenType.authenticationToken,
+                refreshToken: refreshTokenObject,
+                expiresAt: new Date(1000 * expiration),
+              })
+            );
 
-          res.json({ accessToken });
-        });
-    });
+            res.json({ accessToken });
+          });
+      }
+    );
   }
 
   /**
@@ -349,14 +388,15 @@ export class AuthController {
         return;
       }
 
-      let tokenObject: Token|undefined = await getRepository(Token)
-        .findOne({
+      const tokenObject: Token | undefined = await getRepository(Token).findOne(
+        {
           where: {
             token,
             type: TokenType.authenticationToken,
             expiresAt: MoreThan(new Date()),
           },
-        })
+        }
+      );
 
       if (tokenObject === undefined) {
         res.status(401).json({
@@ -374,7 +414,7 @@ export class AuthController {
    *
    * @param {Request} req current http-request
    */
-  public static async getCurrentUser(req: Request): Promise<User|null> {
+  public static async getCurrentUser(req: Request): Promise<User | null> {
     const authHeader = req.headers['authorization'];
 
     if (authHeader) {
@@ -384,7 +424,7 @@ export class AuthController {
         .findOne({
           where: { token, type: TokenType.authenticationToken },
         })
-        .then((tokenObject: Token|undefined) => {
+        .then((tokenObject: Token | undefined) => {
           if (tokenObject != undefined) {
             return tokenObject.user;
           }
@@ -400,7 +440,7 @@ export class AuthController {
    * @private
    */
   private static async checkAdmin(req: Request): Promise<boolean> {
-    const user: User|null = await AuthController.getCurrentUser(req);
+    const user: User | null = await AuthController.getCurrentUser(req);
 
     return user === null || user.role == UserRole.admin;
   }
@@ -417,8 +457,6 @@ export class AuthController {
     res: Response,
     next: NextFunction
   ) {
-    await AuthController.checkAdmin(req)
-      ? next()
-      : res.sendStatus(403);
+    (await AuthController.checkAdmin(req)) ? next() : res.sendStatus(403);
   }
 }
