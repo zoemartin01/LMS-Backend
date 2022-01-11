@@ -8,6 +8,8 @@ import { InventoryItem } from '../../models/inventory-item.entity';
 define(
   Order,
   (faker: typeof Faker, context?: { user: User; item?: InventoryItem }) => {
+    if (!context || !context.user)
+      throw new Error('Factory Order requires user');
     const itemName = faker.commerce.productName();
     const quantity = faker.random.number();
     const status = faker.random.arrayElement([
@@ -16,12 +18,13 @@ define(
       OrderStatus.inventoried,
       OrderStatus.sent_back,
     ]);
-    const user = context!.user;
+    const user = context.user;
+    const item = context.item;
     const url = faker.internet.url();
 
     const order = new Order();
-    if (context!.item) {
-      order.item = context!.item;
+    if (item) {
+      order.item = item;
     } else {
       order.itemName = itemName;
     }
