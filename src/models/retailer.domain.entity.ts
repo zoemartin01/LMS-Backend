@@ -19,7 +19,9 @@ export class RetailerDomain extends BaseEntity {
    *
    * @type {Retailer}
    */
-  @ManyToOne(() => Retailer, (retailer) => retailer.domains)
+  @ManyToOne(() => Retailer, (retailer) => retailer.domains, {
+    onDelete: 'CASCADE',
+  })
   public retailer: Retailer;
 
   /**
