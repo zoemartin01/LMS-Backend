@@ -1,3 +1,4 @@
+import { IsNotEmpty, IsUUID } from 'class-validator';
 import { Column, Entity, OneToMany } from 'typeorm';
 import { BaseEntity } from './base.entity';
 import { RetailerDomain } from './retailer.domain.entity';
@@ -20,6 +21,7 @@ export class Retailer extends BaseEntity {
    * @type {string}
    */
   @Column()
+  @IsNotEmpty()
   name: string;
 
   /**
@@ -28,5 +30,6 @@ export class Retailer extends BaseEntity {
    * @type {RetailerDomain[]}
    */
   @OneToMany(() => RetailerDomain, (domain) => domain.retailer)
+  @IsUUID('4')
   domains: RetailerDomain[];
 }

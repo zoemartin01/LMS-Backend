@@ -1,3 +1,4 @@
+import { IsEnum, ValidateIf } from 'class-validator';
 import { ChildEntity, Column, ManyToOne } from 'typeorm';
 import { ConfirmationStatus } from '../types/enums/confirmation-status';
 import { TimeSlotType } from '../types/enums/timeslot-type';
@@ -47,5 +48,7 @@ export class AppointmentTimeslot extends TimeSlot {
     enum: ConfirmationStatus,
     default: ConfirmationStatus.pending,
   })
+  @ValidateIf((appointment) => appointment.type)
+  @IsEnum(ConfirmationStatus)
   confirmationStatus: ConfirmationStatus;
 }

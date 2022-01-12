@@ -1,4 +1,5 @@
-import { Column, Entity, ManyToOne } from 'typeorm';
+import { IsNotEmpty, IsUUID } from 'class-validator';
+import { Entity, ManyToOne } from 'typeorm';
 import { BaseEntity } from './base.entity';
 import { Retailer } from './retailer.entity';
 
@@ -19,9 +20,8 @@ export class RetailerDomain extends BaseEntity {
    *
    * @type {Retailer}
    */
-  @ManyToOne(() => Retailer, (retailer) => retailer.domains, {
-    onDelete: 'CASCADE',
-  })
+  @ManyToOne(() => Retailer, (retailer) => retailer.domains)
+  @IsUUID('4')
   public retailer: Retailer;
 
   /**
@@ -29,6 +29,6 @@ export class RetailerDomain extends BaseEntity {
    *
    * @type {string}
    */
-  @Column()
+  @IsNotEmpty()
   domain: string;
 }
