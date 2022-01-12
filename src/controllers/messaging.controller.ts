@@ -20,9 +20,9 @@ export class MessagingController {
    * @param {Response} res backend response with data of one inventory item
    */
   public static async getMessages(req: Request, res: Response): Promise<void> {
-    const messageRepository = await getRepository(Message);
+    const messageRepository = getRepository(Message);
 
-    const messages = messageRepository.find({
+    const messages = await messageRepository.find({
       where: { recipient: AuthController.getCurrentUser(req) },
     });
 
@@ -40,7 +40,7 @@ export class MessagingController {
     req: Request,
     res: Response
   ): Promise<void> {
-    const messageRepository = await getRepository(Message);
+    const messageRepository = getRepository(Message);
 
     const unreadMessagesSum = await messageRepository
       .createQueryBuilder('message')
@@ -76,7 +76,7 @@ export class MessagingController {
     req: Request,
     res: Response
   ): Promise<void> {
-    const messageRepository = await getRepository(Message);
+    const messageRepository = getRepository(Message);
 
     const message: Message | undefined = await messageRepository.findOne({
       where: { id: req.params.id },
@@ -89,7 +89,7 @@ export class MessagingController {
       return;
     }
 
-    messageRepository.delete(message);
+    await messageRepository.delete(message);
 
     res.sendStatus(204);
   }
@@ -107,18 +107,23 @@ export class MessagingController {
     req: Request,
     res: Response
   ): Promise<void> {
-    const messageRepository = await getRepository(Message);
+    const messageRepository = getRepository(Message);
 
-    if (req.body != { readStatus: true } || req.body != { readStatus: false }) {
+    if (req.body === {}) {
+      res.sendStatus(204);
+      return;
+    }
+
+    if (req.body != { readStatus: true } && req.body != { readStatus: false }) {
       res.status(400).json({
         message: 'Malformed request.',
       });
       return;
     }
 
-    const message: Message | undefined = await messageRepository.findOne({
-      where: { id: req.params.id },
-    });
+    const message: Message | undefined = await messageRepository.findOne(
+      req.params.id
+    );
 
     if (message === undefined) {
       res.status(404).json({
@@ -127,14 +132,13 @@ export class MessagingController {
       return;
     }
 
-    message.readStatus = req.body.readStatus;
-    messageRepository.save(message);
+    await messageRepository.update({ id: message.id }, req.body);
 
     res.json(message);
   }
 
   /**
-   * Sends a message to another user
+   * Sends a message to a user
    *
    * @param {User} recipient - recipient of the message
    * @param {string} title - message title
@@ -149,7 +153,7 @@ export class MessagingController {
     linkText: string | null = null,
     linkUrl: string | null = null
   ): Promise<Message> {
-    const messageRepository = await getRepository(Message);
+    const messageRepository = getRepository(Message);
 
     const message =
       linkText === null || linkUrl === null
@@ -166,7 +170,7 @@ export class MessagingController {
             correspondingUrl: linkUrl,
           });
 
-    messageRepository.save(message);
+    await messageRepository.save(message);
 
     return message;
   }
@@ -185,7 +189,7 @@ export class MessagingController {
     linkText: string | null = null,
     linkUrl: string | null = null
   ): Promise<Message[]> {
-    const userRepository = await getRepository(User);
+    const userRepository = getRepository(User);
 
     const admins: User[] = await userRepository.find({
       where: { type: UserRole.admin },

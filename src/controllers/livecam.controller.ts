@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { getRepository, LessThan, MoreThan } from 'typeorm';
+import { DeepPartial, getRepository, LessThan, MoreThan } from 'typeorm';
 import { Recording } from '../models/recording.entity';
 import environment from '../environment';
 import { promisify } from 'util';
@@ -70,7 +70,11 @@ export class LivecamController {
    * @param {Response} res backend response
    */
   public static async updateRecording(req: Request, res: Response) {
-    await getRepository(Recording).update({ id: req.params.id }, req.body);
+    await getRepository(Recording)
+      .update({ id: req.params.id }, req.body)
+      .catch((err) => {
+        res.status(400).json(err);
+      });
     res.sendStatus(200);
   }
 
@@ -87,13 +91,22 @@ export class LivecamController {
    * @param {Response} res backend response
    */
   public static async scheduleRecording(req: Request, res: Response) {
-    const recording = await getRepository(Recording).save(req.body);
+    const repository = getRepository(Recording);
+    let recording: Recording;
+    try {
+      recording = await repository.save(
+        repository.create(<DeepPartial<Recording>>req.body)
+      );
+    } catch (err) {
+      res.status(400).json(err);
+      return;
+    }
+
     const response = await axios.post(
       `http://${environment.livecam_server.host}:${environment.livecam_server.port}
       ${environment.livecam_server.apiPath}
       ${environment.livecam_server.endpoints.schedule}`,
       {
-        // TODO: only pass recording
         id: recording.id,
         start: recording.start.getTime(),
         end: recording.end.getTime(),
