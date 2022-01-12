@@ -94,7 +94,6 @@ export class Recording extends BaseEntity {
   size: number;
 
   @BeforeUpdate()
-  @BeforeInsert()
   async validateInput() {
     await validateOrReject(this);
   }

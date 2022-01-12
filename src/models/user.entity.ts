@@ -153,10 +153,4 @@ export class User extends BaseEntity {
    */
   @OneToMany(() => Token, (token) => token.user)
   tokens: Token[];
-
-  @BeforeUpdate()
-  @BeforeInsert()
-  async validateInput() {
-    await validateOrReject(this);
-  }
 }
