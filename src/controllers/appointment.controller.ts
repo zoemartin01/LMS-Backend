@@ -1,4 +1,7 @@
 import { Request, Response } from 'express';
+import { getRepository } from 'typeorm';
+import { AppointmentTimeslot } from '../models/appointment.timeslot.entity';
+import { AuthController } from './auth.controller';
 
 /**
  * Controller for appointment management
@@ -16,7 +19,11 @@ export class AppointmentController {
    * @param {Request} req frontend request to get data about all appointments
    * @param {Response} res backend response with data about all appointments
    */
-  public static async getAllAppointments(req: Request, res: Response) {}
+  public static async getAllAppointments(req: Request, res: Response) {
+    const appointments = getRepository(AppointmentTimeslot).find();
+
+    res.json(appointments);
+  }
 
   /**
    * Returns all appointments for the current user
@@ -28,7 +35,13 @@ export class AppointmentController {
   public static async getAppointmentsForCurrentUser(
     req: Request,
     res: Response
-  ) {}
+  ) {
+    const appointments = getRepository(AppointmentTimeslot).find({
+      where: { recipient: AuthController.getCurrentUser(req) },
+    });
+
+    res.json(appointments);
+  }
 
   /**
    * Returns all appointments related to a specific room
@@ -38,7 +51,14 @@ export class AppointmentController {
    * @param {Request} req frontend request to get data about all appointments for room
    * @param {Response} res backend response with data about all appointments for room
    */
-  public static async getAppointmentsForRoom(req: Request, res: Response) {}
+  public static async getAppointmentsForRoom(req: Request, res: Response) {
+    const appointments = getRepository(AppointmentTimeslot).find({
+      where: { room: req.body.room },
+      //TODO idk ob das wirklich da einen room im req gibt
+    });
+
+    res.json(appointments);
+  }
 
   /**
    * Returns all appointments related to a series of appointments
@@ -48,7 +68,14 @@ export class AppointmentController {
    * @param {Request} req frontend request to get data about all appointments for a series
    * @param {Response} res backend response with data about all appointments for a series
    */
-  public static async getAppointmentsForSeries(req: Request, res: Response) {}
+  public static async getAppointmentsForSeries(req: Request, res: Response) {
+    const appointments = getRepository(AppointmentTimeslot).find({
+      where: { idSeries: req.body.idSeries },
+      //TODO idk ob das wirklich da eine idseries im req gibt
+    });
+
+    res.json(appointments);
+  }
 
   /**
    * Returns one appointment with an id
@@ -58,7 +85,15 @@ export class AppointmentController {
    * @param {Request} req frontend request to get data about one appointment
    * @param {Response} res backend response with data about one appointment
    */
-  public static async getAppointment(req: Request, res: Response) {}
+  public static async getAppointment(req: Request, res: Response) {
+    const id = req.body.id;
+    const appointment = getRepository(AppointmentTimeslot).findOne({
+      where: { id: id },
+      //TODO idk ob das wirklich id
+    });
+
+    res.json(appointment);
+  }
 
   /**
    * Creates a new appointment
