@@ -89,7 +89,7 @@ export class MessagingController {
       return;
     }
 
-    messageRepository.delete(message);
+    await messageRepository.delete(message);
 
     res.sendStatus(204);
   }
@@ -109,16 +109,14 @@ export class MessagingController {
   ): Promise<void> {
     const messageRepository = getRepository(Message);
 
-    if (req.body != { readStatus: true } || req.body != { readStatus: false }) {
+    if (req.body != { readStatus: true } && req.body != { readStatus: false }) {
       res.status(400).json({
         message: 'Malformed request.',
       });
       return;
     }
 
-    const message: Message | undefined = await messageRepository.findOne({
-      where: { id: req.params.id },
-    });
+    const message: Message | undefined = await messageRepository.findOne(req.params.id);
 
     if (message === undefined) {
       res.status(404).json({
@@ -127,8 +125,7 @@ export class MessagingController {
       return;
     }
 
-    message.readStatus = req.body.readStatus;
-    messageRepository.save(message);
+    await messageRepository.update({ id: message.id }, req.body);
 
     res.json(message);
   }
@@ -166,7 +163,7 @@ export class MessagingController {
             correspondingUrl: linkUrl,
           });
 
-    messageRepository.save(message);
+    await messageRepository.save(message);
 
     return message;
   }
