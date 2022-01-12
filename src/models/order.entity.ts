@@ -1,3 +1,11 @@
+import {
+  IsEnum,
+  IsNumber,
+  IsOptional,
+  IsUrl,
+  IsUUID,
+  Min,
+} from 'class-validator';
 import { Column, Entity, ManyToOne } from 'typeorm';
 import { OrderStatus } from '../types/enums/order-status';
 import { BaseEntity } from './base.entity';
@@ -27,6 +35,8 @@ export class Order extends BaseEntity {
    * @nullable if item does not yet exist.
    */
   @ManyToOne(() => InventoryItem, (item) => item.orders, { nullable: true })
+  @IsOptional()
+  @IsUUID('4')
   item: InventoryItem;
 
   /**
@@ -36,6 +46,7 @@ export class Order extends BaseEntity {
    * @nullable if item has been set.
    */
   @Column({ nullable: true })
+  @IsOptional()
   itemName: string;
 
   /**
@@ -45,6 +56,7 @@ export class Order extends BaseEntity {
    * @readonly
    */
   @ManyToOne(() => User, (user) => user.orders)
+  @IsUUID('4')
   user: User;
 
   /**
@@ -54,6 +66,8 @@ export class Order extends BaseEntity {
    * @default OrderStatus.pending
    */
   @Column({ default: OrderStatus.pending })
+  @IsOptional()
+  @IsEnum(OrderStatus)
   status: OrderStatus;
 
   /**
@@ -62,6 +76,8 @@ export class Order extends BaseEntity {
    * @type {number}
    */
   @Column()
+  @IsNumber()
+  @Min(1)
   quantity: number;
 
   /**
@@ -70,5 +86,6 @@ export class Order extends BaseEntity {
    * @type {string}
    */
   @Column()
+  @IsUrl()
   url: string;
 }

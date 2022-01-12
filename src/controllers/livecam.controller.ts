@@ -5,7 +5,6 @@ import environment from '../environment';
 import { promisify } from 'util';
 import { pipeline } from 'stream';
 import axios from 'axios';
-import { VideoResolution } from '../types/enums/video-resolution';
 
 /**
  * Controller for the LiveCam System
@@ -70,7 +69,11 @@ export class LivecamController {
    * @param {Response} res backend response
    */
   public static async updateRecording(req: Request, res: Response) {
-    await getRepository(Recording).update({ id: req.params.id }, req.body);
+    await getRepository(Recording)
+      .update({ id: req.params.id }, req.body)
+      .catch((err) => {
+        res.status(400).json(err);
+      });
     res.sendStatus(200);
   }
 
@@ -87,20 +90,29 @@ export class LivecamController {
    * @param {Response} res backend response
    */
   public static async scheduleRecording(req: Request, res: Response) {
-    const recording = await getRepository(Recording).save(req.body);
-    const response = await axios.post(
-      `http://${environment.livecam_server.host}:${environment.livecam_server.port}
-      ${environment.livecam_server.apiPath}
-      ${environment.livecam_server.endpoints.schedule}`,
-      {
-        id: recording.id,
-        start: recording.start.getTime(),
-        end: recording.end.getTime(),
-        bitrate: req.body.bitrate,
-        resolution: VideoResolution.V1080,
-      }
-    );
-    res.status(response.status).json(recording);
+    const repository = getRepository(Recording);
+    const recording = await repository
+      .save(repository.create(req.body))
+      .catch((err) => {
+        res.status(400).json(err);
+        return;
+      });
+
+    res.status(200).json(recording);
+
+    // const response = await axios.post(
+    //   `http://${environment.livecam_server.host}:${environment.livecam_server.port}
+    //   ${environment.livecam_server.apiPath}
+    //   ${environment.livecam_server.endpoints.schedule}`,
+    //   {
+    //     id: recording.id,
+    //     start: recording.start.getTime(),
+    //     end: recording.end.getTime(),
+    //     bitrate: req.body.bitrate,
+    //     resolution: VideoResolution.V1080,
+    //   }
+    // );
+    // res.status(response.status).json(recording);
   }
 
   /**
