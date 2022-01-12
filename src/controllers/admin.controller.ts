@@ -1,4 +1,9 @@
 import { Request, Response } from 'express';
+import { getRepository } from 'typeorm';
+import { GlobalSetting } from '../models/global_settings.entity';
+import { Retailer } from '../models/retailer.entity';
+import { RetailerDomain } from '../models/retailer.domain.entity';
+import { User } from '../models/user.entity';
 
 /**
  * Controller for Admin Management
@@ -17,7 +22,12 @@ export class AdminController {
    * @param {Request} req frontend request to get data about global settings
    * @param {Response} res backend response with data about global settings
    */
-  public static async getGlobalSettings(req: Request, res: Response) {}
+  public static async getGlobalSettings(req: Request, res: Response) {
+    const globalSettingsRepository = getRepository(GlobalSetting);
+    const globalSettings: GlobalSetting[] =
+      await globalSettingsRepository.find();
+    res.json(globalSettings);
+  }
 
   /**
    * Updates global settings
@@ -29,7 +39,23 @@ export class AdminController {
    * @param {Request} req frontend request to change data about global settings
    * @param {Response} res backend response with data change of one global settings
    */
-  public static async updateGlobalSettings(req: Request, res: Response) {}
+  public static async updateGlobalSettings(req: Request, res: Response) {
+    const globalSettingsRepository = getRepository(GlobalSetting);
+
+    const globalSetting: GlobalSetting | undefined =
+      await globalSettingsRepository.findOne({
+        where: { key: req.params.key },
+      });
+    if (globalSetting === undefined) {
+      res.status(404).json({
+        globalSetting: 'Global Setting not found.',
+      });
+      return;
+    }
+    await globalSettingsRepository.update({ key: req.params.key }, req.body);
+
+    res.json(globalSetting);
+  }
 
   /**
    * Returns whitelist retailer data
@@ -39,7 +65,15 @@ export class AdminController {
    * @param {Request} req frontend request to get data about one whitelist retailer
    * @param {Response} res backend response with data about one whitelist retailer
    */
-  public static async getWhitelistRetailer(req: Request, res: Response) {}
+  public static async getWhitelistRetailer(req: Request, res: Response) {
+    const retailerRepository = getRepository(Retailer);
+
+    const retailer = retailerRepository.findOne({
+      where: { id: req.params.id },
+    });
+
+    res.json(retailer);
+  }
 
   /**
    * Creates whitelist retailer with data
@@ -50,7 +84,10 @@ export class AdminController {
    * @param {Request} req frontend request to create a new retailer
    * @param {Response} res backend response creation of a new retailer
    */
-  public static async createWhitelistRetailer(req: Request, res: Response) {}
+  public static async createWhitelistRetailer(req: Request, res: Response) {
+    const retailerRepository = getRepository(Retailer);
+    retailerRepository.create(req.body);
+  }
 
   /**
    * Changes data of whitelist retailer
@@ -61,7 +98,23 @@ export class AdminController {
    * @param {Request} req frontend request to change data about one whitelist retailer
    * @param {Response} res backend response with data change of one whitelist retailer
    */
-  public static async updateWhitelistRetailer(req: Request, res: Response) {}
+  public static async updateWhitelistRetailer(req: Request, res: Response) {
+    const retailerRepository = getRepository(Retailer);
+
+    const retailer: Retailer | undefined = await retailerRepository.findOne({
+      where: { id: req.params.id },
+    });
+    if (retailer === undefined) {
+      res.status(404).json({
+        retailer: 'Retailer not found.',
+      });
+      return;
+    }
+
+    await retailerRepository.update({ id: req.params.id }, req.body);
+
+    res.json(retailer);
+  }
 
   /**
    * Deletes whitelist retailer
@@ -71,7 +124,24 @@ export class AdminController {
    * @param {Request} req frontend request to delete one whitelist retailer
    * @param {Response} res backend response deletion
    */
-  public static async deleteWhitelistRetailer(req: Request, res: Response) {}
+  public static async deleteWhitelistRetailer(req: Request, res: Response) {
+    const retailerRepository = getRepository(Retailer);
+
+    const retailer: Retailer | undefined = await retailerRepository.findOne({
+      where: { id: req.params.id },
+    });
+
+    if (retailer === undefined) {
+      res.status(404).json({
+        retailer: 'Retailer not found.',
+      });
+      return;
+    }
+
+    await retailerRepository.delete(retailer);
+
+    res.sendStatus(204);
+  }
 
   /**
    * Adds domain to whitelist retailer
@@ -100,7 +170,24 @@ export class AdminController {
   public static async editDomainOfWhitelistRetailer(
     req: Request,
     res: Response
-  ) {}
+  ) {
+    const retailerDomainRepository = getRepository(RetailerDomain);
+
+    const retailerDomain: RetailerDomain | undefined =
+      await retailerDomainRepository.findOne({
+        where: { id: req.params.id },
+      });
+    if (retailerDomain === undefined) {
+      res.status(404).json({
+        retailerDomain: 'Retailer domain not found.',
+      });
+      return;
+    }
+
+    await retailerDomainRepository.update({ id: req.params.id }, req.body);
+
+    res.json(retailerDomain);
+  }
 
   /**
    * Deletes one domain of a whitelist retailer
@@ -114,7 +201,25 @@ export class AdminController {
   public static async deleteDomainOfWhitelistRetailer(
     req: Request,
     res: Response
-  ) {}
+  ) {
+    const retailerDomainRepository = getRepository(RetailerDomain);
+
+    const retailerDomain: RetailerDomain | undefined =
+      await retailerDomainRepository.findOne({
+        where: { id: req.params.id },
+      });
+
+    if (retailerDomain === undefined) {
+      res.status(404).json({
+        retailerDomain: 'Retailer Domain not found.',
+      });
+      return;
+    }
+
+    await retailerDomainRepository.delete(retailerDomain);
+
+    res.sendStatus(204);
+  }
 
   /**
    * Checks domain against a whitelist
@@ -135,7 +240,13 @@ export class AdminController {
    * @param {Request} req frontend request to get data about all users
    * @param {Response} res backend response with data about all user
    */
-  public static async getUsers(req: Request, res: Response) {}
+  public static async getUsers(req: Request, res: Response) {
+    const userRepository = getRepository(User);
+
+    const users: User[] | undefined = await userRepository.find();
+
+    res.json(users);
+  }
 
   /**
    * Returns data of a specific user
@@ -145,7 +256,15 @@ export class AdminController {
    * @param {Request} req frontend request to get data about one specific user
    * @param {Response} res backend response with data about one specific user
    */
-  public static async getUser(req: Request, res: Response) {}
+  public static async getUser(req: Request, res: Response) {
+    const userRepository = getRepository(User);
+
+    const user: User | undefined = await userRepository.findOne({
+      where: { id: req.params.id },
+    });
+
+    res.json(user);
+  }
 
   /**
    * Changes data of a specific user
@@ -161,7 +280,23 @@ export class AdminController {
    * @param {Request} req frontend request to change data about one user
    * @param {Response} res backend response with data change of one user
    */
-  public static async updateUser(req: Request, res: Response) {}
+  public static async updateUser(req: Request, res: Response) {
+    const userRepository = getRepository(User);
+
+    const user: User | undefined = await userRepository.findOne({
+      where: { id: req.params.id },
+    });
+    if (user === undefined) {
+      res.status(404).json({
+        retailerDomain: 'User not found.',
+      });
+      return;
+    }
+
+    await userRepository.update({ id: req.params.id }, req.body);
+
+    res.json(user);
+  }
 
   /**
    * Deletes a given user
@@ -171,5 +306,22 @@ export class AdminController {
    * @param {Request} req frontend request to delete one user
    * @param {Response} res backend response deletion
    */
-  public static async deleteUser(req: Request, res: Response) {}
+  public static async deleteUser(req: Request, res: Response) {
+    const userRepository = getRepository(User);
+
+    const user: User | undefined = await userRepository.findOne({
+      where: { id: req.params.id },
+    });
+
+    if (user === undefined) {
+      res.status(404).json({
+        retailerDomain: 'User not found.',
+      });
+      return;
+    }
+
+    await userRepository.delete(user);
+
+    res.sendStatus(204);
+  }
 }
