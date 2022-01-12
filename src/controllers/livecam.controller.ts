@@ -114,14 +114,12 @@ export class LivecamController {
    */
   public static async streamRecording(req: Request, res: Response) {
     const response = await axios.get(
-      `http://${environment.livecam_server.host}:${
-        environment.livecam_server.port
-      }
-      ${environment.livecam_server.apiPath}
-      ${environment.livecam_server.endpoints.download.replace(
-        ':id',
-        req.params.id
-      )}`,
+      `http://${environment.livecam_server.host}:${environment.livecam_server.port}` +
+        `${environment.livecam_server.apiPath}` +
+        `${environment.livecam_server.endpoints.download}`.replace(
+          ':id',
+          req.params.id
+        ),
       { responseType: 'stream' }
     );
     res.attachment(`${req.params.id}.mp4`);
