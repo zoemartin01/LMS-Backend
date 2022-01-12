@@ -109,6 +109,11 @@ export class MessagingController {
   ): Promise<void> {
     const messageRepository = getRepository(Message);
 
+    if (req.body === {}) {
+      res.sendStatus(204);
+      return;
+    }
+
     if (req.body != { readStatus: true } && req.body != { readStatus: false }) {
       res.status(400).json({
         message: 'Malformed request.',
@@ -131,7 +136,7 @@ export class MessagingController {
   }
 
   /**
-   * Sends a message to another user
+   * Sends a message to a user
    *
    * @param {User} recipient - recipient of the message
    * @param {string} title - message title
