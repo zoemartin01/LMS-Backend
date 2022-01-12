@@ -5,9 +5,8 @@ import {
   IsUrl,
   IsUUID,
   Min,
-  Validate,
 } from 'class-validator';
-import { Column, Entity, getRepository, ManyToOne } from 'typeorm';
+import { Column, Entity, ManyToOne } from 'typeorm';
 import { OrderStatus } from '../types/enums/order-status';
 import { BaseEntity } from './base.entity';
 import { InventoryItem } from './inventory-item.entity';

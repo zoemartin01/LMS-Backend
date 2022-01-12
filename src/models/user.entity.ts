@@ -4,9 +4,8 @@ import {
   IsEnum,
   IsNotEmpty,
   ValidateIf,
-  validateOrReject,
 } from 'class-validator';
-import { Entity, Column, OneToMany, BeforeInsert, BeforeUpdate } from 'typeorm';
+import { Entity, Column, OneToMany } from 'typeorm';
 import { NotificationChannel } from '../types/enums/notification-channel';
 import { UserRole } from '../types/enums/user-role';
 import { AppointmentTimeslot } from './appointment.timeslot.entity';

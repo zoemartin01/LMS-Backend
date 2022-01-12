@@ -4,10 +4,8 @@ import {
   IsOptional,
   IsUUID,
   Min,
-  ValidateIf,
-  validateOrReject,
 } from 'class-validator';
-import { BeforeInsert, BeforeUpdate, Column, Entity, ManyToOne } from 'typeorm';
+import { Column, Entity, ManyToOne } from 'typeorm';
 import { VideoResolution } from '../types/enums/video-resolution';
 import { BaseEntity } from './base.entity';
 import { User } from './user.entity';
