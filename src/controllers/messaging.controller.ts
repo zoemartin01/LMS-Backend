@@ -20,7 +20,7 @@ export class MessagingController {
    * @param {Response} res backend response with data of one inventory item
    */
   public static async getMessages(req: Request, res: Response): Promise<void> {
-    const messageRepository = await getRepository(Message);
+    const messageRepository = getRepository(Message);
 
     const messages = messageRepository.find({
       where: { recipient: AuthController.getCurrentUser(req) },
@@ -40,7 +40,7 @@ export class MessagingController {
     req: Request,
     res: Response
   ): Promise<void> {
-    const messageRepository = await getRepository(Message);
+    const messageRepository = getRepository(Message);
 
     const unreadMessagesSum = await messageRepository
       .createQueryBuilder('message')
@@ -76,7 +76,7 @@ export class MessagingController {
     req: Request,
     res: Response
   ): Promise<void> {
-    const messageRepository = await getRepository(Message);
+    const messageRepository = getRepository(Message);
 
     const message: Message | undefined = await messageRepository.findOne({
       where: { id: req.params.id },
@@ -107,7 +107,7 @@ export class MessagingController {
     req: Request,
     res: Response
   ): Promise<void> {
-    const messageRepository = await getRepository(Message);
+    const messageRepository = getRepository(Message);
 
     if (req.body != { readStatus: true } || req.body != { readStatus: false }) {
       res.status(400).json({
@@ -149,7 +149,7 @@ export class MessagingController {
     linkText: string | null = null,
     linkUrl: string | null = null
   ): Promise<Message> {
-    const messageRepository = await getRepository(Message);
+    const messageRepository = getRepository(Message);
 
     const message =
       linkText === null || linkUrl === null
@@ -185,7 +185,7 @@ export class MessagingController {
     linkText: string | null = null,
     linkUrl: string | null = null
   ): Promise<Message[]> {
-    const userRepository = await getRepository(User);
+    const userRepository = getRepository(User);
 
     const admins: User[] = await userRepository.find({
       where: { type: UserRole.admin },
