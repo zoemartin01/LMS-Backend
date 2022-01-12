@@ -8,181 +8,375 @@ import { MessagingController } from './controllers/messaging.controller';
 import { OrderController } from './controllers/order.controller';
 import { RoomController } from './controllers/room.controller';
 import { UserController } from './controllers/user.controller';
+import environment from './environment';
 
 const router: Router = Router();
 
 // Authentication
-const TOKEN_BASE_URL = '/token';
-
-router.post(TOKEN_BASE_URL, AuthController.login);
-router.delete(TOKEN_BASE_URL, AuthController.logout);
-router.post(`${TOKEN_BASE_URL}/refresh`, AuthController.refreshToken);
-router.get(
-  `${TOKEN_BASE_URL}/check`,
+router.post(environment.apiRoutes.auth.login, AuthController.login);
+router.delete(
+  environment.apiRoutes.auth.logout,
+  AuthController.checkAuthenticationMiddleware,
+  AuthController.logout
+);
+router.post(
+  environment.apiRoutes.auth.tokenRefresh,
+  AuthController.refreshToken
+);
+router.post(
+  environment.apiRoutes.auth.tokenCheck,
   AuthController.checkAuthenticationMiddleware,
   AuthController.checkToken
 );
 
 // Messaging
-const MESSAGE_BASE_URL = '/messages';
-
-router.get(`/user${MESSAGE_BASE_URL}`, MessagingController.getMessages);
 router.get(
-  `/user${MESSAGE_BASE_URL}/unread-amounts`,
+  environment.apiRoutes.messages.getCurrentUserMessages,
+  AuthController.checkAuthenticationMiddleware,
+  MessagingController.getMessages
+);
+router.get(
+  environment.apiRoutes.messages.getCurrentUserUnreadMessagesAmounts,
+  AuthController.checkAuthenticationMiddleware,
   MessagingController.getUnreadMessagesAmounts
 );
-router.delete(`${MESSAGE_BASE_URL}/:id`, MessagingController.deleteMessage);
-router.patch(`${MESSAGE_BASE_URL}/:id`, MessagingController.updateMessage);
+router.delete(
+  environment.apiRoutes.messages.deleteMessage,
+  AuthController.checkAuthenticationMiddleware,
+  MessagingController.deleteMessage
+);
+router.patch(
+  environment.apiRoutes.messages.updateMessage,
+  AuthController.checkAuthenticationMiddleware,
+  MessagingController.updateMessage
+);
 
 // Personal User Settings
-const USER_BASE_URL = '/user';
-
-router.get(USER_BASE_URL, UserController.getUser);
-router.post(`${USER_BASE_URL}s`, UserController.register);
-router.post(`${USER_BASE_URL}/verify-email`, UserController.verifyEmail);
-router.patch(USER_BASE_URL, UserController.updateUser);
-router.delete(`${USER_BASE_URL}`, UserController.deleteUser);
+router.get(
+  environment.apiRoutes.user_settings.getCurrentUser,
+  AuthController.checkAuthenticationMiddleware,
+  UserController.getUser
+);
+router.post(
+  environment.apiRoutes.user_settings.register,
+  UserController.register
+);
+router.post(
+  environment.apiRoutes.user_settings.verifyEmail,
+  UserController.verifyEmail
+);
+router.patch(
+  environment.apiRoutes.user_settings.updateCurrentUser,
+  AuthController.checkAuthenticationMiddleware,
+  UserController.updateUser
+);
+router.delete(
+  environment.apiRoutes.user_settings.deleteCurrentUser,
+  AuthController.checkAuthenticationMiddleware,
+  UserController.deleteUser
+);
 
 // Admin (General Settings & User Management)
-const GLOBAL_SETTINGS_BASE_URL = '/global-settings';
-const WHITELIST_BASE_URL = `${GLOBAL_SETTINGS_BASE_URL}/whitelist-retailers`;
-const WHITELIST_RETAILER_DOMAINS_URL = `${WHITELIST_BASE_URL}/:retailerId/domains`;
-
-router.get(GLOBAL_SETTINGS_BASE_URL, AdminController.getGlobalSettings);
-router.patch(GLOBAL_SETTINGS_BASE_URL, AdminController.updateGlobalSettings);
-
-router.get(`${WHITELIST_BASE_URL}/:id`, AdminController.getWhitelistRetailer);
-router.post(WHITELIST_BASE_URL, AdminController.createWhitelistRetailer);
+router.get(
+  environment.apiRoutes.admin_settings.getGlobalSettings,
+  AuthController.checkAuthenticationMiddleware,
+  AdminController.getGlobalSettings
+);
 router.patch(
-  `${WHITELIST_BASE_URL}/:id`,
+  environment.apiRoutes.admin_settings.updateGlobalSettings,
+  AuthController.checkAuthenticationMiddleware,
+  AuthController.checkAdminMiddleware,
+  AdminController.updateGlobalSettings
+);
+
+router.get(
+  environment.apiRoutes.admin_settings.getWhitelistRetailer,
+  AuthController.checkAuthenticationMiddleware,
+  AdminController.getWhitelistRetailer
+);
+router.post(
+  environment.apiRoutes.admin_settings.createWhitelistRetailer,
+  AuthController.checkAuthenticationMiddleware,
+  AuthController.checkAdminMiddleware,
+  AdminController.createWhitelistRetailer
+);
+router.patch(
+  environment.apiRoutes.admin_settings.updateWhitelistRetailer,
+  AuthController.checkAuthenticationMiddleware,
+  AuthController.checkAdminMiddleware,
   AdminController.updateWhitelistRetailer
 );
 router.delete(
-  `${WHITELIST_BASE_URL}/:id`,
+  environment.apiRoutes.admin_settings.deleteWhitelistRetailer,
+  AuthController.checkAuthenticationMiddleware,
+  AuthController.checkAdminMiddleware,
   AdminController.deleteWhitelistRetailer
 );
 
 router.post(
-  `${WHITELIST_RETAILER_DOMAINS_URL}`,
+  environment.apiRoutes.admin_settings.addDomainToWhitelistRetailer,
+  AuthController.checkAuthenticationMiddleware,
+  AuthController.checkAdminMiddleware,
   AdminController.addDomainToWhitelistRetailer
 );
 router.patch(
-  `${WHITELIST_RETAILER_DOMAINS_URL}/:domainId`,
+  environment.apiRoutes.admin_settings.updateDomainOfWhitelistRetailer,
+  AuthController.checkAuthenticationMiddleware,
+  AuthController.checkAdminMiddleware,
   AdminController.editDomainOfWhitelistRetailer
 );
 router.delete(
-  `${WHITELIST_RETAILER_DOMAINS_URL}/:domainId`,
+  environment.apiRoutes.admin_settings.deleteDomainOfWhitelistRetailer,
+  AuthController.checkAuthenticationMiddleware,
+  AuthController.checkAdminMiddleware,
   AdminController.deleteDomainOfWhitelistRetailer
 );
+router.post(
+  environment.apiRoutes.admin_settings.checkDomainAgainstWhitelist,
+  AuthController.checkAuthenticationMiddleware,
+  AdminController.checkDomainAgainstWhitelist
+);
 
-router.get(`${USER_BASE_URL}s`, AdminController.getUsers);
-router.get(`${USER_BASE_URL}s/:id`, AdminController.getUser);
-router.patch(`${USER_BASE_URL}s/:id`, AdminController.updateUser);
-router.delete(`${USER_BASE_URL}s/:id`, AdminController.deleteUser);
+router.get(
+  environment.apiRoutes.user_management.getAllUsers,
+  AuthController.checkAuthenticationMiddleware,
+  AuthController.checkAdminMiddleware,
+  AdminController.getUsers
+);
+router.get(
+  environment.apiRoutes.user_management.getSingleUser,
+  AuthController.checkAuthenticationMiddleware,
+  AuthController.checkAdminMiddleware,
+  AdminController.getUser
+);
+router.patch(
+  environment.apiRoutes.user_management.updateUser,
+  AuthController.checkAuthenticationMiddleware,
+  AuthController.checkAdminMiddleware,
+  AdminController.updateUser
+);
+router.delete(
+  environment.apiRoutes.user_management.deleteUser,
+  AuthController.checkAuthenticationMiddleware,
+  AuthController.checkAdminMiddleware,
+  AdminController.deleteUser
+);
 
 // Room Management
-const ROOM_BASE_URL = '/rooms';
-const ROOM_TIMESLOT_URL = `${ROOM_BASE_URL}/:roomId/timeslots`;
-
-router.get(ROOM_BASE_URL, RoomController.getAllRooms);
-router.get(`${ROOM_BASE_URL}/:id`, RoomController.getRoomById);
-router.post(ROOM_BASE_URL, RoomController.createRoom);
-router.patch(`${ROOM_BASE_URL}/:id`, RoomController.updateRoom);
-router.delete(`${ROOM_BASE_URL}/:id`, RoomController.deleteRoom);
-router.post(`${ROOM_TIMESLOT_URL}`, RoomController.createTimeslot);
+router.get(
+  environment.apiRoutes.rooms.getAllRooms,
+  AuthController.checkAuthenticationMiddleware,
+  RoomController.getAllRooms
+);
+router.get(
+  environment.apiRoutes.rooms.getSingleRoom,
+  AuthController.checkAuthenticationMiddleware,
+  RoomController.getRoomById
+);
+router.post(
+  environment.apiRoutes.rooms.createRoom,
+  AuthController.checkAuthenticationMiddleware,
+  AuthController.checkAdminMiddleware,
+  RoomController.createRoom
+);
+router.patch(
+  environment.apiRoutes.rooms.updateRoom,
+  AuthController.checkAuthenticationMiddleware,
+  AuthController.checkAdminMiddleware,
+  RoomController.updateRoom
+);
 router.delete(
-  `${ROOM_TIMESLOT_URL}/:timeslotId`,
+  environment.apiRoutes.rooms.deleteRoom,
+  AuthController.checkAuthenticationMiddleware,
+  AuthController.checkAdminMiddleware,
+  RoomController.deleteRoom
+);
+router.post(
+  environment.apiRoutes.rooms.createTimeslot,
+  AuthController.checkAuthenticationMiddleware,
+  AuthController.checkAdminMiddleware,
+  RoomController.createTimeslot
+);
+router.delete(
+  environment.apiRoutes.rooms.deleteTimeslot,
+  AuthController.checkAuthenticationMiddleware,
+  AuthController.checkAdminMiddleware,
   RoomController.deleteTimeslot
 );
 
 // Appointment Management
-const APPOINTMENTS_BASE_URL = '/appointments';
-
-router.get(APPOINTMENTS_BASE_URL, AppointmentController.getAllAppointments);
-
 router.get(
-  `${USER_BASE_URL}/appointments`,
+  environment.apiRoutes.appointments.getAllAppointments,
+  AuthController.checkAuthenticationMiddleware,
+  AuthController.checkAdminMiddleware,
+  AppointmentController.getAllAppointments
+);
+router.get(
+  environment.apiRoutes.appointments.getCurrentUserAppointments,
+  AuthController.checkAuthenticationMiddleware,
   AppointmentController.getAppointmentsForCurrentUser
 );
-
 router.get(
-  `${ROOM_BASE_URL}/:id/appointments`,
+  environment.apiRoutes.appointments.getRoomAppointments,
+  AuthController.checkAuthenticationMiddleware,
   AppointmentController.getAppointmentsForRoom
 );
-
 router.get(
-  `${APPOINTMENTS_BASE_URL}/:id`,
+  environment.apiRoutes.appointments.getSeriesAppointments,
+  AuthController.checkAuthenticationMiddleware,
+  AppointmentController.getAppointmentsForSeries
+);
+router.get(
+  environment.apiRoutes.appointments.getSingleAppointment,
+  AuthController.checkAuthenticationMiddleware,
   AppointmentController.getAppointment
 );
-
 router.post(
-  `${APPOINTMENTS_BASE_URL}`,
+  environment.apiRoutes.appointments.createAppointment,
+  AuthController.checkAuthenticationMiddleware,
   AppointmentController.createAppointment
 );
-
+router.post(
+  environment.apiRoutes.appointments.createAppointmentSeries,
+  AuthController.checkAuthenticationMiddleware,
+  AppointmentController.createAppointmentSeries
+);
 router.patch(
-  `${APPOINTMENTS_BASE_URL}/:id`,
+  environment.apiRoutes.appointments.updateAppointment,
+  AuthController.checkAuthenticationMiddleware,
+  AuthController.checkAdminMiddleware,
   AppointmentController.updateAppointment
 );
-
+router.put(
+  environment.apiRoutes.appointments.updateAppointmentSeries,
+  AuthController.checkAuthenticationMiddleware,
+  AuthController.checkAdminMiddleware,
+  AppointmentController.updateAppointmentSeries
+);
 router.delete(
-  `${APPOINTMENTS_BASE_URL}/:id`,
+  environment.apiRoutes.appointments.deleteAppointment,
+  AuthController.checkAuthenticationMiddleware,
+  AuthController.checkAdminMiddleware,
   AppointmentController.deleteAppointment
+);
+router.delete(
+  environment.apiRoutes.appointments.deleteAppointmentSeries,
+  AuthController.checkAuthenticationMiddleware,
+  AuthController.checkAdminMiddleware,
+  AppointmentController.deleteAppointmentSeries
 );
 
 // Inventory Management
-const INVENTORY_BASE_URL = '/inventory-items';
-
-router.get(INVENTORY_BASE_URL, InventoryController.getAllInventoryItems);
-
-router.get(`${INVENTORY_BASE_URL}/:id`, InventoryController.getInventoryItem);
-
-router.post(INVENTORY_BASE_URL, InventoryController.createInventoryItem);
-
+router.get(
+  environment.apiRoutes.inventory_item.getAllItems,
+  AuthController.checkAuthenticationMiddleware,
+  InventoryController.getAllInventoryItems
+);
+router.get(
+  environment.apiRoutes.inventory_item.getSingleItem,
+  AuthController.checkAuthenticationMiddleware,
+  InventoryController.getInventoryItem
+);
+router.post(
+  environment.apiRoutes.inventory_item.createItem,
+  AuthController.checkAuthenticationMiddleware,
+  AuthController.checkAdminMiddleware,
+  InventoryController.createInventoryItem
+);
 router.patch(
-  `${INVENTORY_BASE_URL}/:id`,
+  environment.apiRoutes.inventory_item.updateItem,
+  AuthController.checkAuthenticationMiddleware,
+  AuthController.checkAdminMiddleware,
   InventoryController.updateInventoryItem
 );
-
 router.delete(
-  `${INVENTORY_BASE_URL}/:id`,
+  environment.apiRoutes.inventory_item.deleteItem,
+  AuthController.checkAuthenticationMiddleware,
+  AuthController.checkAdminMiddleware,
   InventoryController.deleteInventoryItem
 );
 
 // Order Management
-const ORDER_BASE_URL = '/orders';
-
-router.get(ORDER_BASE_URL, OrderController.getAllOrders);
-
-router.get(`${USER_BASE_URL}/orders`, OrderController.getOrdersForCurrentUser);
-
-router.get(`${ORDER_BASE_URL}/:id`, OrderController.getOrder);
-
-router.post(`${ORDER_BASE_URL}`, OrderController.createOrder);
-
-router.patch(`${ORDER_BASE_URL}/:id`, OrderController.updateOrder);
-
-router.delete(`${ORDER_BASE_URL}/:id`, OrderController.deleteOrder);
+router.get(
+  environment.apiRoutes.orders.getAllOrders,
+  AuthController.checkAuthenticationMiddleware,
+  AuthController.checkAdminMiddleware,
+  OrderController.getAllOrders
+);
+router.get(
+  environment.apiRoutes.orders.getCurrentUserOrders,
+  AuthController.checkAuthenticationMiddleware,
+  OrderController.getOrdersForCurrentUser
+);
+router.get(
+  environment.apiRoutes.orders.getSingleOrder,
+  AuthController.checkAuthenticationMiddleware,
+  OrderController.getOrder
+);
+router.post(
+  environment.apiRoutes.orders.createOrder,
+  AuthController.checkAuthenticationMiddleware,
+  OrderController.createOrder
+);
+router.patch(
+  environment.apiRoutes.orders.updateOrder,
+  AuthController.checkAuthenticationMiddleware,
+  OrderController.updateOrder
+);
+router.delete(
+  environment.apiRoutes.orders.deleteOrder,
+  AuthController.checkAuthenticationMiddleware,
+  OrderController.deleteOrder
+);
 
 // Livecam
-const LIVECAM_BASE_URL = '/livecam';
-const LIVECAM_RECORDING_URL = `${LIVECAM_BASE_URL}/recordings`;
-
-router.get(LIVECAM_RECORDING_URL, LivecamController.getRecordings);
-router.get(`${LIVECAM_RECORDING_URL}/:id`, LivecamController.getRecordingById);
+router.get(
+  environment.apiRoutes.livecam.getAllRecordings,
+  AuthController.checkAuthenticationMiddleware,
+  AuthController.checkAdminMiddleware,
+  LivecamController.getRecordings
+);
+router.get(
+  environment.apiRoutes.livecam.getAllScheduled,
+  AuthController.checkAuthenticationMiddleware,
+  AuthController.checkAdminMiddleware,
+  LivecamController.getScheduledRecordings
+);
+router.get(
+  environment.apiRoutes.livecam.getSingleRecording,
+  AuthController.checkAuthenticationMiddleware,
+  AuthController.checkAdminMiddleware,
+  LivecamController.getRecordingById
+);
 router.post(
-  `${LIVECAM_RECORDING_URL}/schedule`,
+  environment.apiRoutes.livecam.createSchedule,
+  AuthController.checkAuthenticationMiddleware,
+  AuthController.checkAdminMiddleware,
   LivecamController.scheduleRecording
 );
-router.patch(`${LIVECAM_RECORDING_URL}/:id`, LivecamController.updateRecording);
+router.patch(
+  environment.apiRoutes.livecam.updateRecording,
+  AuthController.checkAuthenticationMiddleware,
+  AuthController.checkAdminMiddleware,
+  LivecamController.updateRecording
+);
 router.get(
-  `${LIVECAM_RECORDING_URL}/:id/download`,
+  environment.apiRoutes.livecam.downloadRecording,
+  AuthController.checkAuthenticationMiddleware,
+  AuthController.checkAdminMiddleware,
   LivecamController.streamRecording
 );
 router.delete(
-  `${LIVECAM_RECORDING_URL}/:id`,
+  environment.apiRoutes.livecam.deleteRecording,
+  AuthController.checkAuthenticationMiddleware,
+  AuthController.checkAdminMiddleware,
   LivecamController.deleteRecording
 );
-router.get(`${LIVECAM_BASE_URL}/stream`, LivecamController.getLiveCameraFeed);
+router.get(
+  environment.apiRoutes.livecam.streamFeed,
+  AuthController.checkAuthenticationMiddleware,
+  AuthController.checkAdminMiddleware,
+  LivecamController.getLiveCameraFeed
+);
 
 export default router;

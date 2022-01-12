@@ -8,6 +8,8 @@ import { TimeSlot } from '../models/timeslot.entity';
  *
  * @see RoomService
  * @see Room
+ * @see AvailableTimeslot
+ * @see UnavailableTimeslot
  */
 export class RoomController {
   /**
@@ -112,6 +114,5 @@ export class RoomController {
    * @param {Request} req frontend request to delete one room
    * @param {Response} res backend response deletion
    */
-  public static async deleteTimeslot(req: Request, res: Response) {
-  }
+  public static async deleteTimeslot(req: Request, res: Response) {}
 }

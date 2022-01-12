@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { getRepository } from 'typeorm';
+import { getRepository, LessThan, MoreThan } from 'typeorm';
 import { Recording } from '../models/recording.entity';
 import environment from '../environment';
 import { promisify } from 'util';
@@ -10,19 +10,35 @@ import { VideoResolution } from '../types/enums/video-resolution';
 /**
  * Controller for the LiveCam System
  *
+ * @see LivecamService
  * @see Recording
  */
 export class LivecamController {
   /**
-   * Returns the data for all recordings
+   * Returns the data for all finished recordings
    *
    * @route {GET} /livecam/recordings
-   * @param {Request} req frontend request to get data of all recordings
-   * @param {Response} res backend response with data of all recordings
+   * @param {Request} req frontend request to get data of all finished recordings
+   * @param {Response} res backend response with data of all finished recordings
    */
   public static async getRecordings(req: Request, res: Response) {
     await getRepository(Recording)
-      .find()
+      .find({ where: { end: LessThan(new Date()), size: MoreThan(0) } })
+      .then((recordings) => {
+        res.status(200).json(recordings);
+      });
+  }
+
+  /**
+   * Returns the data for all scheduled recordings
+   *
+   * @route {GET} /livecam/recordings/schedules
+   * @param req frontend request to get data of all scheduled recordings
+   * @param res backend response with data of all scheduled recordings
+   */
+  public static async getScheduledRecordings(req: Request, res: Response) {
+    await getRepository(Recording)
+      .find({ where: { start: MoreThan(new Date()) } })
       .then((recordings) => {
         res.status(200).json(recordings);
       });
@@ -61,7 +77,7 @@ export class LivecamController {
   /**
    * Schedules a new recording
    *
-   * @route {POST} /livecam/recordings/schedule
+   * @route {POST} /livecam/recordings/schedules
    * @bodyParam {User} user - The user scheduling the recording
    * @bodyParam {Date} start - The start of the recording
    * @bodyParam {Date} end - The end of the recording
