@@ -1,4 +1,5 @@
-import { Column, Entity, ManyToOne } from 'typeorm';
+import { IsDateString, IsNumber, Min, validateOrReject } from 'class-validator';
+import { BeforeInsert, BeforeUpdate, Column, Entity, ManyToOne } from 'typeorm';
 import { VideoResolution } from '../types/enums/video-resolution';
 import { BaseEntity } from './base.entity';
 import { User } from './user.entity';
@@ -35,6 +36,7 @@ export class Recording extends BaseEntity {
    * @readonly
    */
   @Column()
+  @IsDateString()
   readonly start: Date;
 
   /**
@@ -44,6 +46,7 @@ export class Recording extends BaseEntity {
    * @readonly
    */
   @Column()
+  @IsDateString()
   readonly end: Date;
 
   /**
@@ -65,6 +68,8 @@ export class Recording extends BaseEntity {
    * @readonly
    */
   @Column()
+  @IsNumber()
+  @Min(0)
   readonly bitrate: number;
 
   /**
@@ -74,5 +79,13 @@ export class Recording extends BaseEntity {
    * @default 0
    */
   @Column({ default: 0 })
+  @IsNumber()
+  @Min(0)
   size: number;
+
+  @BeforeUpdate()
+  @BeforeInsert()
+  async validateInput() {
+    await validateOrReject(this);
+  }
 }
