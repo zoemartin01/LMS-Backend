@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { getRepository } from 'typeorm';
 import { AppointmentTimeslot } from '../models/appointment.timeslot.entity';
 import { AuthController } from './auth.controller';
+import { Room } from '../models/room.entity';
 
 /**
  * Controller for appointment management
@@ -21,8 +22,7 @@ export class AppointmentController {
    */
   public static async getAllAppointments(req: Request, res: Response) {
     const appointments = getRepository(AppointmentTimeslot).find();
-
-    res.json(appointments);
+    res.status(200).json(appointments);
   }
 
   /**
@@ -39,8 +39,7 @@ export class AppointmentController {
     const appointments = getRepository(AppointmentTimeslot).find({
       where: { recipient: AuthController.getCurrentUser(req) },
     });
-
-    res.json(appointments);
+    res.status(200).json(appointments);
   }
 
   /**
@@ -53,11 +52,9 @@ export class AppointmentController {
    */
   public static async getAppointmentsForRoom(req: Request, res: Response) {
     const appointments = getRepository(AppointmentTimeslot).find({
-      where: { room: req.body.room },
-      //TODO idk ob das wirklich da einen room im req gibt
+      where: { id: req.params.id },
     });
-
-    res.json(appointments);
+    res.status(200).json(appointments);
   }
 
   /**
@@ -70,11 +67,9 @@ export class AppointmentController {
    */
   public static async getAppointmentsForSeries(req: Request, res: Response) {
     const appointments = getRepository(AppointmentTimeslot).find({
-      where: { idSeries: req.body.idSeries },
-      //TODO idk ob das wirklich da eine idseries im req gibt
+      where: { id: req.params.id },
     });
-
-    res.json(appointments);
+    res.status(200).json(appointments);
   }
 
   /**
@@ -86,13 +81,10 @@ export class AppointmentController {
    * @param {Response} res backend response with data about one appointment
    */
   public static async getAppointment(req: Request, res: Response) {
-    const id = req.body.id;
-    const appointment = getRepository(AppointmentTimeslot).findOne({
-      where: { id: id },
-      //TODO idk ob das wirklich id
-    });
-
-    res.json(appointment);
+    const appointments = getRepository(AppointmentTimeslot).findOne(
+      req.params.id
+    );
+    res.status(200).json(appointments);
   }
 
   /**
@@ -106,7 +98,17 @@ export class AppointmentController {
    * @param {Request} req frontend request to create a new appointment
    * @param {Response} res backend response creation of a new appointment
    */
-  public static async createAppointment(req: Request, res: Response) {}
+  public static async createAppointment(req: Request, res: Response) {
+    const repository = getRepository(AppointmentTimeslot);
+    const appointment = await repository
+      .save(repository.create(req.body))
+      .catch((err) => {
+        res.status(400).json(err);
+        return;
+      });
+
+    res.status(201).json(appointment);
+  }
 
   /**
    * Creates a new series of appointment
@@ -122,7 +124,18 @@ export class AppointmentController {
    * @param {Request} req frontend request to create a new appointment
    * @param {Response} res backend response creation of a new appointment
    */
-  public static async createAppointmentSeries(req: Request, res: Response) {}
+  public static async createAppointmentSeries(req: Request, res: Response) {
+    const repository = getRepository(AppointmentTimeslot);
+    const appointment = await repository
+      .save(repository.create(req.body))
+      .catch((err) => {
+        res.status(400).json(err);
+        return;
+      });
+
+    res.status(201).json(appointment);
+    //TODO durchloopen
+  }
 
   /**
    * Updates an appointment
@@ -135,7 +148,15 @@ export class AppointmentController {
    * @param {Request} req frontend request to change data about one appointment
    * @param {Response} res backend response with data change of one appointment
    */
-  public static async updateAppointment(req: Request, res: Response) {}
+  public static async updateAppointment(req: Request, res: Response) {
+    await getRepository(AppointmentTimeslot)
+      .update({ id: req.params.id }, req.body)
+      .catch((err) => {
+        res.status(400).json(err);
+        return;
+      })
+      .then((appointment) => res.status(200).json(appointment));
+  }
 
   /**
    * Updates series of appointments
@@ -149,7 +170,16 @@ export class AppointmentController {
    * @param {Request} req frontend request to change data about one appointment
    * @param {Response} res backend response with data change of one appointment
    */
-  public static async updateAppointmentSeries(req: Request, res: Response) {}
+  public static async updateAppointmentSeries(req: Request, res: Response) {
+    await getRepository(AppointmentTimeslot)
+      .update({ id: req.params.id }, req.body)
+      .catch((err) => {
+        res.status(400).json(err);
+        return;
+      })
+      .then((appointment) => res.status(200).json(appointment));
+    //TODO durchloopen achtung UPDATE AHHH
+  }
 
   /**
    * Deletes one appointment
@@ -159,7 +189,13 @@ export class AppointmentController {
    * @param {Request} req frontend request to delete one appointment
    * @param {Response} res backend response deletion
    */
-  public static async deleteAppointment(req: Request, res: Response) {}
+  public static async deleteAppointment(req: Request, res: Response) {
+    await getRepository(AppointmentTimeslot)
+      .delete(req.params.id)
+      .then(() => {
+        res.sendStatus(204);
+      });
+  }
 
   /**
    * Deletes a series of appointments
@@ -169,5 +205,12 @@ export class AppointmentController {
    * @param {Request} req frontend request to delete one appointment
    * @param {Response} res backend response deletion
    */
-  public static async deleteAppointmentSeries(req: Request, res: Response) {}
+  public static async deleteAppointmentSeries(req: Request, res: Response) {
+    await getRepository(AppointmentTimeslot)
+      .delete(req.params.id)
+      .then(() => {
+        res.sendStatus(204);
+      });
+    //TODO durchloopen
+  }
 }
