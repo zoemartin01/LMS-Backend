@@ -1,11 +1,11 @@
 import { Request, Response } from 'express';
 import { getRepository } from 'typeorm';
 import bcrypt from 'bcrypt';
-import environment from "../environment";
-import { MessagingController } from "./messaging.controller";
+import environment from '../environment';
+import { MessagingController } from './messaging.controller';
 import { User } from '../models/user.entity';
-import { Token } from "../models/token.entity";
-import { TokenType } from "../types/enums/token-type";
+import { Token } from '../models/token.entity';
+import { TokenType } from '../types/enums/token-type';
 
 /**
  * Controller for User Settings
@@ -58,32 +58,43 @@ export class UserController {
   public static async register(req: Request, res: Response) {
     const { firstName, lastName, email, password } = req.body;
 
-    const userRepository = await getRepository(User);
-    const tokenRepository = await getRepository(Token);
+    const userRepository = getRepository(User);
+    const tokenRepository = getRepository(Token);
 
     //create user with specified personal information an hashed password
-    bcrypt.hash(password, environment.pwHashSaltRound, async (err: Error|undefined, hash) => {
-      const user: User = await userRepository.save(userRepository.create({
-        email,
-        firstName,
-        lastName,
-        password: hash,
-      }));
+    bcrypt.hash(
+      password,
+      environment.pwHashSaltRound,
+      async (err: Error | undefined, hash) => {
+        const user: User = await userRepository.save(
+          userRepository.create({
+            email,
+            firstName,
+            lastName,
+            password: hash,
+          })
+        );
 
-      const token: Token = await tokenRepository.save(tokenRepository.create({
-        token: Math.random().toString(36).replace(/[^a-z]+/g, '').substring(0, 10),
-        user: user,
-        type: TokenType.emailVerificationToken,
-      }));
+        const token: Token = await tokenRepository.save(
+          tokenRepository.create({
+            token: Math.random()
+              .toString(36)
+              .replace(/[^a-z]+/g, '')
+              .substring(0, 10),
+            user: user,
+            type: TokenType.emailVerificationToken,
+          })
+        );
 
-      await MessagingController.sendMessage(
-        user,
-        'Verify Email to confirm account',
-        'You need to click on this link to confirm your account.',
-        'Verify Email',
-        `${environment.frontendUrl}/user/verify-email/${user.id}/${token.token}`,
-      );
-    });
+        await MessagingController.sendMessage(
+          user,
+          'Verify Email to confirm account',
+          'You need to click on this link to confirm your account.',
+          'Verify Email',
+          `${environment.frontendUrl}/user/verify-email/${user.id}/${token.token}`
+        );
+      }
+    );
   }
 
   /**
@@ -98,10 +109,10 @@ export class UserController {
   public static async verifyEmail(req: Request, res: Response) {
     const { userId, token } = req.body;
 
-    const userRepository = await getRepository(User);
-    const tokenRepository = await getRepository(Token);
+    const userRepository = getRepository(User);
+    const tokenRepository = getRepository(Token);
 
-    const user: User|undefined = await userRepository.findOne({
+    const user: User | undefined = await userRepository.findOne({
       where: { id: userId },
     });
 
@@ -112,13 +123,13 @@ export class UserController {
       return;
     }
 
-    const tokenObject: Token|undefined = await tokenRepository.findOne({
+    const tokenObject: Token | undefined = await tokenRepository.findOne({
       where: { token, user },
     });
 
     if (tokenObject === undefined) {
       res.status(400).json({
-        message: 'Token doesn\'t match.',
+        message: "Token doesn't match.",
       });
       return;
     }
@@ -127,7 +138,7 @@ export class UserController {
       'Accept User Registration',
       'You have an open user registration request.',
       'Accept User',
-      `${environment.frontendUrl}/users`,
+      `${environment.frontendUrl}/users`
     );
   }
 }
