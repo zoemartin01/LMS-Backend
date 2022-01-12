@@ -17,7 +17,7 @@ import { BaseEntity } from './base.entity';
  * @property {TimeSlotType} type - The type of the time slot.
  */
 @Entity()
-@TableInheritance({ column: { name: 'type' } })
+@TableInheritance({ column: 'type' })
 export class TimeSlot extends BaseEntity {
   /**
    * The start time of the time slot.
@@ -26,7 +26,7 @@ export class TimeSlot extends BaseEntity {
    * @readonly
    */
   @Column()
-  readonly start: Date;
+  start: Date;
 
   /**
    * The end time of the time slot.
@@ -35,7 +35,7 @@ export class TimeSlot extends BaseEntity {
    * @readonly
    */
   @Column()
-  readonly end: Date;
+  end: Date;
 
   /**
    * The type of the time slot.
@@ -47,5 +47,5 @@ export class TimeSlot extends BaseEntity {
     type: 'enum',
     enum: TimeSlotType,
   })
-  readonly type: TimeSlotType;
+  type: TimeSlotType;
 }

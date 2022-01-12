@@ -1,0 +1,24 @@
+image: node:latest
+
+stages:          # List of stages for jobs, and their order of execution
+  - build
+  - test
+  - deploy
+
+build-job:
+  stage: build
+  script:
+    - echo "Compiling the code..."
+    - npm ci
+    - npm install -g typescript
+    - tsc
+    - echo "Compile complete."
+
+lint-test-job:
+  stage: test
+  script:
+    - echo "Linting code... This will take about 10 seconds."
+    - npm ci
+    - npm install -g eslint
+    - eslint -c .eslintrc.json --ext .ts,.js src/
+    - echo "No lint issues found."

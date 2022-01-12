@@ -1,17 +1,22 @@
 import { NextFunction, Request, Response } from 'express';
-import { getRepository } from 'typeorm';
-import jsonwebtoken from 'jsonwebtoken';
-const bcrypt = require('bcrypt');
+import { getRepository, MoreThan, createQueryBuilder } from 'typeorm';
+import jsonwebtoken, { VerifyErrors } from 'jsonwebtoken';
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const activedirectory = require('activedirectory');
+import bcrypt from 'bcrypt';
+import moment from 'moment';
+import environment from '../environment';
 import { User } from '../models/user.entity';
 import { Token } from '../models/token.entity';
 import { TokenType } from '../types/enums/token-type';
 import { UserRole } from '../types/enums/user-role';
 
-const accessTokenSecret = 'V50jPXQVocPUSPHl0yzPJhXZzh32bp';
-const refreshTokenSecret = '3pqOHs7R1TrCgsRKksPp4J3Kfs0l0X';
-
 /**
  * Controller for Authentication
+ *
+ * @see AuthService
+ * @see User
+ * @see Token
  */
 export class AuthController {
   /**
@@ -20,40 +25,223 @@ export class AuthController {
    * @route {POST} /token
    * @bodyParam {string} email - user's email address
    * @bodyParam {string} password - user's password
+   * @bodyParam {boolean} isActiveDirectory - if user should be logged in with active directory
    * @param {Request} req frontend request to login user with their credentials
    * @param {Response} res backend response with authentication and refresh token
    */
-  public static async login(req: Request, res: Response) {
-    const { email, password } = req.body;
+  public static async login(req: Request, res: Response): Promise<void> {
+    const { email, password, isActiveDirectory } = req.body;
 
+    isActiveDirectory
+      ? await AuthController.loginWithActiveDirectory(email, password, res)
+      : await AuthController.loginWithCredentials(email, password, res);
+  }
+
+  /**
+   * Logs in user with active directory
+   *
+   * @param {string} email user's email address
+   * @param {string} password user's password
+   * @param {Response} res backend response with authentication and refresh token
+   * @private
+   */
+  private static async loginWithActiveDirectory(
+    email: string,
+    password: string,
+    res: Response
+  ): Promise<void> {
+    const ad = new activedirectory.ActiveDirectory(
+      environment.activeDirectoryConfig
+    );
+
+    //@todo Adrian: test AD autentication
+    ad.authenticate(email, password, async (err: object, auth: boolean) => {
+      if (err) {
+        res.status(500).json(err);
+        return;
+      }
+
+      if (!auth) {
+        await AuthController.loginCallback(undefined, res);
+        return;
+      }
+
+      const userRepository = getRepository(User);
+      userRepository
+        .findOne({
+          where: { email },
+        })
+        .then(async (user: User | undefined) => {
+          if (user === undefined) {
+            await AuthController.loginCallback(
+              await AuthController.createActiveDirectoryUser(email),
+              res
+            );
+          } else if (!user.isActiveDirectory) {
+            res.status(400).json({
+              message:
+                'Your account ist not linked to active directory, use regular login.',
+            });
+            return;
+          }
+
+          await AuthController.loginCallback(user, res);
+        });
+    });
+  }
+
+  /**
+   * Creates a new user using active directory
+   *
+   * @param {string} email email of user
+   * @private
+   */
+  private static async createActiveDirectoryUser(email: string): Promise<User> {
+    const ad = new activedirectory.ActiveDirectory(
+      environment.activeDirectoryConfig
+    );
+    const userRepository = getRepository(User);
+
+    //@todo Adrian: test retrieving user data from AD
+    return ad.findUser(
+      email,
+      async (err: boolean, adUser: { givenName: string; surname: string }) => {
+        return await userRepository.save(
+          userRepository.create({
+            email,
+            firstName: adUser.givenName,
+            lastName: adUser.surname,
+            password: '',
+            emailVerification: true,
+            isActiveDirectory: true,
+          })
+        );
+      }
+    );
+  }
+
+  /**
+   * Logs in user with specified credentials
+   *
+   * @param {string} email user's email address
+   * @param {string} password user's password
+   * @param {Response} res backend response with authentication and refresh token
+   * @private
+   */
+  private static async loginWithCredentials(
+    email: string,
+    password: string,
+    res: Response
+  ): Promise<void> {
     const user: User | undefined = await getRepository(User).findOne({
-      where: { email, password },
+      where: { email },
     });
 
-    if (!user) {
-      res.status(400).send({
-        message: 'Invalid email or password',
-      });
-    } else {
-      const accessToken = jsonwebtoken.sign(
-        {
-          userId: user.id,
-        },
-        accessTokenSecret,
-        {
-          expiresIn: '20m',
-        }
-      );
-
-      const refreshToken = jsonwebtoken.sign(
-        {
-          userId: user.id,
-        },
-        refreshTokenSecret
-      );
-
-      res.status(201).json({ accessToken, refreshToken, role: user.role });
+    if (user === undefined) {
+      await AuthController.loginCallback(user, res);
+      return;
     }
+
+    if (user.isActiveDirectory) {
+      res.status(400).json({
+        message:
+          'Your account ist linked to active directory, use active directory login.',
+      });
+      return;
+    }
+
+    bcrypt.compare(password, user.password, (_err, result: boolean) => {
+      AuthController.loginCallback(result ? user : undefined, res);
+    });
+  }
+
+  /**
+   * Sends response to user based on login result
+   *
+   * @param {User} user logged in user
+   * @param {Response} res backend response with authentication and refresh token
+   * @private
+   */
+  private static async loginCallback(
+    user: User | undefined,
+    res: Response
+  ): Promise<void> {
+    if (user === undefined) {
+      res.status(400).json({
+        message: 'Invalid email or password.',
+      });
+      return;
+    }
+
+    if (!user.emailVerification) {
+      res.status(400).json({
+        message: 'Your email is not verified.',
+      });
+      return;
+    }
+
+    if (user.role === UserRole.pending) {
+      res.status(400).json({
+        message: 'An admin needs to accept your account request.',
+      });
+      return;
+    }
+
+    const { accessToken, refreshToken } =
+      await AuthController.generateLoginTokens(user);
+
+    res
+      .status(201)
+      .json({ accessToken, refreshToken, role: user.role, userId: user.id });
+  }
+
+  /**
+   * Generates a refresh token and an access token for the specified user
+   *
+   * @param {User} user a user
+   * @private
+   */
+  private static async generateLoginTokens(
+    user: User
+  ): Promise<{ accessToken: string; refreshToken: string }> {
+    const tokenRepository = getRepository(Token);
+
+    const expiration = moment().add(20, 'minutes').unix();
+
+    const refreshToken = jsonwebtoken.sign(
+      {
+        userId: user.id,
+      },
+      environment.refreshTokenSecret
+    );
+
+    const refreshTokenModel = await tokenRepository.save(
+      tokenRepository.create({
+        token: refreshToken,
+        user: user,
+        type: TokenType.refreshToken,
+      })
+    );
+
+    const accessToken = jsonwebtoken.sign(
+      {
+        exp: expiration,
+        userId: user.id,
+      },
+      environment.accessTokenSecret
+    );
+
+    await tokenRepository.save(
+      tokenRepository.create({
+        token: accessToken,
+        user: user,
+        type: TokenType.authenticationToken,
+        refreshToken: refreshTokenModel,
+        expiresAt: new Date(1000 * expiration),
+      })
+    );
+
+    return { accessToken, refreshToken };
   }
 
   /**
@@ -64,10 +252,37 @@ export class AuthController {
    * @param {Request} req frontend request to logout user
    * @param {Response} res backend response
    */
-  public static async logout(req: Request, res: Response) {
-    //@todo logout current user
+  public static async logout(req: Request, res: Response): Promise<void> {
+    const token = req.headers['authorization']?.split(' ')[1];
 
-    res.sendStatus(204);
+    const tokenRepository = getRepository(Token);
+
+    tokenRepository
+      .findOne({
+        where: { token, type: TokenType.authenticationToken },
+      })
+      .then(async (tokenObject: Token | undefined) => {
+        //as request passed middleware tokenObject can't be undefined
+        if (tokenObject === undefined) {
+          return;
+        }
+
+        //delete linked authentication tokens
+        await createQueryBuilder()
+          .delete()
+          .from(Token)
+          .where('refreshTokenId = :id', { id: tokenObject.refreshTokenId })
+          .execute();
+
+        //delete refresh token
+        await createQueryBuilder()
+          .delete()
+          .from(Token)
+          .where('id = :id', { id: tokenObject.refreshTokenId })
+          .execute();
+
+        res.sendStatus(204);
+      });
   }
 
   /**
@@ -78,28 +293,57 @@ export class AuthController {
    * @param {Request} req frontend request to refresh the authentication token
    * @param {Response} res backend response with a new authentication token
    */
-  public static async refreshToken(req: Request, res: Response) {
+  public static async refreshToken(req: Request, res: Response): Promise<void> {
     const { refreshToken } = req.body;
 
     if (!refreshToken) {
       res.sendStatus(400);
+      return;
     }
 
     jsonwebtoken.verify(
       refreshToken,
-      refreshTokenSecret,
-      (err: any, user: any) => {
+      environment.refreshTokenSecret,
+      async (err: VerifyErrors | null) => {
         if (err) {
           res.sendStatus(401);
+          return;
         }
 
-        const accessToken = jsonwebtoken.sign(
-          { email: user.email, role: user.role },
-          accessTokenSecret,
-          { expiresIn: '20m' }
-        );
+        const tokenRepository = getRepository(Token);
 
-        res.json({ accessToken });
+        tokenRepository
+          .findOne({
+            where: { token: refreshToken, type: TokenType.refreshToken },
+          })
+          .then((refreshTokenObject: Token | undefined) => {
+            if (refreshTokenObject === undefined) {
+              res.sendStatus(401);
+              return;
+            }
+
+            const expiration = moment().add(20, 'minutes').unix();
+
+            const accessToken = jsonwebtoken.sign(
+              {
+                exp: expiration,
+                userId: refreshTokenObject.userId,
+              },
+              environment.accessTokenSecret
+            );
+
+            tokenRepository.save(
+              tokenRepository.create({
+                token: accessToken,
+                userId: refreshTokenObject.userId,
+                type: TokenType.authenticationToken,
+                refreshToken: refreshTokenObject,
+                expiresAt: new Date(1000 * expiration),
+              })
+            );
+
+            res.json({ accessToken });
+          });
       }
     );
   }
@@ -111,7 +355,7 @@ export class AuthController {
    * @param {Request} req frontend request to check if current user's token is valid
    * @param {Response} res backend response
    */
-  public static async checkToken(req: Request, res: Response) {
+  public static async checkToken(req: Request, res: Response): Promise<void> {
     res.sendStatus(204);
   }
 
@@ -129,24 +373,40 @@ export class AuthController {
   ) {
     const authHeader = req.headers['authorization'];
 
-    if (authHeader) {
-      const token = authHeader.split(' ')[1];
-
-      jsonwebtoken.verify(token, accessTokenSecret, (err: any) => {
-        if (!err) {
-          getRepository(Token)
-            .findOne({
-              where: { token, type: TokenType.authenticationToken },
-            })
-            .then((tokenObject: Token | undefined) => {
-              if (tokenObject != undefined) {
-                next();
-              }
-            });
-        }
-      });
+    if (!authHeader) {
+      res.sendStatus(400);
+      return;
     }
-    res.sendStatus(401);
+
+    const token = authHeader.split(' ')[1];
+
+    jsonwebtoken.verify(token, environment.accessTokenSecret, async (err) => {
+      if (err) {
+        res.status(400).json({
+          message: 'Malformed token.',
+        });
+        return;
+      }
+
+      const tokenObject: Token | undefined = await getRepository(Token).findOne(
+        {
+          where: {
+            token,
+            type: TokenType.authenticationToken,
+            expiresAt: MoreThan(new Date()),
+          },
+        }
+      );
+
+      if (tokenObject === undefined) {
+        res.status(401).json({
+          message: 'There is a problem with your token.',
+        });
+        return;
+      }
+
+      next();
+    });
   }
 
   /**
@@ -160,7 +420,7 @@ export class AuthController {
     if (authHeader) {
       const token = authHeader.split(' ')[1];
 
-      getRepository(Token)
+      await getRepository(Token)
         .findOne({
           where: { token, type: TokenType.authenticationToken },
         })
@@ -177,11 +437,12 @@ export class AuthController {
    * Checks if current user is admin
    *
    * @param {Request} req current http-request
+   * @private
    */
   private static async checkAdmin(req: Request): Promise<boolean> {
-    return this.getCurrentUser(req).then((user: User | null) => {
-      return user === null || user.role == UserRole.admin;
-    });
+    const user: User | null = await AuthController.getCurrentUser(req);
+
+    return user === null || user.role == UserRole.admin;
   }
 
   /**
@@ -196,15 +457,6 @@ export class AuthController {
     res: Response,
     next: NextFunction
   ) {
-    this.checkAdmin(req).then((isAdmin: boolean) => {
-      if (isAdmin) {
-        next();
-      } else {
-        res.sendStatus(403);
-      }
-    });
+    (await AuthController.checkAdmin(req)) ? next() : res.sendStatus(403);
   }
-
-  //@todo add jwt tokens to db
-  //@todo hash passwords
 }

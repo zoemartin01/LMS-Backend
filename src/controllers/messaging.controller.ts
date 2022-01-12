@@ -1,7 +1,15 @@
 import { Request, Response } from 'express';
+import { getRepository } from 'typeorm';
+import { AuthController } from './auth.controller';
+import { Message } from '../models/message.entity';
+import { User } from '../models/user.entity';
+import { UserRole } from '../types/enums/user-role';
 
 /**
  * Controller for messaging
+ *
+ * @see MessagingService
+ * @see Message
  */
 export class MessagingController {
   /**
@@ -11,7 +19,14 @@ export class MessagingController {
    * @param {Request} req frontend request to get data of one inventory item
    * @param {Response} res backend response with data of one inventory item
    */
-  public static async getMessages(req: Request, res: Response) {
+  public static async getMessages(req: Request, res: Response): Promise<void> {
+    const messageRepository = getRepository(Message);
+
+    const messages = messageRepository.find({
+      where: { recipient: AuthController.getCurrentUser(req) },
+    });
+
+    res.json(messages);
   }
 
   /**
@@ -21,7 +36,32 @@ export class MessagingController {
    * @param {Request} req frontend request to get data of one inventory item
    * @param {Response} res backend response with data of one inventory item
    */
-  public static async getUnreadMessagesAmounts(req: Request, res: Response) {
+  public static async getUnreadMessagesAmounts(
+    req: Request,
+    res: Response
+  ): Promise<void> {
+    const messageRepository = getRepository(Message);
+
+    const unreadMessagesSum = await messageRepository
+      .createQueryBuilder('message')
+      .select('COUNT(*)', 'sum')
+      .getRawOne();
+
+    const unreadMessages = await messageRepository
+      .createQueryBuilder('message')
+      .select('message.correspondingUrl')
+      .addSelect('COUNT(*)', 'sum')
+      .groupBy('message.correspondingUrl')
+      .getRawMany();
+
+    //@todo categorize unreadMessages
+
+    res.json({
+      sum: unreadMessagesSum.sum,
+      appointments: 0,
+      orders: 0,
+      users: 0,
+    });
   }
 
   /**
@@ -32,8 +72,26 @@ export class MessagingController {
    * @param {Request} req frontend request to get data of one inventory item
    * @param {Response} res backend response with data of one inventory item
    */
-  public static async deleteMessage(req: Request, res: Response) {
-    const id = req.params.id;
+  public static async deleteMessage(
+    req: Request,
+    res: Response
+  ): Promise<void> {
+    const messageRepository = getRepository(Message);
+
+    const message: Message | undefined = await messageRepository.findOne({
+      where: { id: req.params.id },
+    });
+
+    if (message === undefined) {
+      res.status(404).json({
+        message: 'Message not found.',
+      });
+      return;
+    }
+
+    messageRepository.delete(message);
+
+    res.sendStatus(204);
   }
 
   /**
@@ -45,9 +103,34 @@ export class MessagingController {
    * @param {Request} req frontend request to get data of one inventory item
    * @param {Response} res backend response with data of one inventory item
    */
-  public static async updateMessage(req: Request, res: Response) {
-    const id = req.params.id;
-    const data = req.body;
+  public static async updateMessage(
+    req: Request,
+    res: Response
+  ): Promise<void> {
+    const messageRepository = getRepository(Message);
+
+    if (req.body != { readStatus: true } || req.body != { readStatus: false }) {
+      res.status(400).json({
+        message: 'Malformed request.',
+      });
+      return;
+    }
+
+    const message: Message | undefined = await messageRepository.findOne({
+      where: { id: req.params.id },
+    });
+
+    if (message === undefined) {
+      res.status(404).json({
+        message: 'Message not found.',
+      });
+      return;
+    }
+
+    message.readStatus = req.body.readStatus;
+    messageRepository.save(message);
+
+    res.json(message);
   }
 
   /**
@@ -59,12 +142,62 @@ export class MessagingController {
    * @param {string|null} linkText - message link text (optional)
    * @param {string|null} linkUrl - message link url (optional)
    */
-  public sendMessage(
-    recipient: string,
+  public static async sendMessage(
+    recipient: User,
     title: string,
     content: string,
     linkText: string | null = null,
     linkUrl: string | null = null
-  ) {
+  ): Promise<Message> {
+    const messageRepository = getRepository(Message);
+
+    const message =
+      linkText === null || linkUrl === null
+        ? messageRepository.create({
+            recipient,
+            title,
+            content,
+          })
+        : messageRepository.create({
+            recipient,
+            title,
+            content,
+            correspondingUrlText: linkText,
+            correspondingUrl: linkUrl,
+          });
+
+    messageRepository.save(message);
+
+    return message;
+  }
+
+  /**
+   * Sends a message to all admins
+   *
+   * @param {string} title - message title
+   * @param {string} content - message content
+   * @param {string|null} linkText - message link text (optional)
+   * @param {string|null} linkUrl - message link url (optional)
+   */
+  public static async sendMessageToAllAdmins(
+    title: string,
+    content: string,
+    linkText: string | null = null,
+    linkUrl: string | null = null
+  ): Promise<Message[]> {
+    const userRepository = getRepository(User);
+
+    const admins: User[] = await userRepository.find({
+      where: { type: UserRole.admin },
+    });
+
+    const messages: Message[] = [];
+    for (const recipient of admins) {
+      messages.push(
+        await this.sendMessage(recipient, title, content, linkText, linkUrl)
+      );
+    }
+
+    return messages;
   }
 }

@@ -1,5 +1,3 @@
-import { getRepository } from 'typeorm';
-import { AppointmentTimeslot } from '../models/appointment.timeslot.entity';
 import { Request, Response } from 'express';
 
 /**
@@ -109,10 +107,10 @@ export class AppointmentController {
    *
    * @route {PATCH} /appointments/series/:id
    * @routeParam {string} id - id of the series
-   * @routeParam {number} difference - time difference in milliseconds between the appointments, regularity
-   * @routeParam {number} amount - amount of appointments wanted for the series, 2-2048
    * @bodyParam {Date [Optional]} start - start date and time of the appointment
    * @bodyParam {Date [Optional]} end - end date and time of the appointment
+   * @bodyParam {number [Optional]} difference - time difference in milliseconds between the appointments, regularity
+   * @bodyParam {number [Optional]} amount - amount of appointments wanted for the series, 2-2048
    * @param {Request} req frontend request to change data about one appointment
    * @param {Response} res backend response with data change of one appointment
    */
