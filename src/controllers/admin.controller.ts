@@ -40,21 +40,13 @@ export class AdminController {
    * @param {Response} res backend response with data change of one global settings
    */
   public static async updateGlobalSettings(req: Request, res: Response) {
-    const globalSettingsRepository = getRepository(GlobalSetting);
-
-    const globalSetting: GlobalSetting | undefined =
-      await globalSettingsRepository.findOne({
-        where: { key: req.params.key },
-      });
-    if (globalSetting === undefined) {
-      res.status(404).json({
-        globalSetting: 'Global Setting not found.',
-      });
-      return;
-    }
-    await globalSettingsRepository.update({ key: req.params.key }, req.body);
-
-    res.json(globalSetting);
+    await getRepository(GlobalSetting)
+      .update({ key: req.params.key }, req.body)
+      .catch((err) => {
+        res.status(400).json(err);
+        return;
+      })
+      .then((globalSetting) => res.status(200).json(globalSetting));
   }
 
   /**
@@ -86,7 +78,13 @@ export class AdminController {
    */
   public static async createWhitelistRetailer(req: Request, res: Response) {
     const retailerRepository = getRepository(Retailer);
-    retailerRepository.create(req.body);
+    const retailer = await retailerRepository
+      .save(retailerRepository.create(req.body))
+      .catch((err) => {
+        res.status(400).json(err);
+        return;
+      });
+    res.status(201).json(retailer);
   }
 
   /**
@@ -99,21 +97,13 @@ export class AdminController {
    * @param {Response} res backend response with data change of one whitelist retailer
    */
   public static async updateWhitelistRetailer(req: Request, res: Response) {
-    const retailerRepository = getRepository(Retailer);
-
-    const retailer: Retailer | undefined = await retailerRepository.findOne({
-      where: { id: req.params.id },
-    });
-    if (retailer === undefined) {
-      res.status(404).json({
-        retailer: 'Retailer not found.',
-      });
-      return;
-    }
-
-    await retailerRepository.update({ id: req.params.id }, req.body);
-
-    res.json(retailer);
+    await getRepository(Retailer)
+      .update({ id: req.params.id }, req.body)
+      .catch((err) => {
+        res.status(400).json(err);
+        return;
+      })
+      .then((retailer) => res.status(200).json(retailer));
   }
 
   /**
@@ -155,7 +145,17 @@ export class AdminController {
   public static async addDomainToWhitelistRetailer(
     req: Request,
     res: Response
-  ) {}
+  ) {
+    const retailerDomainRepository = getRepository(RetailerDomain);
+    const retailerDomain = await retailerDomainRepository
+      .save(retailerDomainRepository.create(req.body))
+      .catch((err) => {
+        res.status(400).json(err);
+        return;
+      });
+
+    res.status(201).json(retailerDomain);
+  }
 
   /**
    * Changes one domain of whitelist retailer
@@ -171,22 +171,13 @@ export class AdminController {
     req: Request,
     res: Response
   ) {
-    const retailerDomainRepository = getRepository(RetailerDomain);
-
-    const retailerDomain: RetailerDomain | undefined =
-      await retailerDomainRepository.findOne({
-        where: { id: req.params.id },
-      });
-    if (retailerDomain === undefined) {
-      res.status(404).json({
-        retailerDomain: 'Retailer domain not found.',
-      });
-      return;
-    }
-
-    await retailerDomainRepository.update({ id: req.params.id }, req.body);
-
-    res.json(retailerDomain);
+    await getRepository(RetailerDomain)
+      .update({ id: req.params.id }, req.body)
+      .catch((err) => {
+        res.status(400).json(err);
+        return;
+      })
+      .then((retailerDomain) => res.status(201).json(retailerDomain));
   }
 
   /**
@@ -225,13 +216,22 @@ export class AdminController {
    * Checks domain against a whitelist
    *
    * @route {POST} /global-settings/whitelist-retailers/check
+   *
+   * @bodyParam {String} domain domain which is checked against whitelist
    * @param {Request} req frontend request to check a domain against whitelist
    * @param {Response} res backend response to check a domain against whitelist
    */
   public static async checkDomainAgainstWhitelist(
     req: Request,
     res: Response
-  ) {}
+  ): Promise<boolean> {
+    const domainRepository = getRepository(Retailer);
+    return (
+      (await domainRepository.findOne({
+        where: { domain: req.params.domain },
+      })) === undefined
+    );
+  }
 
   /**
    * Returns users
@@ -281,21 +281,13 @@ export class AdminController {
    * @param {Response} res backend response with data change of one user
    */
   public static async updateUser(req: Request, res: Response) {
-    const userRepository = getRepository(User);
-
-    const user: User | undefined = await userRepository.findOne({
-      where: { id: req.params.id },
-    });
-    if (user === undefined) {
-      res.status(404).json({
-        retailerDomain: 'User not found.',
-      });
-      return;
-    }
-
-    await userRepository.update({ id: req.params.id }, req.body);
-
-    res.json(user);
+    await getRepository(User)
+      .update({ id: req.params.id }, req.body)
+      .catch((err) => {
+        res.status(400).json(err);
+        return;
+      })
+      .then((user) => res.status(201).json(user));
   }
 
   /**
