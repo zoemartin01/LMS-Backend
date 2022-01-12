@@ -1,4 +1,11 @@
-import { Entity, Column, OneToMany } from 'typeorm';
+import {
+  IsBoolean,
+  IsEmail,
+  IsEnum,
+  IsNotEmpty,
+  validateOrReject,
+} from 'class-validator';
+import { Entity, Column, OneToMany, BeforeInsert, BeforeUpdate } from 'typeorm';
 import { NotificationChannel } from '../types/enums/notification-channel';
 import { UserRole } from '../types/enums/user-role';
 import { AppointmentTimeslot } from './appointment.timeslot.entity';
@@ -34,6 +41,7 @@ export class User extends BaseEntity {
    *
    * @type {string}
    */
+  @IsEmail()
   @Column()
   email: string;
 
@@ -43,6 +51,7 @@ export class User extends BaseEntity {
    * @type {string}
    */
   @Column()
+  @IsNotEmpty()
   firstName: string;
 
   /**
@@ -51,6 +60,7 @@ export class User extends BaseEntity {
    * @type {string}
    */
   @Column()
+  @IsNotEmpty()
   lastName: string;
 
   /**
@@ -59,6 +69,7 @@ export class User extends BaseEntity {
    * @type {string}
    */
   @Column()
+  @IsNotEmpty()
   password: string;
 
   /**
@@ -72,6 +83,7 @@ export class User extends BaseEntity {
     enum: UserRole,
     default: UserRole.pending,
   })
+  @IsEnum(UserRole)
   role: UserRole;
 
   /**
@@ -81,6 +93,7 @@ export class User extends BaseEntity {
    * @default false
    */
   @Column({ default: false })
+  @IsBoolean()
   emailVerification: boolean;
 
   /**
@@ -94,6 +107,7 @@ export class User extends BaseEntity {
     enum: NotificationChannel,
     default: NotificationChannel.emailOnly,
   })
+  @IsEnum(NotificationChannel)
   notificationChannel: NotificationChannel;
 
   /**
@@ -135,4 +149,10 @@ export class User extends BaseEntity {
    */
   @OneToMany(() => Token, (token) => token.user)
   tokens: Token[];
+
+  @BeforeUpdate()
+  @BeforeInsert()
+  async validateInput() {
+    await validateOrReject(this);
+  }
 }
