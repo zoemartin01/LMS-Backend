@@ -22,7 +22,7 @@ export class MessagingController {
   public static async getMessages(req: Request, res: Response): Promise<void> {
     const messageRepository = getRepository(Message);
 
-    const messages = messageRepository.find({
+    const messages = await messageRepository.find({
       where: { recipient: AuthController.getCurrentUser(req) },
     });
 
