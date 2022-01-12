@@ -1,6 +1,8 @@
 import {
   IsDateString,
   IsNumber,
+  IsOptional,
+  IsUUID,
   Min,
   ValidateIf,
   validateOrReject,
@@ -33,6 +35,7 @@ export class Recording extends BaseEntity {
    * @readonly
    */
   @ManyToOne(() => User, (user) => user.recordings)
+  @IsUUID('4')
   readonly user: User;
 
   /**
@@ -85,7 +88,7 @@ export class Recording extends BaseEntity {
    * @default 0
    */
   @Column({ default: 0 })
-  @ValidateIf((recording) => recording.size)
+  @IsOptional()
   @IsNumber()
   @Min(0)
   size: number;
