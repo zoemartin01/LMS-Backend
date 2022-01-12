@@ -5,7 +5,6 @@ import environment from '../environment';
 import { promisify } from 'util';
 import { pipeline } from 'stream';
 import axios from 'axios';
-import { VideoResolution } from '../types/enums/video-resolution';
 
 /**
  * Controller for the LiveCam System
