@@ -1,8 +1,8 @@
 import { Request, Response } from 'express';
-import { getRepository } from 'typeorm';
+import { DeepPartial, getRepository } from 'typeorm';
 import { AppointmentTimeslot } from '../models/appointment.timeslot.entity';
 import { AuthController } from './auth.controller';
-import { Room } from '../models/room.entity';
+import { validateOrReject } from 'class-validator';
 
 /**
  * Controller for appointment management
@@ -126,15 +126,32 @@ export class AppointmentController {
    */
   public static async createAppointmentSeries(req: Request, res: Response) {
     const repository = getRepository(AppointmentTimeslot);
-    const appointment = await repository
-      .save(repository.create(req.body))
-      .catch((err) => {
+    const appointments: AppointmentTimeslot[] = [];
+    const { start, end, room, user, difference, amount } = req.body;
+    const confirmationStatus: boolean | undefined = req.body.confirmationStatus;
+
+    for (let i = 0; i < +amount; i++) {
+      const appointment: AppointmentTimeslot = repository.create(<
+        DeepPartial<AppointmentTimeslot>
+      >{
+        start: new Date(start.getTime() + +difference * i),
+        end: new Date(end.getTime() + +difference * i),
+        room,
+        user,
+        confirmationStatus,
+      });
+
+      validateOrReject(appointment).catch((err) => {
         res.status(400).json(err);
         return;
       });
 
-    res.status(201).json(appointment);
-    //TODO durchloopen
+      appointments.push(appointment);
+    }
+
+    //TODO create new seriesID
+    const savedAppointments = await repository.save(appointments);
+    res.status(201).json(savedAppointments);
   }
 
   /**
@@ -206,11 +223,12 @@ export class AppointmentController {
    * @param {Response} res backend response deletion
    */
   public static async deleteAppointmentSeries(req: Request, res: Response) {
-    await getRepository(AppointmentTimeslot)
-      .delete(req.params.id)
-      .then(() => {
-        res.sendStatus(204);
-      });
-    //TODO durchloopen
+    const repository = getRepository(AppointmentTimeslot);
+    const appointments = await repository.find({
+      where: { seriesId: req.params.id },
+    });
+    repository.remove(appointments).then(() => {
+      res.sendStatus(204);
+    });
   }
 }
