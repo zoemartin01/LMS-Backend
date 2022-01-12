@@ -1,4 +1,10 @@
-import { IsDateString, IsNumber, Min, validateOrReject } from 'class-validator';
+import {
+  IsDateString,
+  IsNumber,
+  Min,
+  ValidateIf,
+  validateOrReject,
+} from 'class-validator';
 import { BeforeInsert, BeforeUpdate, Column, Entity, ManyToOne } from 'typeorm';
 import { VideoResolution } from '../types/enums/video-resolution';
 import { BaseEntity } from './base.entity';
@@ -79,6 +85,7 @@ export class Recording extends BaseEntity {
    * @default 0
    */
   @Column({ default: 0 })
+  @ValidateIf((recording) => recording.size)
   @IsNumber()
   @Min(0)
   size: number;
