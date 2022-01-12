@@ -21,7 +21,7 @@ export class RoomController {
    */
   public static async getAllRooms(req: Request, res: Response) {
     const rooms = await getRepository(Room).find();
-    res.json(rooms);
+    res.status(200).json(rooms);
   }
 
   /**
@@ -34,7 +34,7 @@ export class RoomController {
    */
   public static async getRoomById(req: Request, res: Response) {
     const room = await getRepository(Room).findOne(req.params.id);
-    res.json(room);
+    res.status(200).json(room);
   }
 
   /**
@@ -49,9 +49,15 @@ export class RoomController {
    * @param {Response} res backend response creation of a new room
    */
   public static async createRoom(req: Request, res: Response) {
-    const room = await getRepository(Room).save(req.body);
-    res.json(room);
-    //TODO hä
+    const repository = getRepository(Room);
+    const room = await repository
+      .save(repository.create(req.body))
+      .catch((err) => {
+        res.status(400).json(err);
+        return;
+      });
+
+    res.status(201).json(room);
   }
 
   /**
@@ -67,30 +73,13 @@ export class RoomController {
    * @param {Response} res backend response with data change of one room
    */
   public static async updateRoom(req: Request, res: Response) {
-    const roomRepository = getRepository(Room);
-    const id = req.params.id;
-
-    if (req.body != { readStatus: true } && req.body != { readStatus: false }) {
-      res.status(400).json({
-        message: 'Malformed request.',
-      });
-      return;
-    }
-    //Todo validation
-
-    const room: Room | undefined = await roomRepository.findOne({
-      where: { id: req.params.id },
-    });
-    if (room === undefined) {
-      res.status(404).json({
-        room: 'Room not found.',
-      });
-      return;
-    }
-
-    await roomRepository.update(id, req.body);
-
-    res.json(room);
+    await getRepository(Room)
+      .update({ id: req.params.id }, req.body)
+      .catch((err) => {
+        res.status(400).json(err);
+        return;
+      })
+      .then((room) => res.status(200).json(room));
   }
 
   /**
@@ -102,22 +91,11 @@ export class RoomController {
    * @param {Response} res backend response deletion
    */
   public static async deleteRoom(req: Request, res: Response) {
-    const roomRepository = getRepository(Room);
-
-    const room: Room | undefined = await roomRepository.findOne({
-      where: { id: req.params.id },
-    });
-
-    if (room === undefined) {
-      res.status(404).json({
-        room: 'Room not found.',
+    await getRepository(Room)
+      .delete(req.params.id)
+      .then(() => {
+        res.sendStatus(204);
       });
-      return;
-    }
-
-    await roomRepository.delete(room);
-
-    res.sendStatus(204);
   }
 
   /**
@@ -135,8 +113,15 @@ export class RoomController {
    * @param {Response} res backend response creation of a new available timeslot of a room
    */
   public static async createTimeslot(req: Request, res: Response) {
-    const timeslot = await getRepository(TimeSlot).save(req.body);
-    res.json(timeslot);
+    const repository = getRepository(TimeSlot);
+    const timeslot = await repository
+      .save(repository.create(req.body))
+      .catch((err) => {
+        res.status(400).json(err);
+        return;
+      });
+
+    res.status(200).json(timeslot);
   }
 
   /**
@@ -149,19 +134,10 @@ export class RoomController {
    * @param {Response} res backend response deletion
    */
   public static async deleteTimeslot(req: Request, res: Response) {
-    const timeslotRepository = getRepository(TimeSlot);
-    const timeslot: TimeSlot | undefined = await timeslotRepository.findOne({
-      where: { id: req.params.id },
-    });
-
-    if (timeslot === undefined) {
-      res.status(404).json({
-        room: 'Timeslot not found.',
+    await getRepository(TimeSlot)
+      .delete(req.params.id)
+      .then(() => {
+        res.sendStatus(204);
       });
-      return;
-    }
-
-    await timeslotRepository.delete(timeslot);
-    res.sendStatus(204);
   }
 }

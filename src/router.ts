@@ -13,10 +13,7 @@ import environment from './environment';
 const router: Router = Router();
 
 // Authentication
-router.post(
-  environment.apiRoutes.auth.login,
-  AuthController.login
-);
+router.post(environment.apiRoutes.auth.login, AuthController.login);
 router.delete(
   environment.apiRoutes.auth.logout,
   AuthController.checkAuthenticationMiddleware,

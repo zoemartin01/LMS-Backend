@@ -1,4 +1,7 @@
+import { validateOrReject } from 'class-validator';
 import {
+  BeforeInsert,
+  BeforeUpdate,
   CreateDateColumn,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
@@ -37,4 +40,10 @@ export abstract class BaseEntity {
    */
   @UpdateDateColumn()
   updatedAt: Date;
+
+  @BeforeUpdate()
+  @BeforeInsert()
+  async validateInput() {
+    await validateOrReject(this);
+  }
 }
