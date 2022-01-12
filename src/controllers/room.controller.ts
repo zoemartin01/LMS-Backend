@@ -21,7 +21,7 @@ export class RoomController {
    */
   public static async getAllRooms(req: Request, res: Response) {
     const rooms = await getRepository(Room).find();
-    res.status(200).send(rooms);
+    res.status(200).json(rooms);
   }
 
   /**
@@ -33,9 +33,8 @@ export class RoomController {
    * @param {Response} res backend response with data about one room
    */
   public static async getRoomById(req: Request, res: Response) {
-    const id = req.params.id;
-    const room = await getRepository(Room).findOne(id);
-    res.status(200).send(room);
+    const room = await getRepository(Room).findOne(req.params.id);
+    res.status(200).json(room);
   }
 
   /**
@@ -78,8 +77,9 @@ export class RoomController {
       .update({ id: req.params.id }, req.body)
       .catch((err) => {
         res.status(400).json(err);
-      });
-    res.sendStatus(200);
+        return;
+      })
+      .then((room) => res.status(200).json(room));
   }
 
   /**
