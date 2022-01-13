@@ -21,7 +21,15 @@ export class UserController {
    * @param {Request} req frontend request to get personal user data
    * @param {Response} res backend response with personal user data
    */
-  public static async getUser(req: Request, res: Response) {}
+  public static async getUser(req: Request, res: Response) {
+    const userRepository = getRepository(User);
+
+    const user = userRepository.findOne({
+      where: { id: req.body.id },
+    });
+
+    res.json(user);
+  }
 
   /**
    * Changes personal user data
@@ -32,7 +40,15 @@ export class UserController {
    * @param {Request} req frontend request to change personal user data
    * @param {Response} res backend response
    */
-  public static async updateUser(req: Request, res: Response) {}
+  public static async updateUser(req: Request, res: Response) {
+    await getRepository(User)
+      .update({ id: req.params.id }, req.body)
+      .catch((err) => {
+        res.status(400).json(err);
+        return;
+      })
+      .then((user) => res.status(200).json(user));
+  }
 
   /**
    * Deletes own user
@@ -41,7 +57,24 @@ export class UserController {
    * @param {Request} req frontend request to delete own user
    * @param {Response} res backend response deletion
    */
-  public static async deleteUser(req: Request, res: Response) {}
+  public static async deleteUser(req: Request, res: Response) {
+    const userRepository = getRepository(User);
+
+    const user: User | undefined = await userRepository.findOne({
+      where: { id: req.params.id },
+    });
+
+    if (user === undefined) {
+      res.status(404).json({
+        user: 'user not found.',
+      });
+      return;
+    }
+
+    await userRepository.delete(user);
+
+    res.sendStatus(204);
+  }
 
   /**
    * Registers new user with their personal information
