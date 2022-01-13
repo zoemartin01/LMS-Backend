@@ -68,6 +68,21 @@ export class AdminController {
   }
 
   /**
+   * Returns all whitelist retailers
+   *
+   * @route {GET} /global-settings/whitelist-retailers
+   * @param {Request} req frontend request to get data about all whitelist retailers
+   * @param {Response} res backend response with data about all whitelist retailers
+   */
+  public static async getWhitelistRetailers(req: Request, res: Response) {
+    const retailerRepository = getRepository(Retailer);
+
+    const retailers: Retailer[] = await retailerRepository.find({});
+
+    res.json(retailers);
+  }
+
+  /**
    * Creates whitelist retailer with data
    *
    * @route {POST} /global-settings/whitelist-retailers
