@@ -26,9 +26,9 @@ export class UserController {
 
     const user =
       undefined ||
-      userRepository.findOne({
+      (await userRepository.findOne({
         where: { id: req.body.id },
-      });
+      }));
     if (user === undefined) {
       res.status(404).json({
         message: 'User not found.',
@@ -82,6 +82,12 @@ export class UserController {
     await userRepository.delete(user);
 
     res.sendStatus(204);
+
+    await MessagingController.sendMessage(
+      user,
+      'Account deleted',
+      'Your account has been deleted. Bye!'
+    );
   }
 
   /**
