@@ -30,6 +30,5 @@ export class Retailer extends BaseEntity {
    * @type {RetailerDomain[]}
    */
   @OneToMany(() => RetailerDomain, (domain) => domain.retailer)
-  @IsUUID('4')
   domains: RetailerDomain[];
 }
