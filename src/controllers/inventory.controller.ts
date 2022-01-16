@@ -17,11 +17,11 @@ export class InventoryController {
    * @param {Response} res backend response with data of all inventory items
    */
   public static async getAllInventoryItems(req: Request, res: Response) {
-    const inventoryRepository = getRepository(InventoryItem);
-
-    const inventoryItems = await inventoryRepository.find();
-
-    res.json(inventoryItems);
+    await getRepository(InventoryItem)
+      .find()
+      .then((inventoryItems) => {
+        res.json(inventoryItems);
+      });
   }
 
   /**
@@ -33,21 +33,19 @@ export class InventoryController {
    * @param {Response} res backend response with data of one inventory item
    */
   public static async getInventoryItem(req: Request, res: Response) {
-    const inventoryRepository = getRepository(InventoryItem);
-
-    const inventoryItem: InventoryItem | undefined =
-      await inventoryRepository.findOne({
+    await getRepository(InventoryItem)
+      .findOne({
         where: { id: req.params.id },
+      })
+      .then((inventoryItem) => {
+        if (inventoryItem === undefined) {
+          res.status(404).json({
+            message: 'Inventory item not found.',
+          });
+          return;
+        }
+        res.status(200).json(inventoryItem);
       });
-
-    if (inventoryItem === undefined) {
-      res.status(404).json({
-        message: 'Inventory item not found.',
-      });
-      return;
-    }
-
-    res.json(inventoryItem);
   }
 
   /**
@@ -63,9 +61,16 @@ export class InventoryController {
   public static async createInventoryItem(req: Request, res: Response) {
     const inventoryRepository = getRepository(InventoryItem);
 
-    const inventoryItem = await inventoryRepository.save(req.body);
+    const existingInventoryItem: InventoryItem | undefined =
+      await inventoryRepository.findOne({
+        where: { name: req.body.name },
+      });
 
-    return inventoryItem;
+    if (existingInventoryItem === undefined) {
+      const inventoryItem = await inventoryRepository.save(req.body);
+      res.status(201).json(inventoryItem);
+    }
+    res.status(303).json(existingInventoryItem);
   }
 
   /**
@@ -82,21 +87,27 @@ export class InventoryController {
   public static async updateInventoryItem(req: Request, res: Response) {
     const inventoryRepository = getRepository(InventoryItem);
 
-    let inventoryItem: InventoryItem | undefined =
+    const inventoryItem: InventoryItem | undefined =
       await inventoryRepository.findOne({
         where: { id: req.params.id },
       });
 
     if (inventoryItem === undefined) {
       res.status(404).json({
-        message: 'Message not found.',
+        message: 'Inventory Item not found.',
       });
       return;
     }
 
-    inventoryItem = await inventoryRepository.save(req.body);
-
-    res.json(inventoryItem);
+    inventoryRepository
+      .update(inventoryItem, req.body)
+      .catch((err) => {
+        res.status(400).json(err);
+        return;
+      })
+      .then((inventoryItem) => {
+        res.json(inventoryItem);
+      });
   }
 
   /**
@@ -117,12 +128,13 @@ export class InventoryController {
 
     if (inventoryItem == undefined) {
       res.status(404).json({
-        message: 'Message not found.',
+        message: 'Inventory Item not found.',
       });
       return;
     }
 
-    await inventoryRepository.delete(inventoryItem);
-    res.sendStatus(204);
+    await inventoryRepository.delete(inventoryItem).then(() => {
+      res.sendStatus(204);
+    });
   }
 }
