@@ -60,9 +60,18 @@ export class AdminController {
   public static async getWhitelistRetailer(req: Request, res: Response) {
     const retailerRepository = getRepository(Retailer);
 
-    const retailer = retailerRepository.findOne({
-      where: { id: req.params.id },
-    });
+    const retailer =
+      undefined ||
+      (await retailerRepository.findOne({
+        where: { id: req.params.id },
+      }));
+
+    if (retailer === undefined) {
+      res.status(404).json({
+        retailer: 'Retailer not found.',
+      });
+      return;
+    }
 
     res.json(retailer);
   }
@@ -258,7 +267,7 @@ export class AdminController {
   public static async getUsers(req: Request, res: Response) {
     const userRepository = getRepository(User);
 
-    const users: User[] | undefined = await userRepository.find();
+    const users: User[] = await userRepository.find();
 
     res.json(users);
   }
@@ -277,6 +286,13 @@ export class AdminController {
     const user: User | undefined = await userRepository.findOne({
       where: { id: req.params.id },
     });
+
+    if (user === undefined) {
+      res.status(404).json({
+        user: 'User not found.',
+      });
+      return;
+    }
 
     res.json(user);
   }
@@ -322,7 +338,7 @@ export class AdminController {
 
     if (user === undefined) {
       res.status(404).json({
-        retailerDomain: 'User not found.',
+        user: 'User not found.',
       });
       return;
     }
