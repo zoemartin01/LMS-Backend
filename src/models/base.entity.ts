@@ -3,6 +3,7 @@ import {
   BeforeInsert,
   BeforeUpdate,
   CreateDateColumn,
+  DeleteDateColumn,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
@@ -13,6 +14,7 @@ import {
  * @property {string} id - The entity's unique identifier
  * @property {Date} createdAt - The date the entity was created
  * @property {Date} updatedAt - The date the entity was last updated
+ * @property {Date} deletedAt - The date the entity was deleted
  */
 export abstract class BaseEntity {
   /**
@@ -40,6 +42,14 @@ export abstract class BaseEntity {
    */
   @UpdateDateColumn()
   updatedAt: Date;
+
+  /**
+   * The date the entity was deleted
+   *
+   * @type {Date}
+   */
+  @DeleteDateColumn()
+  deletedAt: Date;
 
   @BeforeUpdate()
   @BeforeInsert()
