@@ -1,3 +1,4 @@
+import { IsNotEmpty, IsNumber, IsOptional, Min } from 'class-validator';
 import { Column, Entity, OneToMany } from 'typeorm';
 import { BaseEntity } from './base.entity';
 import { Order } from './order.entity';
@@ -22,6 +23,7 @@ export class InventoryItem extends BaseEntity {
    * @type {string}
    */
   @Column()
+  @IsNotEmpty()
   name: string;
 
   /**
@@ -40,6 +42,9 @@ export class InventoryItem extends BaseEntity {
    * @default 0
    */
   @Column({ default: 0 })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
   quantity: number;
 
   /**

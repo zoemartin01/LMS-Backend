@@ -7,8 +7,11 @@ import { User } from '../../models/user.entity';
 define(Recording, (faker: typeof Faker, context?: { user: User }) => {
   if (!context) throw new Error('Factory Recording requires user');
   const user = context.user;
-  const start = faker.date.past();
-  const end = faker.date.future();
+  const start = faker.date.future();
+  const end = faker.date.between(
+    start,
+    new Date(start.getTime() + 1000 * 60 * 60 * 24 * 7)
+  );
   const resolution = faker.random.arrayElement([
     VideoResolution.V720,
     VideoResolution.V1080,
