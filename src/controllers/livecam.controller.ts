@@ -5,7 +5,6 @@ import environment from '../environment';
 import { promisify } from 'util';
 import { pipeline } from 'stream';
 import axios from 'axios';
-import { VideoResolution } from '../types/enums/video-resolution';
 
 /**
  * Controller for the LiveCam System
@@ -56,6 +55,10 @@ export class LivecamController {
     await getRepository(Recording)
       .findOne(req.params.id)
       .then((recording) => {
+        if (recording === undefined) {
+          res.sendStatus(404);
+          return;
+        }
         res.status(200).json(recording);
       });
   }
@@ -70,12 +73,24 @@ export class LivecamController {
    * @param {Response} res backend response
    */
   public static async updateRecording(req: Request, res: Response) {
+    const repository = getRepository(Recording);
+
+    const recording = await repository.findOne(req.params.id);
+
+    if (recording === undefined) {
+      res.sendStatus(404);
+      return;
+    }
+
     await getRepository(Recording)
-      .update({ id: req.params.id }, req.body)
+      .update(recording.id, req.body)
       .catch((err) => {
         res.status(400).json(err);
+        return;
+      })
+      .then((recording) => {
+        res.status(200).json(recording);
       });
-    res.sendStatus(200);
   }
 
   /**
@@ -103,17 +118,12 @@ export class LivecamController {
     }
 
     const response = await axios.post(
-      `http://${environment.livecam_server.host}:${environment.livecam_server.port}
-      ${environment.livecam_server.apiPath}
-      ${environment.livecam_server.endpoints.schedule}`,
-      {
-        id: recording.id,
-        start: recording.start.getTime(),
-        end: recording.end.getTime(),
-        bitrate: req.body.bitrate,
-        resolution: VideoResolution.V1080,
-      }
+      `http://${environment.livecam_server.host}:${environment.livecam_server.port}` +
+        `${environment.livecam_server.apiPath}` +
+        `${environment.livecam_server.endpoints.schedule}`,
+      { recording }
     );
+
     res.status(response.status).json(recording);
   }
 
@@ -135,6 +145,12 @@ export class LivecamController {
         ),
       { responseType: 'stream' }
     );
+
+    if (response.status != 200) {
+      res.sendStatus(response.status);
+      return;
+    }
+
     res.attachment(`${req.params.id}.mp4`);
     const streamPipeline = promisify(pipeline);
     await streamPipeline(response.data, res);
@@ -149,11 +165,18 @@ export class LivecamController {
    * @param {Response} res backend response
    */
   public static async deleteRecording(req: Request, res: Response) {
-    await getRepository(Recording)
-      .delete(req.params.id)
-      .then(() => {
-        res.sendStatus(204);
-      });
+    const repository = getRepository(Recording);
+
+    const recording = await repository.findOne(req.params.id);
+
+    if (recording === undefined) {
+      res.sendStatus(404);
+      return;
+    }
+
+    await repository.remove(recording).then(() => {
+      res.sendStatus(204);
+    });
   }
 
   /**
