@@ -107,7 +107,7 @@ export class User extends BaseEntity {
    * @readonly
    */
   @Column({ default: false })
-  isActiveDirectory: boolean;
+  readonly isActiveDirectory: boolean;
 
   /**
    * The chosen notification channel of the user.
