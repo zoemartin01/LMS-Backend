@@ -68,7 +68,7 @@ export class AdminController {
 
     if (retailer === undefined) {
       res.status(404).json({
-        retailer: 'Retailer not found.',
+        message: 'Retailer not found.',
       });
       return;
     }
@@ -147,7 +147,7 @@ export class AdminController {
 
     if (retailer === undefined) {
       res.status(404).json({
-        retailer: 'Retailer not found.',
+        message: 'Retailer not found.',
       });
       return;
     }
@@ -226,7 +226,7 @@ export class AdminController {
 
     if (retailerDomain === undefined) {
       res.status(404).json({
-        retailerDomain: 'Retailer Domain not found.',
+        message: 'Retailer Domain not found.',
       });
       return;
     }
@@ -289,7 +289,7 @@ export class AdminController {
 
     if (user === undefined) {
       res.status(404).json({
-        user: 'User not found.',
+        message: 'User not found.',
       });
       return;
     }
@@ -338,7 +338,7 @@ export class AdminController {
 
     if (user === undefined) {
       res.status(404).json({
-        user: 'User not found.',
+        message: 'User not found.',
       });
       return;
     }
