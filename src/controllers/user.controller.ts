@@ -24,9 +24,17 @@ export class UserController {
   public static async getUser(req: Request, res: Response) {
     const userRepository = getRepository(User);
 
-    const user = userRepository.findOne({
-      where: { id: req.body.id },
-    });
+    const user =
+      undefined ||
+      userRepository.findOne({
+        where: { id: req.body.id },
+      });
+    if (user === undefined) {
+      res.status(404).json({
+        message: 'User not found.',
+      });
+      return;
+    }
 
     res.json(user);
   }
@@ -66,7 +74,7 @@ export class UserController {
 
     if (user === undefined) {
       res.status(404).json({
-        user: 'user not found.',
+        message: 'user not found.',
       });
       return;
     }
