@@ -83,6 +83,11 @@ export class UserController {
 
     res.sendStatus(204);
 
+    await MessagingController.sendMessageToAllAdmins(
+      'User deleted',
+      'User' + user.firstName + user.lastName + 'deleted their account'
+    );
+
     await MessagingController.sendMessage(
       user,
       'Account deleted',
