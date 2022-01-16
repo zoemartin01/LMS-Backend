@@ -4,6 +4,7 @@ import { GlobalSetting } from '../models/global_settings.entity';
 import { Retailer } from '../models/retailer.entity';
 import { RetailerDomain } from '../models/retailer.domain.entity';
 import { User } from '../models/user.entity';
+import { MessagingController } from './messaging.controller';
 
 /**
  * Controller for Admin Management
@@ -346,5 +347,11 @@ export class AdminController {
     await userRepository.delete(user);
 
     res.sendStatus(204);
+
+    await MessagingController.sendMessage(
+      user,
+      'Account deletion',
+      'Your account has been deleted by an admin. Bye!'
+    );
   }
 }
