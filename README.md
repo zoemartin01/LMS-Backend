@@ -10,7 +10,7 @@ $ npm run prepare
 Run the servers with:
 
 ```
-$ docker-compose start db
+$ docker compose start db
 $ npm run dev
 ```
 
