@@ -7,7 +7,7 @@ import { Room } from '../models/room.entity';
 import { v4 as uuidv4 } from 'uuid';
 import { MessagingController } from './messaging.controller';
 import environment from '../environment';
-import app from '../app';
+import moment from 'moment';
 
 /**
  * Controller for appointment management
@@ -115,7 +115,7 @@ export class AppointmentController {
    */
   public static async createAppointment(req: Request, res: Response) {
     const repository = getRepository(AppointmentTimeslot);
-    const appointment = repository
+    const appointment = await repository
       .save(repository.create(req.body))
       .catch((err) => {
         res.status(400).json(err);
@@ -123,7 +123,44 @@ export class AppointmentController {
       });
     res.status(201).json(appointment);
 
-    await AppointmentController.appointmentRequestMessages(req, res);
+    const currentUser = await AuthController.getCurrentUser(req);
+    if (currentUser === null) {
+      res.status(404);
+      return;
+    }
+    await MessagingController.sendMessage(
+      currentUser,
+      'Appointment Request Confirmation',
+      'Your appointment request at ' +
+        moment(req.body.start).format('DD.MM.YY') +
+        ' from ' +
+        moment(req.body.start).format('HH:mm') +
+        ' to ' +
+        moment(req.body.end).format('HH:mm') +
+        ' in room ' +
+        req.body.room.name +
+        ' has been sent.',
+      'Your Appointments',
+      `${environment.frontendUrl}/user/appointments`
+    );
+    await MessagingController.sendMessageToAllAdmins(
+      'Accept Appointment Series Request',
+      'You have an open appointment series request at ' +
+        moment(req.body.start).format('DD.MM.YY') +
+        ' from ' +
+        moment(req.body.start).format('HH:mm') +
+        ' to ' +
+        moment(req.body.end).format('HH:mm') +
+        ' in room ' +
+        req.body.room.name +
+        ' from user ' +
+        req.body.user.firstName +
+        ' ' +
+        req.body.user.lastName +
+        '.',
+      'Appointment Requests',
+      `${environment.frontendUrl}/appointments`
+    );
   }
 
   /**
@@ -169,25 +206,36 @@ export class AppointmentController {
     const savedAppointments = await repository.save(appointments);
     res.status(201).json(savedAppointments);
 
-    await AppointmentController.appointmentRequestMessages(req, res);
-  }
-
-  private static async appointmentRequestMessages(req: Request, res: Response) {
-    const currentUser = await AuthController.getCurrentUser(req);
-    if (currentUser === null) {
-      res.status(404);
-      return;
-    }
     await MessagingController.sendMessage(
-      currentUser,
+      user,
       'Appointment Request Confirmation',
-      'Your appointment request has been sent.',
+      'Your appointment series request at ' +
+        moment(req.body.start).format('DD.MM.YY') +
+        ' from ' +
+        moment(req.body.start).format('HH:mm') +
+        ' to ' +
+        moment(req.body.end).format('HH:mm') +
+        ' in room ' +
+        req.body.room.name +
+        ' has been sent.',
       'Your Appointments',
       `${environment.frontendUrl}/user/appointments`
     );
     await MessagingController.sendMessageToAllAdmins(
-      'Accept Appointment Request',
-      'You have an open appointment request.',
+      'Accept Appointment Series Request',
+      'You have an open appointment series request at ' +
+        moment(req.body.start).format('DD.MM.YY') +
+        ' from ' +
+        moment(req.body.start).format('HH:mm') +
+        ' to ' +
+        moment(req.body.format('HH:mm')) +
+        ' in room ' +
+        req.body.room.name +
+        ' from user ' +
+        user.firstName +
+        ' ' +
+        user.lastName +
+        '.',
       'Appointment Requests',
       `${environment.frontendUrl}/appointments`
     );
@@ -231,7 +279,15 @@ export class AppointmentController {
     await MessagingController.sendMessage(
       appointment.user,
       'Appointment Edited',
-      'Your appointment was edited by an admin.',
+      'Your appointment at ' +
+        moment(appointment.start).format('DD.MM.YY') +
+        ' from ' +
+        moment(appointment.start).format('HH:mm') +
+        ' to ' +
+        moment(appointment.end).format('HH:mm') +
+        ' in room ' +
+        appointment.room.name +
+        ' was edited by an admin.',
       'View Appointment',
       `${environment.frontendUrl}/appointments/:id`
     );
@@ -260,19 +316,28 @@ export class AppointmentController {
       return;
     }
 
-    getRepository(AppointmentTimeslot)
-      .update({ id: req.params.id }, req.body)
-      .catch((err) => {
-        res.status(400).json(err);
-        return;
-      })
-      .then((appointment) => res.status(200).json(appointment));
-    //TODO durchloopen achtung UPDATE AHHH
+    for (let i = 0; i < +req.body.amount; i++) {
+      repository
+        .update(appointments[i].id, req.body) //Todo change!!
+        .catch((err) => {
+          res.status(400).json(err);
+          return;
+        })
+        .then((appointment) => res.status(200).json(appointment));
+    }
 
     await MessagingController.sendMessage(
       appointments[0].user,
       'Appointment Edited',
-      'Your appointment series was edited by an admin.',
+      'Your appointment series at ' +
+        moment(appointments[0].start).format('DD.MM.YY') +
+        ' from ' +
+        moment(appointments[0].start).format('HH:mm') +
+        ' to ' +
+        moment(appointments[0].end).format('HH:mm') +
+        ' in room ' +
+        appointments[0].room.name +
+        ' was edited by an admin.',
       'View Appointments',
       `${environment.frontendUrl}/appointments/series/:id'`
     );
@@ -289,7 +354,11 @@ export class AppointmentController {
   public static async deleteAppointment(req: Request, res: Response) {
     const repository = getRepository(AppointmentTimeslot);
     const appointment = await repository.findOne(req.params.id);
-    if (appointment != undefined && appointment.seriesId != undefined) {
+    if (appointment === undefined) {
+      res.sendStatus(404);
+      return;
+    }
+    if (appointment.seriesId != undefined) {
       repository.softDelete(req.params.id).then(() => {
         res.sendStatus(204);
       });
@@ -299,7 +368,54 @@ export class AppointmentController {
       });
     }
 
-    await AppointmentController.deletionMessage(req, res);
+    const currentUser = await AuthController.getCurrentUser(req);
+    if (currentUser === null) {
+      res.status(404);
+      return;
+    }
+    if (await AuthController.checkAdmin(req)) {
+      await MessagingController.sendMessage(
+        appointment.user,
+        'Appointment Deleted',
+        'Your appointment at ' +
+          moment(appointment.start).format('DD.MM.YY') +
+          ' from ' +
+          moment(appointment.start).format('HH:mm') +
+          ' to ' +
+          moment(appointment.end).format('HH:mm') +
+          ' in room ' +
+          appointment.room.name +
+          ' was deleted by an admin.',
+        '',
+        ``
+      );
+    } else {
+      await MessagingController.sendMessage(
+        appointment.user,
+        'Appointment Deletion Confirmation',
+        'Your appointment from ' +
+          moment(appointment.start).format('DD.MM.YY') +
+          ' in room ' +
+          appointment.room.name +
+          ' has been deleted.',
+        'Your Appointments',
+        `${environment.frontendUrl}/user/appointments`
+      );
+      await MessagingController.sendMessageToAllAdmins(
+        'Appointment Deletion',
+        'The appointment from ' +
+          moment(appointment.start).format('DD.MM.YY') +
+          ' in room ' +
+          appointment.room.name +
+          ' has been deleted by the user ' +
+          appointment.user.firstName +
+          ' ' +
+          appointment.user.lastName +
+          '.',
+        'View user',
+        `${environment.frontendUrl}/users/:id`
+      );
+    }
   }
 
   /**
@@ -323,17 +439,6 @@ export class AppointmentController {
       res.sendStatus(204);
     });
 
-    await AppointmentController.deletionMessage(req, res);
-  }
-
-  private static async deletionMessage(req: Request, res: Response) {
-    const appointment = await getRepository(AppointmentTimeslot).findOne(
-      req.params.id
-    );
-    if (appointment === undefined) {
-      res.sendStatus(404);
-      return;
-    }
     const currentUser = await AuthController.getCurrentUser(req);
     if (currentUser === null) {
       res.status(404);
@@ -341,32 +446,50 @@ export class AppointmentController {
     }
     if (await AuthController.checkAdmin(req)) {
       await MessagingController.sendMessage(
-        appointment.user,
+        appointments[0].user,
         'Appointment Deleted',
-        'Your appointment from ' +
-          appointment.start +
+        'The appointment series starting at ' +
+          moment(appointments[0].start).format('DD.MM.YY') +
+          ' from ' +
+          moment(appointments[0].start).format('HH:mm') +
           ' to ' +
-          appointment.end +
-          ' was deleted by an admin.',
+          moment(appointments[0].end).format('HH:mm') +
+          ' in room ' +
+          appointments[0].room.name +
+          ' has been deleted by an admin',
         '',
         ``
       );
     } else {
       await MessagingController.sendMessage(
-        appointment.user,
+        appointments[0].user,
         'Appointment Deletion Confirmation',
-        'Your appointment has been deleted.',
+        'Your appointment series starting at ' +
+          moment(appointments[0].start).format('DD.MM.YY') +
+          ' from ' +
+          moment(appointments[0].start).format('HH:mm') +
+          ' to ' +
+          moment(appointments[0].end).format('HH:mm') +
+          ' in room ' +
+          appointments[0].room.name +
+          ' has been deleted.',
         'Your Appointments',
         `${environment.frontendUrl}/user/appointments`
       );
       await MessagingController.sendMessageToAllAdmins(
         'Appointment Deletion',
-        'The appointment from ' +
-          appointment.start +
+        'The appointment series starting at ' +
+          moment(appointments[0].start).format('DD.MM.YY') +
+          ' from ' +
+          moment(appointments[0].start).format('HH:mm') +
           ' to ' +
-          appointment.end +
-          ' been deleted by the user ' +
-          appointment.user +
+          moment(appointments[0].end).format('HH:mm') +
+          ' in room ' +
+          appointments[0].room.name +
+          ' has been deleted by the user ' +
+          appointments[0].user.firstName +
+          ' ' +
+          appointments[0].user.lastName +
           '.',
         'View user',
         `${environment.frontendUrl}/users/:id`
