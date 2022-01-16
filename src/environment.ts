@@ -12,7 +12,7 @@ const environment = {
   livecam_server: {
     host: 'localhost',
     port: 7000,
-    apiPath: '/api',
+    apiPath: '',
     endpoints: {
       list: '/recordings',
       download: '/recordings/:id',

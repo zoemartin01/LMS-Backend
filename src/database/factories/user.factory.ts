@@ -2,6 +2,7 @@ import { User } from '../../models/user.entity';
 import { define } from 'typeorm-seeding';
 import Faker from 'faker';
 import { UserRole } from '../../types/enums/user-role';
+import { getRepository } from 'typeorm';
 
 define(User, (faker: typeof Faker) => {
   const email = faker.internet.email();
@@ -16,12 +17,13 @@ define(User, (faker: typeof Faker) => {
   ]);
   const emailVerification = faker.random.boolean();
 
-  const user = new User();
-  user.email = email;
-  user.firstName = firstName;
-  user.lastName = lastName;
-  user.password = password;
-  user.role = role;
-  user.emailVerification = emailVerification;
+  const user = getRepository(User).create({
+    email,
+    firstName,
+    lastName,
+    password,
+    role,
+    emailVerification,
+  });
   return user;
 });

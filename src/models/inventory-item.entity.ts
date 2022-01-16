@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsNumber, IsOptional, IsUUID, Min } from 'class-validator';
+import { IsNotEmpty, IsNumber, IsOptional, Min } from 'class-validator';
 import { Column, Entity, OneToMany } from 'typeorm';
 import { BaseEntity } from './base.entity';
 import { Order } from './order.entity';
@@ -53,6 +53,5 @@ export class InventoryItem extends BaseEntity {
    * @type {Order[]}
    */
   @OneToMany(() => Order, (order) => order.item)
-  @IsUUID('4')
   orders: Order[];
 }
