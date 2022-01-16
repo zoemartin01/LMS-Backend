@@ -16,6 +16,7 @@ import { User } from './user.entity';
  * @property {Room} room - The room the time slot belongs to.
  * @property {User} user - The user who booked the appointment.
  * @property {ConfirmationStatus} confirmationStatus - The confirmation status of the time slot.
+ * @property {string} seriesId - The id of the series the time slot belongs to.
  */
 @ChildEntity(TimeSlotType.booked)
 export class AppointmentTimeslot extends TimeSlot {
@@ -51,4 +52,13 @@ export class AppointmentTimeslot extends TimeSlot {
   @ValidateIf((appointment) => appointment.type)
   @IsEnum(ConfirmationStatus)
   confirmationStatus: ConfirmationStatus;
+
+  /**
+   * The id of the series the time slot belongs to.
+   *
+   * @type {string}
+   * @readonly
+   */
+  @Column()
+  seriesId: string;
 }
