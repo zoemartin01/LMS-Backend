@@ -4,7 +4,6 @@ import {
   IsNumber,
   IsOptional,
   IsString,
-  IsUUID,
   Min,
 } from 'class-validator';
 import { Column, Entity, OneToMany } from 'typeorm';
@@ -83,7 +82,6 @@ export class Room extends BaseEntity {
     () => AvailableTimeslot,
     (availableTimeslot) => availableTimeslot.room
   )
-  @IsUUID('4')
   availableTimeSlots: AvailableTimeslot[];
 
   /**
@@ -95,7 +93,6 @@ export class Room extends BaseEntity {
     () => UnavailableTimeslot,
     (unavailableTimeslot) => unavailableTimeslot.room
   )
-  @IsUUID('4')
   unavailableTimeSlots: UnavailableTimeslot[];
 
   /**
@@ -104,6 +101,5 @@ export class Room extends BaseEntity {
    * @type {AppointmentTimeslot[]}
    */
   @OneToMany(() => AppointmentTimeslot, (timeslot) => timeslot.room)
-  @IsUUID('4')
   appointments: AppointmentTimeslot[];
 }

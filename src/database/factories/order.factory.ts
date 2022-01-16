@@ -4,6 +4,7 @@ import { Order } from '../../models/order.entity';
 import { OrderStatus } from '../../types/enums/order-status';
 import { User } from '../../models/user.entity';
 import { InventoryItem } from '../../models/inventory-item.entity';
+import { getRepository } from 'typeorm';
 
 define(
   Order,
@@ -14,6 +15,7 @@ define(
     const quantity = faker.random.number();
     const status = faker.random.arrayElement([
       OrderStatus.declined,
+      OrderStatus.pending,
       OrderStatus.ordered,
       OrderStatus.inventoried,
       OrderStatus.sent_back,
@@ -22,16 +24,23 @@ define(
     const item = context.item;
     const url = faker.internet.url();
 
-    const order = new Order();
+    let order: Order;
     if (item) {
-      order.item = item;
+      return getRepository(Order).create({
+        item,
+        quantity,
+        status,
+        user,
+        url,
+      });
     } else {
-      order.itemName = itemName;
+      return getRepository(Order).create({
+        itemName,
+        quantity,
+        status,
+        user,
+        url,
+      });
     }
-    order.quantity = quantity;
-    order.status = status;
-    order.user = user;
-    order.url = url;
-    return order;
   }
 );

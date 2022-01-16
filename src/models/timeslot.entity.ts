@@ -1,4 +1,4 @@
-import { IsDateString, IsEnum } from 'class-validator';
+import { IsDateString } from 'class-validator';
 import { Column, Entity, TableInheritance } from 'typeorm';
 import { TimeSlotType } from '../types/enums/timeslot-type';
 import { BaseEntity } from './base.entity';
@@ -50,6 +50,5 @@ export class TimeSlot extends BaseEntity {
     type: 'enum',
     enum: TimeSlotType,
   })
-  @IsEnum(TimeSlotType)
   type: TimeSlotType;
 }

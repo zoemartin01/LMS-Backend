@@ -1,4 +1,3 @@
-import { IsUUID } from 'class-validator';
 import { ChildEntity, ManyToOne } from 'typeorm';
 import { TimeSlotType } from '../types/enums/timeslot-type';
 import { Room } from './room.entity';
@@ -22,6 +21,5 @@ export class UnavailableTimeslot extends TimeSlot {
    * @readonly
    */
   @ManyToOne(() => Room, (room) => room.unavailableTimeSlots)
-  @IsUUID('4')
   readonly room: Room;
 }

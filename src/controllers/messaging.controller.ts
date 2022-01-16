@@ -121,7 +121,9 @@ export class MessagingController {
       return;
     }
 
-    const message: Message | undefined = await messageRepository.findOne(req.params.id);
+    const message: Message | undefined = await messageRepository.findOne(
+      req.params.id
+    );
 
     if (message === undefined) {
       res.status(404).json({
