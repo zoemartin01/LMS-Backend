@@ -3,6 +3,10 @@ import { DeepPartial, getRepository } from 'typeorm';
 import { AppointmentTimeslot } from '../models/appointment.timeslot.entity';
 import { AuthController } from './auth.controller';
 import { validateOrReject } from 'class-validator';
+import { Room } from '../models/room.entity';
+import { v4 as uuidv4 } from 'uuid';
+import { MessagingController } from './messaging.controller';
+import environment from '../environment';
 
 /**
  * Controller for appointment management
@@ -21,7 +25,7 @@ export class AppointmentController {
    * @param {Response} res backend response with data about all appointments
    */
   public static async getAllAppointments(req: Request, res: Response) {
-    const appointments = getRepository(AppointmentTimeslot).find();
+    const appointments = await getRepository(AppointmentTimeslot).find();
     res.status(200).json(appointments);
   }
 
@@ -36,7 +40,7 @@ export class AppointmentController {
     req: Request,
     res: Response
   ) {
-    const appointments = getRepository(AppointmentTimeslot).find({
+    const appointments = await getRepository(AppointmentTimeslot).find({
       where: { recipient: AuthController.getCurrentUser(req) },
     });
     res.status(200).json(appointments);
@@ -51,10 +55,12 @@ export class AppointmentController {
    * @param {Response} res backend response with data about all appointments for room
    */
   public static async getAppointmentsForRoom(req: Request, res: Response) {
-    const appointments = getRepository(AppointmentTimeslot).find({
-      where: { id: req.params.id },
-    });
-    res.status(200).json(appointments);
+    const room = await getRepository(Room).findOne(req.params.id);
+    if (room === undefined) {
+      res.sendStatus(404);
+      return;
+    }
+    res.status(200).json(room.appointments);
   }
 
   /**
@@ -66,9 +72,13 @@ export class AppointmentController {
    * @param {Response} res backend response with data about all appointments for a series
    */
   public static async getAppointmentsForSeries(req: Request, res: Response) {
-    const appointments = getRepository(AppointmentTimeslot).find({
-      where: { id: req.params.id },
+    const appointments = await getRepository(AppointmentTimeslot).find({
+      where: { seriesId: req.params.id },
     });
+    if (appointments.length === 0) {
+      res.sendStatus(404);
+      return;
+    }
     res.status(200).json(appointments);
   }
 
@@ -81,10 +91,14 @@ export class AppointmentController {
    * @param {Response} res backend response with data about one appointment
    */
   public static async getAppointment(req: Request, res: Response) {
-    const appointments = getRepository(AppointmentTimeslot).findOne(
+    const appointment = await getRepository(AppointmentTimeslot).findOne(
       req.params.id
     );
-    res.status(200).json(appointments);
+    if (appointment === undefined) {
+      res.sendStatus(404);
+      return;
+    }
+    res.status(200).json(appointment);
   }
 
   /**
@@ -100,14 +114,15 @@ export class AppointmentController {
    */
   public static async createAppointment(req: Request, res: Response) {
     const repository = getRepository(AppointmentTimeslot);
-    const appointment = await repository
+    const appointment = repository
       .save(repository.create(req.body))
       .catch((err) => {
         res.status(400).json(err);
         return;
       });
-
     res.status(201).json(appointment);
+
+    await AppointmentController.appointmentRequestMessages(req, res);
   }
 
   /**
@@ -129,6 +144,7 @@ export class AppointmentController {
     const appointments: AppointmentTimeslot[] = [];
     const { start, end, room, user, difference, amount } = req.body;
     const confirmationStatus: boolean | undefined = req.body.confirmationStatus;
+    const seriesId = uuidv4();
 
     for (let i = 0; i < +amount; i++) {
       const appointment: AppointmentTimeslot = repository.create(<
@@ -139,19 +155,41 @@ export class AppointmentController {
         room,
         user,
         confirmationStatus,
+        seriesId,
       });
 
       validateOrReject(appointment).catch((err) => {
         res.status(400).json(err);
         return;
       });
-
       appointments.push(appointment);
     }
 
-    //TODO create new seriesID
     const savedAppointments = await repository.save(appointments);
     res.status(201).json(savedAppointments);
+
+    await AppointmentController.appointmentRequestMessages(req, res);
+  }
+
+  private static async appointmentRequestMessages(req: Request, res: Response) {
+    const currentUser = await AuthController.getCurrentUser(req);
+    if (currentUser === null) {
+      res.status(404);
+      return;
+    }
+    await MessagingController.sendMessage(
+      currentUser,
+      'Appointment Request Confirmation',
+      'Your appointment request has been sent.',
+      'Your Appointments',
+      `${environment.frontendUrl}/user/appointments`
+    );
+    await MessagingController.sendMessageToAllAdmins(
+      'Accept Appointment Request',
+      'You have an open appointment request.',
+      'Appointment Requests',
+      `${environment.frontendUrl}/appointments`
+    );
   }
 
   /**
@@ -166,13 +204,36 @@ export class AppointmentController {
    * @param {Response} res backend response with data change of one appointment
    */
   public static async updateAppointment(req: Request, res: Response) {
-    await getRepository(AppointmentTimeslot)
-      .update({ id: req.params.id }, req.body)
+    const repository = getRepository(AppointmentTimeslot);
+    const appointment = await repository.findOne(req.params.id);
+
+    if (appointment === undefined) {
+      res.sendStatus(404);
+      return;
+    }
+    //single appointment in series can't be edited
+    if (appointment.seriesId !== undefined) {
+      res.status(405);
+      return;
+    }
+
+    repository
+      .update(appointment.id, req.body)
       .catch((err) => {
         res.status(400).json(err);
         return;
       })
-      .then((appointment) => res.status(200).json(appointment));
+      .then((appointment) => {
+        res.status(200).json(appointment);
+      });
+
+    await MessagingController.sendMessage(
+      appointment.user,
+      'Appointment Edited',
+      'Your appointment was edited by an admin.',
+      'View Appointment',
+      `${environment.frontendUrl}/appointments/:id`
+    );
   }
 
   /**
@@ -188,7 +249,17 @@ export class AppointmentController {
    * @param {Response} res backend response with data change of one appointment
    */
   public static async updateAppointmentSeries(req: Request, res: Response) {
-    await getRepository(AppointmentTimeslot)
+    const repository = getRepository(AppointmentTimeslot);
+    const appointments = await repository.find({
+      where: { seriesId: req.params.id },
+    });
+    if (appointments.length === 0) {
+      res.sendStatus(404);
+      return;
+    }
+    //TODO get all appointments even deleted ones
+
+    getRepository(AppointmentTimeslot)
       .update({ id: req.params.id }, req.body)
       .catch((err) => {
         res.status(400).json(err);
@@ -196,6 +267,14 @@ export class AppointmentController {
       })
       .then((appointment) => res.status(200).json(appointment));
     //TODO durchloopen achtung UPDATE AHHH
+
+    await MessagingController.sendMessage(
+      appointments[0].user,
+      'Appointment Edited',
+      'Your appointment series was edited by an admin.',
+      'View Appointments',
+      `${environment.frontendUrl}/appointments/series/:id'`
+    );
   }
 
   /**
@@ -207,12 +286,14 @@ export class AppointmentController {
    * @param {Response} res backend response deletion
    */
   public static async deleteAppointment(req: Request, res: Response) {
-    await getRepository(AppointmentTimeslot)
-      .delete(req.params.id)
-      .then(() => {
-        res.sendStatus(204);
-      });
+    const repository = getRepository(AppointmentTimeslot);
+    repository.delete(req.params.id).then(() => {
+      res.sendStatus(204);
+    });
+
+    await AppointmentController.deletionMessage(req, res);
   }
+  //TODO soft delete for updateSeries method
 
   /**
    * Deletes a series of appointments
@@ -227,8 +308,57 @@ export class AppointmentController {
     const appointments = await repository.find({
       where: { seriesId: req.params.id },
     });
-    repository.remove(appointments).then(() => {
+    if (appointments.length === 0) {
+      res.sendStatus(404);
+      return;
+    }
+    await repository.remove(appointments).then(() => {
       res.sendStatus(204);
     });
+
+    await AppointmentController.deletionMessage(req, res);
+  }
+
+  private static async deletionMessage(req: Request, res: Response) {
+    const appointment = await getRepository(AppointmentTimeslot).findOne(
+      req.params.id
+    );
+    if (appointment === undefined) {
+      res.sendStatus(404);
+      return;
+    }
+    const currentUser = await AuthController.getCurrentUser(req);
+    if (currentUser === null) {
+      res.status(404); //Todo right code
+      return;
+    }
+    if (await AuthController.checkAdmin(req)) {
+      await MessagingController.sendMessage(
+        appointment.user,
+        'Appointment Deleted',
+        'Your appointment was deleted by an admin.',
+        'View Appointment',
+        `${environment.frontendUrl}/users`
+        //TODO right link
+        //TODO geht das noch wenn es deleted wird?
+      );
+    } else {
+      await MessagingController.sendMessage(
+        appointment.user,
+        'Appointment Deletion Confirmation',
+        'Your appointment has been deleted.',
+        'Your Appointments',
+        `${environment.frontendUrl}/users`
+        //TODO right link
+        //TODO geht das noch wenn es deleted wird?
+      );
+      await MessagingController.sendMessageToAllAdmins(
+        'Appointment Deletion',
+        'An appointment has been deleted by an user.',
+        'View Appointment',
+        `${environment.frontendUrl}/users`
+        //TODO right link
+      );
+    }
   }
 }

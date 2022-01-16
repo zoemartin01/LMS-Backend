@@ -34,6 +34,10 @@ export class RoomController {
    */
   public static async getRoomById(req: Request, res: Response) {
     const room = await getRepository(Room).findOne(req.params.id);
+    if (room === undefined) {
+      res.sendStatus(404);
+      return;
+    }
     res.status(200).json(room);
   }
 
