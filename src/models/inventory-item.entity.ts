@@ -53,6 +53,5 @@ export class InventoryItem extends BaseEntity {
    * @type {Order[]}
    */
   @OneToMany(() => Order, (order) => order.item)
-  @IsUUID('4')
   orders: Order[];
 }
