@@ -439,7 +439,7 @@ export class AuthController {
    * @param {Request} req current http-request
    * @private
    */
-  private static async checkAdmin(req: Request): Promise<boolean> {
+  public static async checkAdmin(req: Request): Promise<boolean> {
     const user: User | null = await AuthController.getCurrentUser(req);
 
     return user === null || user.role == UserRole.admin;

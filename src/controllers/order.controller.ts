@@ -1,4 +1,8 @@
 import { Request, Response } from 'express';
+import { getRepository } from 'typeorm';
+import { Order } from '../models/order.entity';
+import { AuthController } from './auth.controller';
+import { OrderStatus } from '../types/enums/order-status';
 
 /**
  * Controller for order management
@@ -17,7 +21,13 @@ export class OrderController {
    * @param {Request} req frontend request to get data of all orders
    * @param {Response} res backend response with data of all orders
    */
-  public static async getAllOrders(req: Request, res: Response) {}
+  public static async getAllOrders(req: Request, res: Response) {
+    const orderRepository = getRepository(Order);
+
+    const orders = await orderRepository.find();
+
+    res.json(orders);
+  }
 
   /**
    * Returns all orders related to the current user
@@ -26,7 +36,15 @@ export class OrderController {
    * @param {Request} req frontend request to get data of all orders for the current user
    * @param {Response} res backend response with data of all orders for the current user
    */
-  public static async getOrdersForCurrentUser(req: Request, res: Response) {}
+  public static async getOrdersForCurrentUser(req: Request, res: Response) {
+    const orderRepository = getRepository(Order);
+
+    const orders = await orderRepository.find({
+      where: { user: AuthController.getCurrentUser(req) },
+    });
+
+    res.json(orders);
+  }
 
   /**
    * Returns the order data of a specific order
@@ -36,7 +54,29 @@ export class OrderController {
    * @param {Request} req frontend request to get data of one order
    * @param {Response} res backend response with data of one order
    */
-  public static async getOrder(req: Request, res: Response) {}
+  public static async getOrder(req: Request, res: Response) {
+    const orderRepository = getRepository(Order);
+
+    const order: Order | undefined = await orderRepository.findOne({
+      where: { id: req.params.id },
+    });
+
+    if (order === undefined) {
+      res.status(404).json({
+        message: 'Order not found.',
+      });
+      return;
+    }
+
+    if (!(await AuthController.checkAdmin(req))) {
+      if (!(order.user === (await AuthController.getCurrentUser(req)))) {
+        res.sendStatus(403);
+        return;
+      }
+    }
+
+    res.json(order);
+  }
 
   /**
    * Creates a new order
@@ -50,7 +90,13 @@ export class OrderController {
    * @param {Request} req frontend request to create a new order
    * @param {Response} res backend response creation of a new order
    */
-  public static async createOrder(req: Request, res: Response) {}
+  public static async createOrder(req: Request, res: Response) {
+    const orderRepository = getRepository(Order);
+
+    const order = await orderRepository.save(req.body);
+
+    res.status(201).json(order);
+  }
 
   /**
    * Updates the data of an order
@@ -65,7 +111,49 @@ export class OrderController {
    * @param {Request} req frontend request to change data of an order
    * @param {Response} res backend response with changed data of the order
    */
-  public static async updateOrder(req: Request, res: Response) {}
+  public static async updateOrder(req: Request, res: Response) {
+    const orderRepository = getRepository(Order);
+
+    const order: Order | undefined = await orderRepository.findOne({
+      where: { id: req.params.id },
+    });
+
+    if (order === undefined) {
+      res.status(404).json({
+        message: 'Order not found.',
+      });
+      return;
+    }
+
+    // check if user is visitor -> less rights to change stuff
+    if (!(await AuthController.checkAdmin(req))) {
+      // check if user matches user of order if user is no admin
+      if (
+        !(order.user === (await AuthController.getCurrentUser(req))) ||
+        // check if order status is still pending, visitors aren't allowed to change order after that
+        !(order.status === OrderStatus.pending) ||
+        // check if no admin user tried to change order status
+        'orderStatus' in req.body
+      ) {
+        res.sendStatus(403);
+        return;
+      }
+    }
+    // check if user tried to change affiliated user
+    if ('user' in req.body) {
+      res.sendStatus(403);
+      return;
+    }
+    // check if item and itemName have been sent
+    if ('item' in req.body && 'itemName' in req.body) {
+      res.sendStatus(400);
+      return;
+    }
+
+    await orderRepository.save(req.body);
+
+    res.status(201).json(order);
+  }
 
   /**
    * Deletes one order
@@ -75,5 +163,22 @@ export class OrderController {
    * @param {Request} req frontend request to delete one order
    * @param {Response} res backend response deletion
    */
-  public static async deleteOrder(req: Request, res: Response) {}
+  public static async deleteOrder(req: Request, res: Response) {
+    const orderRepository = getRepository(Order);
+
+    const order: Order | undefined = await orderRepository.findOne({
+      where: { id: req.params.id },
+    });
+
+    if (order === undefined) {
+      res.status(404).json({
+        message: 'Order not found.',
+      });
+      return;
+    }
+
+    await orderRepository.delete(order);
+
+    res.sendStatus(204);
+  }
 }
