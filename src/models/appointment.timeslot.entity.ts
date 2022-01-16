@@ -26,7 +26,7 @@ export class AppointmentTimeslot extends TimeSlot {
    * @readonly
    */
   @ManyToOne(() => Room, (room) => room.appointments)
-  room: Room;
+  readonly room: Room;
 
   /**
    * If TimeSlotType is booked, the user associated with the time slot.
@@ -35,7 +35,7 @@ export class AppointmentTimeslot extends TimeSlot {
    * @readonly
    */
   @ManyToOne(() => User, (user) => user.bookings)
-  user: User;
+  readonly user: User;
 
   /**
    * The confirmation status of the time slot.

@@ -1,17 +1,19 @@
 import { define } from 'typeorm-seeding';
 import Faker from 'faker';
 import { Room } from '../../models/room.entity';
+import { getRepository } from 'typeorm';
 
 define(Room, (faker: typeof Faker) => {
   const name = faker.random.word();
   const description = faker.lorem.sentence();
-  const maxConcurrentBookings = faker.random.number(5);
+  const maxConcurrentBookings = 1;
   const autoAcceptBookings = faker.random.boolean();
 
-  const room = new Room();
-  room.name = name;
-  room.description = description;
-  room.maxConcurrentBookings = maxConcurrentBookings;
-  room.autoAcceptBookings = autoAcceptBookings;
+  const room = getRepository(Room).create({
+    name,
+    description,
+    maxConcurrentBookings,
+    autoAcceptBookings,
+  });
   return room;
 });
