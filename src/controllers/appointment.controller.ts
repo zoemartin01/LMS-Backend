@@ -7,6 +7,7 @@ import { Room } from '../models/room.entity';
 import { v4 as uuidv4 } from 'uuid';
 import { MessagingController } from './messaging.controller';
 import environment from '../environment';
+import app from '../app';
 
 /**
  * Controller for appointment management
@@ -252,12 +253,12 @@ export class AppointmentController {
     const repository = getRepository(AppointmentTimeslot);
     const appointments = await repository.find({
       where: { seriesId: req.params.id },
+      withDeleted: true,
     });
     if (appointments.length === 0) {
       res.sendStatus(404);
       return;
     }
-    //TODO get all appointments even deleted ones
 
     getRepository(AppointmentTimeslot)
       .update({ id: req.params.id }, req.body)
@@ -287,13 +288,19 @@ export class AppointmentController {
    */
   public static async deleteAppointment(req: Request, res: Response) {
     const repository = getRepository(AppointmentTimeslot);
-    repository.delete(req.params.id).then(() => {
-      res.sendStatus(204);
-    });
+    const appointment = await repository.findOne(req.params.id);
+    if (appointment != undefined && appointment.seriesId != undefined) {
+      repository.softDelete(req.params.id).then(() => {
+        res.sendStatus(204);
+      });
+    } else {
+      repository.delete(req.params.id).then(() => {
+        res.sendStatus(204);
+      });
+    }
 
     await AppointmentController.deletionMessage(req, res);
   }
-  //TODO soft delete for updateSeries method
 
   /**
    * Deletes a series of appointments
@@ -329,18 +336,20 @@ export class AppointmentController {
     }
     const currentUser = await AuthController.getCurrentUser(req);
     if (currentUser === null) {
-      res.status(404); //Todo right code
+      res.status(404);
       return;
     }
     if (await AuthController.checkAdmin(req)) {
       await MessagingController.sendMessage(
         appointment.user,
         'Appointment Deleted',
-        'Your appointment was deleted by an admin.',
-        'View Appointment',
-        `${environment.frontendUrl}/users`
-        //TODO right link
-        //TODO geht das noch wenn es deleted wird?
+        'Your appointment from ' +
+          appointment.start +
+          ' to ' +
+          appointment.end +
+          ' was deleted by an admin.',
+        '',
+        ``
       );
     } else {
       await MessagingController.sendMessage(
@@ -348,16 +357,19 @@ export class AppointmentController {
         'Appointment Deletion Confirmation',
         'Your appointment has been deleted.',
         'Your Appointments',
-        `${environment.frontendUrl}/users`
-        //TODO right link
-        //TODO geht das noch wenn es deleted wird?
+        `${environment.frontendUrl}/user/appointments`
       );
       await MessagingController.sendMessageToAllAdmins(
         'Appointment Deletion',
-        'An appointment has been deleted by an user.',
-        'View Appointment',
-        `${environment.frontendUrl}/users`
-        //TODO right link
+        'The appointment from ' +
+          appointment.start +
+          ' to ' +
+          appointment.end +
+          ' been deleted by the user ' +
+          appointment.user +
+          '.',
+        'View user',
+        `${environment.frontendUrl}/users/:id`
       );
     }
   }
