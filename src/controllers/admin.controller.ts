@@ -24,9 +24,10 @@ export class AdminController {
    * @param {Response} res backend response with data about global settings
    */
   public static async getGlobalSettings(req: Request, res: Response) {
-    const globalSettingsRepository = getRepository(GlobalSetting);
-    const globalSettings: GlobalSetting[] =
-      await globalSettingsRepository.find();
+    const globalSettings: GlobalSetting[] = await getRepository(
+      GlobalSetting
+    ).find();
+
     res.json(globalSettings);
   }
 
@@ -41,13 +42,27 @@ export class AdminController {
    * @param {Response} res backend response with data change of one global settings
    */
   public static async updateGlobalSettings(req: Request, res: Response) {
-    await getRepository(GlobalSetting)
+    const globalSettingsRepository = getRepository(GlobalSetting);
+
+    const globalSetting: GlobalSetting | undefined =
+      await globalSettingsRepository.findOne({
+        where: { key: req.params.key },
+      });
+
+    if (globalSetting === undefined) {
+      res.status(404).json({
+        message: `Global setting '${req.params.key}' not found.`,
+      });
+      return;
+    }
+
+    await globalSettingsRepository
       .update({ key: req.params.key }, req.body)
       .catch((err) => {
         res.status(400).json(err);
         return;
       })
-      .then((globalSetting) => res.status(200).json(globalSetting));
+      .then((globalSetting) => res.json(globalSetting));
   }
 
   /**
@@ -59,13 +74,9 @@ export class AdminController {
    * @param {Response} res backend response with data about one whitelist retailer
    */
   public static async getWhitelistRetailer(req: Request, res: Response) {
-    const retailerRepository = getRepository(Retailer);
-
-    const retailer =
-      undefined ||
-      (await retailerRepository.findOne({
-        where: { id: req.params.id },
-      }));
+    const retailer = await getRepository(Retailer).findOne({
+      where: { id: req.params.id },
+    });
 
     if (retailer === undefined) {
       res.status(404).json({
@@ -85,9 +96,7 @@ export class AdminController {
    * @param {Response} res backend response with data about all whitelist retailers
    */
   public static async getWhitelistRetailers(req: Request, res: Response) {
-    const retailerRepository = getRepository(Retailer);
-
-    const retailers: Retailer[] = await retailerRepository.find({});
+    const retailers: Retailer[] = await getRepository(Retailer).find();
 
     res.json(retailers);
   }
@@ -103,12 +112,14 @@ export class AdminController {
    */
   public static async createWhitelistRetailer(req: Request, res: Response) {
     const retailerRepository = getRepository(Retailer);
+
     const retailer = await retailerRepository
       .save(retailerRepository.create(req.body))
       .catch((err) => {
         res.status(400).json(err);
         return;
       });
+
     res.status(201).json(retailer);
   }
 
@@ -122,13 +133,26 @@ export class AdminController {
    * @param {Response} res backend response with data change of one whitelist retailer
    */
   public static async updateWhitelistRetailer(req: Request, res: Response) {
-    await getRepository(Retailer)
+    const retailerRepository = getRepository(Retailer);
+
+    const retailer: Retailer | undefined = await retailerRepository.findOne({
+      where: { id: req.params.id },
+    });
+
+    if (retailer === undefined) {
+      res.status(404).json({
+        message: 'Retailer not found.',
+      });
+      return;
+    }
+
+    await retailerRepository
       .update({ id: req.params.id }, req.body)
       .catch((err) => {
         res.status(400).json(err);
         return;
       })
-      .then((retailer) => res.status(200).json(retailer));
+      .then((retailer) => res.json(retailer));
   }
 
   /**
@@ -153,7 +177,7 @@ export class AdminController {
       return;
     }
 
-    await retailerRepository.delete(retailer);
+    await retailerRepository.delete(retailer.id);
 
     res.sendStatus(204);
   }
@@ -172,6 +196,7 @@ export class AdminController {
     res: Response
   ) {
     const retailerDomainRepository = getRepository(RetailerDomain);
+
     const retailerDomain = await retailerDomainRepository
       .save(retailerDomainRepository.create(req.body))
       .catch((err) => {
@@ -250,7 +275,8 @@ export class AdminController {
     req: Request,
     res: Response
   ): Promise<boolean> {
-    const domainRepository = getRepository(Retailer);
+    const domainRepository = getRepository(RetailerDomain);
+
     return (
       (await domainRepository.findOne({
         where: { domain: req.params.domain },
@@ -266,9 +292,7 @@ export class AdminController {
    * @param {Response} res backend response with data about all user
    */
   public static async getUsers(req: Request, res: Response) {
-    const userRepository = getRepository(User);
-
-    const users: User[] = await userRepository.find();
+    const users: User[] = await getRepository(User).find();
 
     res.json(users);
   }
@@ -282,9 +306,7 @@ export class AdminController {
    * @param {Response} res backend response with data about one specific user
    */
   public static async getUser(req: Request, res: Response) {
-    const userRepository = getRepository(User);
-
-    const user: User | undefined = await userRepository.findOne({
+    const user: User | undefined = await getRepository(User).findOne({
       where: { id: req.params.id },
     });
 
@@ -313,8 +335,21 @@ export class AdminController {
    * @param {Response} res backend response with data change of one user
    */
   public static async updateUser(req: Request, res: Response) {
-    await getRepository(User)
-      .update({ id: req.params.id }, req.body)
+    const userRepository = getRepository(User);
+
+    const user: User | undefined = await userRepository.findOne({
+      where: { id: req.params.id },
+    });
+
+    if (user === undefined) {
+      res.status(404).json({
+        message: 'User not found.',
+      });
+      return;
+    }
+
+    await userRepository
+      .update({ id: user.id }, req.body)
       .catch((err) => {
         res.status(400).json(err);
         return;
@@ -344,7 +379,7 @@ export class AdminController {
       return;
     }
 
-    await userRepository.delete(user);
+    await userRepository.delete(user.id);
 
     res.sendStatus(204);
 
