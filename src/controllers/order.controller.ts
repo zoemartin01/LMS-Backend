@@ -5,6 +5,7 @@ import { AuthController } from './auth.controller';
 import { OrderStatus } from '../types/enums/order-status';
 import { MessagingController } from './messaging.controller';
 import environment from '../environment';
+import { User } from '../models/user.entity';
 
 /**
  * Controller for order management
@@ -39,10 +40,16 @@ export class OrderController {
    * @param {Response} res backend response with data of all orders for the current user
    */
   public static async getOrdersForCurrentUser(req: Request, res: Response) {
+    const currentUser: User | null = await AuthController.getCurrentUser(req);
+    if (currentUser === undefined) {
+      res.status(404).json({
+        message: 'User not found.',
+      });
+    }
+
     getRepository(Order)
       .find({
-        // TODO fix
-        where: { user: AuthController.getCurrentUser(req) },
+        where: { user: currentUser },
       })
       .then((orders) => {
         res.json(orders);
