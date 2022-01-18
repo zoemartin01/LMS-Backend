@@ -382,8 +382,8 @@ export class AuthController {
 
     jsonwebtoken.verify(token, environment.accessTokenSecret, async (err) => {
       if (err) {
-        res.status(400).json({
-          message: 'Malformed token.',
+        res.status(401).json({
+          message: 'Invalid token.',
         });
         return;
       }
@@ -400,7 +400,7 @@ export class AuthController {
 
       if (tokenObject === undefined) {
         res.status(401).json({
-          message: 'There is a problem with your token.',
+          message: 'Invalid token.',
         });
         return;
       }
@@ -442,7 +442,7 @@ export class AuthController {
   public static async checkAdmin(req: Request): Promise<boolean> {
     const user: User | null = await AuthController.getCurrentUser(req);
 
-    return user === null || user.role == UserRole.admin;
+    return user === null || user.role === UserRole.admin;
   }
 
   /**
