@@ -92,8 +92,17 @@ router.patch(
 router.get(
   environment.apiRoutes.admin_settings.getWhitelistRetailer,
   AuthController.checkAuthenticationMiddleware,
+  AuthController.checkAdminMiddleware,
   AdminController.getWhitelistRetailer
 );
+
+router.get(
+  environment.apiRoutes.admin_settings.getWhitelistRetailers,
+  AuthController.checkAuthenticationMiddleware,
+  AuthController.checkAdminMiddleware,
+  AdminController.getWhitelistRetailers
+);
+
 router.post(
   environment.apiRoutes.admin_settings.createWhitelistRetailer,
   AuthController.checkAuthenticationMiddleware,
