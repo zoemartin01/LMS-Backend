@@ -17,7 +17,7 @@ export class InventoryController {
    * @param {Response} res backend response with data of all inventory items
    */
   public static async getAllInventoryItems(req: Request, res: Response) {
-    await getRepository(InventoryItem)
+    getRepository(InventoryItem)
       .find()
       .then((inventoryItems) => {
         res.json(inventoryItems);
@@ -33,7 +33,7 @@ export class InventoryController {
    * @param {Response} res backend response with data of one inventory item
    */
   public static async getInventoryItem(req: Request, res: Response) {
-    await getRepository(InventoryItem)
+    getRepository(InventoryItem)
       .findOne({
         where: { id: req.params.id },
       })
@@ -44,7 +44,8 @@ export class InventoryController {
           });
           return;
         }
-        res.status(200).json(inventoryItem);
+
+        res.json(inventoryItem);
       });
   }
 
@@ -69,7 +70,9 @@ export class InventoryController {
     if (existingInventoryItem === undefined) {
       const inventoryItem = await inventoryRepository.save(req.body);
       res.status(201).json(inventoryItem);
+      return;
     }
+
     res.status(303).json(existingInventoryItem);
   }
 
@@ -134,7 +137,7 @@ export class InventoryController {
       return;
     }
 
-    await inventoryRepository.delete(inventoryItem).then(() => {
+    await inventoryRepository.delete(inventoryItem.id).then(() => {
       res.sendStatus(204);
     });
   }
