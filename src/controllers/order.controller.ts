@@ -3,6 +3,8 @@ import { getRepository } from 'typeorm';
 import { Order } from '../models/order.entity';
 import { AuthController } from './auth.controller';
 import { OrderStatus } from '../types/enums/order-status';
+import { MessagingController } from './messaging.controller';
+import environment from '../environment';
 
 /**
  * Controller for order management
@@ -22,11 +24,11 @@ export class OrderController {
    * @param {Response} res backend response with data of all orders
    */
   public static async getAllOrders(req: Request, res: Response) {
-    const orderRepository = getRepository(Order);
-
-    const orders = await orderRepository.find();
-
-    res.json(orders);
+    getRepository(Order)
+      .find()
+      .then((orders) => {
+        res.status(200).json(orders);
+      });
   }
 
   /**
@@ -37,13 +39,13 @@ export class OrderController {
    * @param {Response} res backend response with data of all orders for the current user
    */
   public static async getOrdersForCurrentUser(req: Request, res: Response) {
-    const orderRepository = getRepository(Order);
-
-    const orders = await orderRepository.find({
-      where: { user: AuthController.getCurrentUser(req) },
-    });
-
-    res.json(orders);
+    getRepository(Order)
+      .find({
+        where: { user: AuthController.getCurrentUser(req) },
+      })
+      .then((orders) => {
+        res.status(200).json(orders);
+      });
   }
 
   /**
@@ -70,12 +72,12 @@ export class OrderController {
 
     if (!(await AuthController.checkAdmin(req))) {
       if (!(order.user === (await AuthController.getCurrentUser(req)))) {
-        res.sendStatus(403);
+        res.status(403);
         return;
       }
     }
 
-    res.json(order);
+    res.status(200).json(order);
   }
 
   /**
@@ -93,9 +95,37 @@ export class OrderController {
   public static async createOrder(req: Request, res: Response) {
     const orderRepository = getRepository(Order);
 
-    const order = await orderRepository.save(req.body);
-
+    let order: Order;
+    try {
+      order = await orderRepository.save(req.body);
+    } catch (err) {
+      res.status(400).json(err);
+      return;
+    }
     res.status(201).json(order);
+
+    const currentUser = await AuthController.getCurrentUser(req);
+    if (currentUser === null) {
+      res.status(404).json({
+        message: 'User not found.',
+      });
+      return;
+    }
+
+    await MessagingController.sendMessage(
+      currentUser,
+      'Order Request Confirmation',
+      'Your order request has been sent.',
+      'Your Orders',
+      `${environment.frontendUrl}/user/orders`
+    );
+
+    await MessagingController.sendMessageToAllAdmins(
+      'Accept Order Request',
+      'You have an open order request.',
+      'Order Requests',
+      `${environment.frontendUrl}/orders`
+    );
   }
 
   /**
@@ -135,24 +165,64 @@ export class OrderController {
         // check if no admin user tried to change order status
         'orderStatus' in req.body
       ) {
-        res.sendStatus(403);
+        res.status(403);
         return;
       }
     }
     // check if user tried to change affiliated user
     if ('user' in req.body) {
-      res.sendStatus(403);
+      res.status(403);
       return;
     }
     // check if item and itemName have been sent
     if ('item' in req.body && 'itemName' in req.body) {
-      res.sendStatus(400);
+      res.status(400).json({
+        message: 'Item and itemName cannot both be set',
+      });
       return;
     }
 
-    await orderRepository.save(req.body);
+    await orderRepository
+      .update(order.id, req.body)
+      .catch((err) => {
+        res.status(400).json(err);
+        return;
+      })
+      .then((order) => {
+        res.status(200).json(order);
+      });
 
-    res.status(201).json(order);
+    const currentUser = await AuthController.getCurrentUser(req);
+    if (currentUser === null) {
+      res.status(404).json({
+        message: 'User not found.',
+      });
+      return;
+    }
+
+    if (await AuthController.checkAdmin(req)) {
+      await MessagingController.sendMessage(
+        order.user,
+        'Updated Order',
+        'Your order request has been updated by an admin',
+        'Your Orders',
+        `${environment.frontendUrl}/user/orders`
+      );
+    } else {
+      await MessagingController.sendMessage(
+        currentUser,
+        'Updated Order Request Confirmation',
+        'Your order request has been updated.',
+        'Your Orders',
+        `${environment.frontendUrl}/user/orders`
+      );
+    }
+    await MessagingController.sendMessageToAllAdmins(
+      'Updated Order Request',
+      'The order request of user ' + order.user + 'has been updated',
+      'Updated Order',
+      `${environment.frontendUrl}/orders`
+    );
   }
 
   /**
@@ -177,8 +247,41 @@ export class OrderController {
       return;
     }
 
-    await orderRepository.delete(order);
+    if (!(await AuthController.checkAdmin(req))) {
+      if (!(order.user === (await AuthController.getCurrentUser(req)))) {
+        res.status(403);
+        return;
+      }
+    }
 
-    res.sendStatus(204);
+    await orderRepository.delete(order).then(() => {
+      res.sendStatus(204);
+    });
+
+    const currentUser = await AuthController.getCurrentUser(req);
+    if (currentUser === null) {
+      res.status(404).json({
+        message: 'User not found.',
+      });
+      return;
+    }
+
+    if (currentUser === order.user) {
+      await MessagingController.sendMessage(
+        currentUser,
+        'Order Deletion Confirmation',
+        'Your order was deleted successfully'
+      );
+    } else {
+      await MessagingController.sendMessage(
+        order.user,
+        'Order deleted',
+        'Your order was deleted by an admin'
+      );
+    }
+    await MessagingController.sendMessageToAllAdmins(
+      'Order Deletion',
+      'The order of user ' + order.user + 'was deleted'
+    );
   }
 }
