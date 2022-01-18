@@ -58,7 +58,7 @@ export class AppointmentController {
   public static async getAppointmentsForRoom(req: Request, res: Response) {
     const room = await getRepository(Room).findOne(req.params.id);
     if (room === undefined) {
-      res.sendStatus(404);
+      res.status(404).json({ message: 'room not found' });
       return;
     }
     res.status(200).json(room.appointments);
@@ -77,7 +77,7 @@ export class AppointmentController {
       where: { seriesId: req.params.id },
     });
     if (appointments.length === 0) {
-      res.sendStatus(404);
+      res.status(404).json({ message: 'no appointments for series found' });
       return;
     }
     res.status(200).json(appointments);
@@ -96,9 +96,17 @@ export class AppointmentController {
       req.params.id
     );
     if (appointment === undefined) {
-      res.sendStatus(404);
+      res.status(404).json({ message: 'appointment not found' });
       return;
     }
+    if (
+      !(await AuthController.checkAdmin(req)) &&
+      !(appointment.user === (await AuthController.getCurrentUser(req)))
+    ) {
+      res.status(403);
+      return;
+    }
+
     res.status(200).json(appointment);
   }
 
@@ -125,7 +133,7 @@ export class AppointmentController {
 
     const currentUser = await AuthController.getCurrentUser(req);
     if (currentUser === null) {
-      res.status(404);
+      res.status(404).json({ message: 'no user logged in' });
       return;
     }
     await MessagingController.sendMessage(
@@ -256,13 +264,19 @@ export class AppointmentController {
     const repository = getRepository(AppointmentTimeslot);
     const appointment = await repository.findOne(req.params.id);
 
+    if (!(await AuthController.checkAdmin(req))) {
+      res.status(403);
+      return;
+    }
     if (appointment === undefined) {
-      res.sendStatus(404);
+      res.status(404).json({ message: 'appointment not found' });
       return;
     }
     //single appointment in series can't be edited
     if (appointment.seriesId !== undefined) {
-      res.status(405);
+      res
+        .status(405)
+        .json({ message: 'single appointment of series can`t be edited' });
       return;
     }
 
@@ -289,7 +303,10 @@ export class AppointmentController {
         appointment.room.name +
         ' was edited by an admin.',
       'View Appointment',
-      `${environment.frontendUrl}/appointments/:id`
+      `${environment.frontendUrl}/appointments/:id`.replace(
+        ':id',
+        appointment.user.id
+      )
     );
   }
 
@@ -311,8 +328,12 @@ export class AppointmentController {
       where: { seriesId: req.params.id },
       withDeleted: true,
     });
+    if (!(await AuthController.checkAdmin(req))) {
+      res.status(403);
+      return;
+    }
     if (appointments.length === 0) {
-      res.sendStatus(404);
+      res.status(404).json({ message: 'no appointments for series found' });
       return;
     }
 
@@ -339,7 +360,10 @@ export class AppointmentController {
         appointments[0].room.name +
         ' was edited by an admin.',
       'View Appointments',
-      `${environment.frontendUrl}/appointments/series/:id'`
+      '${environment.frontendUrl}/appointments/series/:id'.replace(
+        ':id',
+        appointments[0].user.id
+      )
     );
   }
 
@@ -354,10 +378,19 @@ export class AppointmentController {
   public static async deleteAppointment(req: Request, res: Response) {
     const repository = getRepository(AppointmentTimeslot);
     const appointment = await repository.findOne(req.params.id);
+
     if (appointment === undefined) {
-      res.sendStatus(404);
+      res.status(404).json({ message: 'appointment not found' });
       return;
     }
+    if (
+      !(await AuthController.checkAdmin(req)) &&
+      !(appointment.user === (await AuthController.getCurrentUser(req)))
+    ) {
+      res.status(403);
+      return;
+    }
+
     if (appointment.seriesId != undefined) {
       repository.softDelete(req.params.id).then(() => {
         res.sendStatus(204);
@@ -370,7 +403,7 @@ export class AppointmentController {
 
     const currentUser = await AuthController.getCurrentUser(req);
     if (currentUser === null) {
-      res.status(404);
+      res.status(404).json({ message: 'no user logged in' });
       return;
     }
     if (await AuthController.checkAdmin(req)) {
@@ -386,8 +419,8 @@ export class AppointmentController {
           ' in room ' +
           appointment.room.name +
           ' was deleted by an admin.',
-        '',
-        ``
+        'Your appointments',
+        `${environment.frontendUrl}/user/appointments`
       );
     } else {
       await MessagingController.sendMessage(
@@ -413,7 +446,10 @@ export class AppointmentController {
           appointment.user.lastName +
           '.',
         'View user',
-        `${environment.frontendUrl}/users/:id`
+        `${environment.frontendUrl}/users/:id`.replace(
+          ':id',
+          appointment.user.id
+        )
       );
     }
   }
@@ -432,18 +468,25 @@ export class AppointmentController {
       where: { seriesId: req.params.id },
     });
     if (appointments.length === 0) {
-      res.sendStatus(404);
+      res.status(404).json({ message: 'no appointments in series found' });
+      return;
+    }
+    const currentUser = await AuthController.getCurrentUser(req);
+    if (currentUser === null) {
+      res.status(404).json({ message: 'no user logged in' });
+      return;
+    }
+    if (
+      !(await AuthController.checkAdmin(req)) &&
+      !(appointments[0].user === currentUser)
+    ) {
+      res.status(403);
       return;
     }
     await repository.remove(appointments).then(() => {
       res.sendStatus(204);
     });
 
-    const currentUser = await AuthController.getCurrentUser(req);
-    if (currentUser === null) {
-      res.status(404);
-      return;
-    }
     if (await AuthController.checkAdmin(req)) {
       await MessagingController.sendMessage(
         appointments[0].user,
@@ -457,8 +500,8 @@ export class AppointmentController {
           ' in room ' +
           appointments[0].room.name +
           ' has been deleted by an admin',
-        '',
-        ``
+        'Your appointments',
+        `${environment.frontendUrl}/user/appointments`
       );
     } else {
       await MessagingController.sendMessage(
@@ -492,7 +535,10 @@ export class AppointmentController {
           appointments[0].user.lastName +
           '.',
         'View user',
-        `${environment.frontendUrl}/users/:id`
+        `${environment.frontendUrl}/users/:id`.replace(
+          ':id',
+          appointments[0].user.id
+        )
       );
     }
   }
