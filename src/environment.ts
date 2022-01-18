@@ -12,7 +12,7 @@ const environment = {
   livecam_server: {
     host: 'localhost',
     port: 7000,
-    apiPath: '/api',
+    apiPath: '',
     endpoints: {
       list: '/recordings',
       download: '/recordings/:id',
@@ -47,6 +47,7 @@ const environment = {
       updateGlobalSettings: '/global-settings',
 
       getWhitelistRetailer: '/global-settings/whitelist-retailers/:id',
+      getWhitelistRetailers: '/global-settings/whitelist-retailers',
 
       createWhitelistRetailer: '/global-settings/whitelist-retailers',
       updateWhitelistRetailer: '/global-settings/whitelist-retailers/:id',
