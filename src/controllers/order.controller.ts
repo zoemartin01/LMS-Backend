@@ -144,7 +144,7 @@ export class OrderController {
   public static async updateOrder(req: Request, res: Response) {
     const orderRepository = getRepository(Order);
 
-    const order: Order | undefined = await orderRepository.findOne({
+    let order: Order | undefined = await orderRepository.findOne({
       where: { id: req.params.id },
     });
 
@@ -182,15 +182,26 @@ export class OrderController {
       return;
     }
 
-    await orderRepository
-      .update(order.id, req.body)
-      .catch((err) => {
-        res.status(400).json(err);
-        return;
-      })
-      .then((order) => {
-        res.status(200).json(order);
+    await orderRepository.update(order.id, req.body).catch((err) => {
+      res.status(400).json(err);
+      return;
+    });
+
+    order = await orderRepository.findOne({
+      where: { id: req.params.id },
+    });
+
+    if (order === undefined) {
+      res.status(404).json({
+        message: 'Order not found.',
       });
+      return;
+    }
+
+    res.status(200).json(order);
+
+    const itemName: string =
+      order.item === undefined ? order.itemName : order.item.name;
 
     const currentUser = await AuthController.getCurrentUser(req);
     if (currentUser === null) {
@@ -204,7 +215,7 @@ export class OrderController {
       await MessagingController.sendMessage(
         order.user,
         'Updated Order',
-        'Your order request has been updated by an admin',
+        'Your order request of ' + itemName + ' has been updated by an admin',
         'Your Orders',
         `${environment.frontendUrl}/user/orders`
       );
@@ -212,14 +223,19 @@ export class OrderController {
       await MessagingController.sendMessage(
         currentUser,
         'Updated Order Request Confirmation',
-        'Your order request has been updated.',
+        'Your order request of ' + itemName + ' has been updated.',
         'Your Orders',
         `${environment.frontendUrl}/user/orders`
       );
     }
     await MessagingController.sendMessageToAllAdmins(
       'Updated Order Request',
-      'The order request of user ' + order.user + 'has been updated',
+      'The order request of ' +
+        itemName +
+        ' of user ' +
+        order.user.firstName +
+        order.user.lastName +
+        'has been updated',
       'Updated Order',
       `${environment.frontendUrl}/orders`
     );
@@ -258,6 +274,9 @@ export class OrderController {
       res.sendStatus(204);
     });
 
+    const itemName: string =
+      order.item === undefined ? order.itemName : order.item.name;
+
     const currentUser = await AuthController.getCurrentUser(req);
     if (currentUser === null) {
       res.status(404).json({
@@ -270,18 +289,23 @@ export class OrderController {
       await MessagingController.sendMessage(
         currentUser,
         'Order Deletion Confirmation',
-        'Your order was deleted successfully'
+        'Your order of ' + itemName + ' was deleted successfully'
       );
     } else {
       await MessagingController.sendMessage(
         order.user,
         'Order deleted',
-        'Your order was deleted by an admin'
+        'Your order of' + itemName + ' was deleted by an admin'
       );
     }
     await MessagingController.sendMessageToAllAdmins(
       'Order Deletion',
-      'The order of user ' + order.user + 'was deleted'
+      'The order of ' +
+        itemName +
+        ' of user ' +
+        order.user.firstName +
+        order.user.lastName +
+        'was deleted'
     );
   }
 }
