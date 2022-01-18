@@ -87,7 +87,7 @@ export class InventoryController {
   public static async updateInventoryItem(req: Request, res: Response) {
     const inventoryRepository = getRepository(InventoryItem);
 
-    const inventoryItem: InventoryItem | undefined =
+    let inventoryItem: InventoryItem | undefined =
       await inventoryRepository.findOne({
         where: { id: req.params.id },
       });
@@ -99,15 +99,16 @@ export class InventoryController {
       return;
     }
 
-    inventoryRepository
-      .update(inventoryItem, req.body)
-      .catch((err) => {
-        res.status(400).json(err);
-        return;
-      })
-      .then((inventoryItem) => {
-        res.json(inventoryItem);
-      });
+    inventoryRepository.update(inventoryItem, req.body).catch((err) => {
+      res.status(400).json(err);
+      return;
+    });
+
+    inventoryItem = await inventoryRepository.findOne({
+      where: { id: req.params.id },
+    });
+
+    res.json(inventoryItem);
   }
 
   /**
