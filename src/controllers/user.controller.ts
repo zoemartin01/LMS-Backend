@@ -24,11 +24,10 @@ export class UserController {
   public static async getUser(req: Request, res: Response) {
     const userRepository = getRepository(User);
 
-    const user =
-      undefined ||
-      (await userRepository.findOne({
-        where: { id: req.body.id },
-      }));
+    const user = await userRepository.findOne({
+      where: { id: req.body.id },
+    });
+
     if (user === undefined) {
       res.status(404).json({
         message: 'User not found.',
@@ -49,13 +48,26 @@ export class UserController {
    * @param {Response} res backend response
    */
   public static async updateUser(req: Request, res: Response) {
-    await getRepository(User)
-      .update({ id: req.params.id }, req.body)
+    const userRepository = getRepository(User);
+
+    const user: User | undefined = await userRepository.findOne({
+      where: { id: req.params.id },
+    });
+
+    if (user === undefined) {
+      res.status(404).json({
+        message: 'User not found.',
+      });
+      return;
+    }
+
+    await userRepository
+      .update({ id: user.id }, req.body)
       .catch((err) => {
         res.status(400).json(err);
         return;
       })
-      .then((user) => res.status(200).json(user));
+      .then((user) => res.json(user));
   }
 
   /**
@@ -74,12 +86,12 @@ export class UserController {
 
     if (user === undefined) {
       res.status(404).json({
-        message: 'user not found.',
+        message: 'User not found.',
       });
       return;
     }
 
-    await userRepository.delete(user);
+    await userRepository.delete(user.id);
 
     res.sendStatus(204);
 
