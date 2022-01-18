@@ -276,7 +276,7 @@ export class OrderController {
       return;
     }
 
-    await orderRepository.delete(order).then(() => {
+    await orderRepository.delete(order.id).then(() => {
       res.sendStatus(204);
     });
 
