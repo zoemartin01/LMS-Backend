@@ -27,7 +27,7 @@ export class AppointmentController {
    */
   public static async getAllAppointments(req: Request, res: Response) {
     const appointments = await getRepository(AppointmentTimeslot).find();
-    res.status(200).json(appointments);
+    res.json(appointments);
   }
 
   /**
@@ -41,10 +41,18 @@ export class AppointmentController {
     req: Request,
     res: Response
   ) {
+    const currentUser = await AuthController.getCurrentUser(req);
+
+    if (currentUser === null) {
+      res.status(404).json({
+        message: 'User not found.',
+      });
+    }
+
     const appointments = await getRepository(AppointmentTimeslot).find({
-      where: { recipient: AuthController.getCurrentUser(req) },
+      where: { recipient: currentUser },
     });
-    res.status(200).json(appointments);
+    res.json(appointments);
   }
 
   /**
@@ -57,11 +65,13 @@ export class AppointmentController {
    */
   public static async getAppointmentsForRoom(req: Request, res: Response) {
     const room = await getRepository(Room).findOne(req.params.id);
+
     if (room === undefined) {
-      res.status(404).json({ message: 'room not found' });
+      res.status(404).json({ message: 'Room not found' });
       return;
     }
-    res.status(200).json(room.appointments);
+
+    res.json(room.appointments);
   }
 
   /**
@@ -76,11 +86,13 @@ export class AppointmentController {
     const appointments = await getRepository(AppointmentTimeslot).find({
       where: { seriesId: req.params.id },
     });
+
     if (appointments.length === 0) {
-      res.status(404).json({ message: 'no appointments for series found' });
+      res.status(404).json({ message: 'No appointments for series found' });
       return;
     }
-    res.status(200).json(appointments);
+
+    res.json(appointments);
   }
 
   /**
@@ -95,19 +107,21 @@ export class AppointmentController {
     const appointment = await getRepository(AppointmentTimeslot).findOne(
       req.params.id
     );
+
     if (appointment === undefined) {
       res.status(404).json({ message: 'appointment not found' });
       return;
     }
+
     if (
       !(await AuthController.checkAdmin(req)) &&
-      !(appointment.user === (await AuthController.getCurrentUser(req)))
+      appointment.user !== (await AuthController.getCurrentUser(req))
     ) {
-      res.status(403);
+      res.sendStatus(403);
       return;
     }
 
-    res.status(200).json(appointment);
+    res.json(appointment);
   }
 
   /**
@@ -123,19 +137,21 @@ export class AppointmentController {
    */
   public static async createAppointment(req: Request, res: Response) {
     const repository = getRepository(AppointmentTimeslot);
+
     const appointment = await repository
       .save(repository.create(req.body))
       .catch((err) => {
         res.status(400).json(err);
         return;
       });
+
     res.status(201).json(appointment);
 
     const currentUser = await AuthController.getCurrentUser(req);
     if (currentUser === null) {
-      res.status(404).json({ message: 'no user logged in' });
       return;
     }
+
     await MessagingController.sendMessage(
       currentUser,
       'Appointment Request Confirmation',
@@ -151,6 +167,7 @@ export class AppointmentController {
       'Your Appointments',
       `${environment.frontendUrl}/user/appointments`
     );
+
     await MessagingController.sendMessageToAllAdmins(
       'Accept Appointment Series Request',
       'You have an open appointment series request at ' +
@@ -208,6 +225,7 @@ export class AppointmentController {
         res.status(400).json(err);
         return;
       });
+
       appointments.push(appointment);
     }
 
@@ -229,6 +247,7 @@ export class AppointmentController {
       'Your Appointments',
       `${environment.frontendUrl}/user/appointments`
     );
+
     await MessagingController.sendMessageToAllAdmins(
       'Accept Appointment Series Request',
       'You have an open appointment series request at ' +
@@ -265,13 +284,15 @@ export class AppointmentController {
     const appointment = await repository.findOne(req.params.id);
 
     if (!(await AuthController.checkAdmin(req))) {
-      res.status(403);
+      res.sendStatus(403);
       return;
     }
+
     if (appointment === undefined) {
       res.status(404).json({ message: 'appointment not found' });
       return;
     }
+
     //single appointment in series can't be edited
     if (appointment.seriesId !== undefined) {
       res
@@ -284,7 +305,8 @@ export class AppointmentController {
       res.status(400).json(err);
       return;
     });
-    res.status(200).json(repository.findOne(req.params.id));
+
+    res.status(200).json(await repository.findOne(req.params.id));
 
     await MessagingController.sendMessage(
       appointment.user,
@@ -327,9 +349,10 @@ export class AppointmentController {
     });
 
     if (!(await AuthController.checkAdmin(req))) {
-      res.status(403);
+      res.sendStatus(403);
       return;
     }
+
     if (appointments.length === 0) {
       res.status(404).json({ message: 'no appointments for series found' });
       return;
@@ -382,12 +405,13 @@ export class AppointmentController {
         }
       }
     }
+
     res
       .status(200)
-      .json(repository.find({ where: { seriesId: req.params.id } }));
+      .json(await repository.find({ where: { seriesId: req.params.id } }));
 
     await MessagingController.sendMessage(
-      appointments[0].user,
+      user,
       'Appointment Edited',
       'Your appointment series at ' +
         moment(appointments[0].start).format('DD.MM.YY') +
@@ -396,12 +420,12 @@ export class AppointmentController {
         ' to ' +
         moment(appointments[0].end).format('HH:mm') +
         ' in room ' +
-        appointments[0].room.name +
+        room.name +
         ' was edited by an admin.',
       'View Appointments',
       '${environment.frontendUrl}/appointments/series/:id'.replace(
         ':id',
-        appointments[0].user.id
+        user.id
       )
     );
   }
@@ -422,25 +446,27 @@ export class AppointmentController {
       res.status(404).json({ message: 'appointment not found' });
       return;
     }
+
     const currentUser = await AuthController.getCurrentUser(req);
     if (currentUser === null) {
       res.status(404).json({ message: 'no user logged in' });
       return;
     }
+
     if (
       !(await AuthController.checkAdmin(req)) &&
-      !(appointment.user === currentUser)
+      appointment.user !== currentUser
     ) {
-      res.status(403);
+      res.sendStatus(403);
       return;
     }
 
-    if (appointment.seriesId != undefined) {
-      repository.softDelete(req.params.id).then(() => {
+    if (appointment.seriesId === undefined) {
+      repository.delete(req.params.id).then(() => {
         res.sendStatus(204);
       });
     } else {
-      repository.delete(req.params.id).then(() => {
+      repository.softDelete(req.params.id).then(() => {
         res.sendStatus(204);
       });
     }
@@ -473,6 +499,7 @@ export class AppointmentController {
         'Your Appointments',
         `${environment.frontendUrl}/user/appointments`
       );
+
       await MessagingController.sendMessageToAllAdmins(
         'Appointment Deletion',
         'The appointment from ' +
@@ -506,22 +533,26 @@ export class AppointmentController {
     const appointments = await repository.find({
       where: { seriesId: req.params.id },
     });
+
     if (appointments.length === 0) {
       res.status(404).json({ message: 'no appointments in series found' });
       return;
     }
+
     const currentUser = await AuthController.getCurrentUser(req);
     if (currentUser === null) {
       res.status(404).json({ message: 'no user logged in' });
       return;
     }
+
     if (
       !(await AuthController.checkAdmin(req)) &&
-      !(appointments[0].user === currentUser)
+      appointments[0].user !== currentUser
     ) {
-      res.status(403);
+      res.sendStatus(403);
       return;
     }
+
     await repository.remove(appointments).then(() => {
       res.sendStatus(204);
     });
@@ -558,6 +589,7 @@ export class AppointmentController {
         'Your Appointments',
         `${environment.frontendUrl}/user/appointments`
       );
+
       await MessagingController.sendMessageToAllAdmins(
         'Appointment Deletion',
         'The appointment series starting at ' +
