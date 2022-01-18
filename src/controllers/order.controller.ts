@@ -41,7 +41,8 @@ export class OrderController {
    */
   public static async getOrdersForCurrentUser(req: Request, res: Response) {
     const currentUser: User | null = await AuthController.getCurrentUser(req);
-    if (currentUser === undefined) {
+
+    if (currentUser === null) {
       res.status(404).json({
         message: 'User not found.',
       });
