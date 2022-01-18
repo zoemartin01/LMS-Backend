@@ -134,6 +134,8 @@ export class UserController {
       return;
     }
 
+    await userRepository.update(user, { emailVerification: true })
+
     await MessagingController.sendMessageToAllAdmins(
       'Accept User Registration',
       'You have an open user registration request.',
