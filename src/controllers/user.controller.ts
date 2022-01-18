@@ -23,15 +23,15 @@ export class UserController {
    * @param {Response} res backend response with personal user data
    */
   public static async getUser(req: Request, res: Response) {
-    const userRepository = getRepository(User);
-
     const user = await AuthController.getCurrentUser(req);
+
     if (user === null) {
       res.status(404).json({
-        message: 'user not found.',
+        message: 'User not found.',
       });
       return;
     }
+
     res.json(user);
   }
 
@@ -54,6 +54,8 @@ export class UserController {
       });
       return;
     }
+
+    // TODO: check req body for disallowed fields (e.g. role, emailVerification, isActiveDirectory)
 
     await userRepository.update({ id: user.id }, req.body).catch((err) => {
       res.status(400).json(err);
