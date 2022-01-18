@@ -2,6 +2,10 @@ import { getRepository } from 'typeorm';
 import { Room } from '../models/room.entity';
 import { Request, Response } from 'express';
 import { TimeSlot } from '../models/timeslot.entity';
+import { TimeSlotType } from '../types/enums/timeslot-type';
+import { AppointmentTimeslot } from '../models/appointment.timeslot.entity';
+import { AvailableTimeslot } from '../models/available.timeslot.entity';
+import { UnavailableTimeslot } from '../models/unavaliable.timeslot.entity';
 
 /**
  * Controller for room management
@@ -21,7 +25,7 @@ export class RoomController {
    */
   public static async getAllRooms(req: Request, res: Response) {
     const rooms = await getRepository(Room).find();
-    res.status(200).json(rooms);
+    res.json(rooms);
   }
 
   /**
@@ -34,11 +38,13 @@ export class RoomController {
    */
   public static async getRoomById(req: Request, res: Response) {
     const room = await getRepository(Room).findOne(req.params.id);
+
     if (room === undefined) {
-      res.sendStatus(404);
+      res.status(404).json({ message: 'Room not found' });
       return;
     }
-    res.status(200).json(room);
+
+    res.json(room);
   }
 
   /**
@@ -54,6 +60,7 @@ export class RoomController {
    */
   public static async createRoom(req: Request, res: Response) {
     const repository = getRepository(Room);
+
     const room = await repository
       .save(repository.create(req.body))
       .catch((err) => {
@@ -77,13 +84,20 @@ export class RoomController {
    * @param {Response} res backend response with data change of one room
    */
   public static async updateRoom(req: Request, res: Response) {
-    await getRepository(Room)
-      .update({ id: req.params.id }, req.body)
-      .catch((err) => {
-        res.status(400).json(err);
-        return;
-      })
-      .then((room) => res.status(200).json(room));
+    const repository = getRepository(Room);
+    const room = await repository.findOne(req.params.id);
+
+    if (room === undefined) {
+      res.status(404).json({ message: 'Room not found' });
+      return;
+    }
+
+    await repository.update({ id: room.id }, req.body).catch((err) => {
+      res.status(400).json(err);
+      return;
+    });
+
+    res.json(await repository.findOne(room.id));
   }
 
   /**
@@ -95,11 +109,17 @@ export class RoomController {
    * @param {Response} res backend response deletion
    */
   public static async deleteRoom(req: Request, res: Response) {
-    await getRepository(Room)
-      .delete(req.params.id)
-      .then(() => {
-        res.sendStatus(204);
-      });
+    const repository = getRepository(Room);
+    const room = await repository.findOne(req.params.id);
+
+    if (room === undefined) {
+      res.status(404).json({ message: 'Room not found' });
+      return;
+    }
+
+    await repository.delete(room.id).then(() => {
+      res.sendStatus(204);
+    });
   }
 
   /**
@@ -117,6 +137,11 @@ export class RoomController {
    * @param {Response} res backend response creation of a new available timeslot of a room
    */
   public static async createTimeslot(req: Request, res: Response) {
+    if ((await getRepository(Room).findOne(req.body.roomId)) === undefined) {
+      res.status(400).json({ message: 'Room not found' });
+      return;
+    }
+
     const repository = getRepository(TimeSlot);
     const timeslot = await repository
       .save(repository.create(req.body))
@@ -138,10 +163,34 @@ export class RoomController {
    * @param {Response} res backend response deletion
    */
   public static async deleteTimeslot(req: Request, res: Response) {
-    await getRepository(TimeSlot)
-      .delete(req.params.id)
-      .then(() => {
-        res.sendStatus(204);
-      });
+    const repository = getRepository(TimeSlot);
+
+    const timeslot = await repository.findOne(req.params.timeslotId);
+
+    if ((await getRepository(Room).findOne(req.body.roomId)) === undefined) {
+      res.status(400).json({ message: 'Room not found' });
+      return;
+    }
+
+    if (timeslot === undefined) {
+      res.status(404).json({ message: 'Timeslot not found' });
+      return;
+    }
+
+    if (
+      (timeslot.type === TimeSlotType.booked &&
+        (<AppointmentTimeslot>timeslot).room.id !== req.params.roomId) ||
+      (timeslot.type === TimeSlotType.available &&
+        (<AvailableTimeslot>timeslot).room.id !== req.params.roomId) ||
+      (timeslot.type === TimeSlotType.unavailable &&
+        (<UnavailableTimeslot>timeslot).room.id !== req.params.roomId)
+    ) {
+      res.status(400).json({ message: 'Timeslot not found for this room' });
+      return;
+    }
+
+    await repository.delete(timeslot.id).then(() => {
+      res.sendStatus(204);
+    });
   }
 }
