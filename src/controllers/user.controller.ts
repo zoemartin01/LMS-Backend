@@ -6,6 +6,7 @@ import { MessagingController } from './messaging.controller';
 import { User } from '../models/user.entity';
 import { Token } from '../models/token.entity';
 import { TokenType } from '../types/enums/token-type';
+import { AuthController } from './auth.controller';
 
 /**
  * Controller for User Settings
@@ -24,17 +25,13 @@ export class UserController {
   public static async getUser(req: Request, res: Response) {
     const userRepository = getRepository(User);
 
-    const user = await userRepository.findOne({
-      where: { id: req.body.id },
-    });
-
-    if (user === undefined) {
+    const user = await AuthController.getCurrentUser(req);
+    if (user === null) {
       res.status(404).json({
-        message: 'User not found.',
+        message: 'user not found.',
       });
       return;
     }
-
     res.json(user);
   }
 
@@ -48,26 +45,22 @@ export class UserController {
    * @param {Response} res backend response
    */
   public static async updateUser(req: Request, res: Response) {
+    const user = await AuthController.getCurrentUser(req);
     const userRepository = getRepository(User);
 
-    const user: User | undefined = await userRepository.findOne({
-      where: { id: req.params.id },
-    });
-
-    if (user === undefined) {
+    if (user === null) {
       res.status(404).json({
-        message: 'User not found.',
+        message: 'user not found.',
       });
       return;
     }
 
-    await userRepository
-      .update({ id: user.id }, req.body)
-      .catch((err) => {
-        res.status(400).json(err);
-        return;
-      })
-      .then((user) => res.json(user));
+    await userRepository.update({ id: user.id }, req.body).catch((err) => {
+      res.status(400).json(err);
+      return;
+    });
+
+    res.sendStatus(204).json(await userRepository.findOne(user.id));
   }
 
   /**
@@ -78,18 +71,15 @@ export class UserController {
    * @param {Response} res backend response deletion
    */
   public static async deleteUser(req: Request, res: Response) {
-    const userRepository = getRepository(User);
+    const user = await AuthController.getCurrentUser(req);
 
-    const user: User | undefined = await userRepository.findOne({
-      where: { id: req.params.id },
-    });
-
-    if (user === undefined) {
+    if (user === null) {
       res.status(404).json({
         message: 'User not found.',
       });
       return;
     }
+    const userRepository = getRepository(User);
 
     await userRepository.delete(user.id);
 
