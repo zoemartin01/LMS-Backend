@@ -280,15 +280,11 @@ export class AppointmentController {
       return;
     }
 
-    repository
-      .update(appointment.id, req.body)
-      .catch((err) => {
-        res.status(400).json(err);
-        return;
-      })
-      .then((appointment) => {
-        res.status(200).json(appointment);
-      });
+    repository.update(appointment.id, req.body).catch((err) => {
+      res.status(400).json(err);
+      return;
+    });
+    res.status(200).json(repository.findOne(req.params.id));
 
     await MessagingController.sendMessage(
       appointment.user,
@@ -324,10 +320,12 @@ export class AppointmentController {
    */
   public static async updateAppointmentSeries(req: Request, res: Response) {
     const repository = getRepository(AppointmentTimeslot);
+    const { start, end, difference, amount } = req.body;
     const appointments = await repository.find({
       where: { seriesId: req.params.id },
       withDeleted: true,
     });
+
     if (!(await AuthController.checkAdmin(req))) {
       res.status(403);
       return;
@@ -337,15 +335,56 @@ export class AppointmentController {
       return;
     }
 
-    for (let i = 0; i < +req.body.amount; i++) {
-      repository
-        .update(appointments[i].id, req.body) //Todo change!!
-        .catch((err) => {
-          res.status(400).json(err);
-          return;
-        })
-        .then((appointment) => res.status(200).json(appointment));
+    const { room, user, seriesId } = appointments[0];
+
+    for (
+      let i = 0;
+      i < (+amount >= appointments.length ? +amount : appointments.length);
+      i++
+    ) {
+      //loop to the biggest border
+      if (appointments[i].deletedAt !== undefined) continue;
+
+      if (
+        i < (+amount <= appointments.length ? +amount : appointments.length)
+      ) {
+        //these appointments are safe to update
+        repository
+          .update(appointments[i].id, {
+            start: new Date(start.getTime() + +difference * i),
+            end: new Date(end.getTime() + +difference * i),
+          }) //Todo change!!???
+          .catch((err) => {
+            res.status(400).json(err);
+            return;
+          });
+      } else {
+        //appointment series needs to be shortened or lengthened
+        if (+amount > appointments.length) {
+          //lengthen series by creating more in future
+          repository
+            .save(
+              repository.create(<DeepPartial<AppointmentTimeslot>>{
+                start: new Date(start.getTime() + +difference * i),
+                end: new Date(end.getTime() + +difference * i),
+                room,
+                user,
+                seriesId,
+              })
+            )
+            .catch((err) => {
+              res.status(400).json(err);
+              return;
+            });
+        } else if (appointments.length > +amount) {
+          //shorten series by removing access ones
+          await repository.softDelete(appointments[i].id);
+        }
+      }
     }
+    res
+      .status(200)
+      .json(repository.find({ where: { seriesId: req.params.id } }));
 
     await MessagingController.sendMessage(
       appointments[0].user,
@@ -383,9 +422,14 @@ export class AppointmentController {
       res.status(404).json({ message: 'appointment not found' });
       return;
     }
+    const currentUser = await AuthController.getCurrentUser(req);
+    if (currentUser === null) {
+      res.status(404).json({ message: 'no user logged in' });
+      return;
+    }
     if (
       !(await AuthController.checkAdmin(req)) &&
-      !(appointment.user === (await AuthController.getCurrentUser(req)))
+      !(appointment.user === currentUser)
     ) {
       res.status(403);
       return;
@@ -401,11 +445,6 @@ export class AppointmentController {
       });
     }
 
-    const currentUser = await AuthController.getCurrentUser(req);
-    if (currentUser === null) {
-      res.status(404).json({ message: 'no user logged in' });
-      return;
-    }
     if (await AuthController.checkAdmin(req)) {
       await MessagingController.sendMessage(
         appointment.user,
