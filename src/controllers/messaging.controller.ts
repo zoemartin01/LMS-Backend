@@ -89,7 +89,7 @@ export class MessagingController {
       return;
     }
 
-    await messageRepository.delete(message);
+    await messageRepository.delete(message.id);
 
     res.sendStatus(204);
   }
