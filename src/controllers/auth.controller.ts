@@ -425,8 +425,13 @@ export class AuthController {
           where: { token, type: TokenType.authenticationToken },
         })
         .then(
-          (tokenObject: Token | undefined) => {
-            return tokenObject?.user ?? null;
+          async (tokenObject: Token | undefined) => {
+            if (tokenObject === undefined) {
+              return null;
+            }
+            return (
+              (await getRepository(User).findOne(tokenObject.userId)) || null
+            );
           },
           () => {
             return null;
