@@ -67,7 +67,7 @@ export class Message extends BaseEntity {
    * @type {User}
    * @readonly
    */
-  @ManyToOne(() => User, (user) => user.messages)
+  @ManyToOne(() => User, (user) => user.messages, { eager: true })
   readonly recipient: User;
 
   /**
