@@ -42,7 +42,7 @@ export class Token extends BaseEntity {
    * @type {User}
    * @readonly
    */
-  @ManyToOne(() => User, (user) => user.tokens, { eager: true })
+  @ManyToOne(() => User, (user) => user.tokens)
   readonly user: User;
 
   /**
@@ -78,7 +78,6 @@ export class Token extends BaseEntity {
    */
   @ManyToOne(() => Token, {
     nullable: true,
-    eager: true,
   })
   readonly refreshToken: Token;
 

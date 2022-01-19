@@ -26,7 +26,7 @@ export class Recording extends BaseEntity {
    * @type {User}
    * @readonly
    */
-  @ManyToOne(() => User, (user) => user.recordings, { eager: true })
+  @ManyToOne(() => User, (user) => user.recordings)
   readonly user: User;
 
   /**

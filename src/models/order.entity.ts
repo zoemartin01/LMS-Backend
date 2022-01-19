@@ -27,10 +27,7 @@ export class Order extends BaseEntity {
    * @type {InventoryItem}
    * @nullable if item does not yet exist.
    */
-  @ManyToOne(() => InventoryItem, (item) => item.orders, {
-    nullable: true,
-    eager: true,
-  })
+  @ManyToOne(() => InventoryItem, (item) => item.orders, { nullable: true })
   @IsOptional()
   item: InventoryItem;
 
@@ -50,7 +47,7 @@ export class Order extends BaseEntity {
    * @type {User}
    * @readonly
    */
-  @ManyToOne(() => User, (user) => user.orders, { eager: true })
+  @ManyToOne(() => User, (user) => user.orders)
   readonly user: User;
 
   /**
