@@ -47,10 +47,11 @@ export class AppointmentController {
       res.status(404).json({
         message: 'User not found.',
       });
+      return;
     }
 
     const appointments = await getRepository(AppointmentTimeslot).find({
-      where: { recipient: currentUser },
+      where: { user: currentUser },
     });
     res.json(appointments);
   }
