@@ -420,15 +420,18 @@ export class AuthController {
     if (authHeader) {
       const token = authHeader.split(' ')[1];
 
-      await getRepository(Token)
+      return getRepository(Token)
         .findOne({
           where: { token, type: TokenType.authenticationToken },
         })
-        .then((tokenObject: Token | undefined) => {
-          if (tokenObject != undefined) {
-            return tokenObject.user;
+        .then(
+          (tokenObject: Token | undefined) => {
+            return tokenObject?.user ?? null;
+          },
+          () => {
+            return null;
           }
-        });
+        );
     }
     return null;
   }
