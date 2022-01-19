@@ -61,8 +61,8 @@ export class AdminController {
       .catch((err) => {
         res.status(400).json(err);
         return;
-      })
-      .then((globalSetting) => res.json(globalSetting));
+      });
+    res.json(await globalSettingsRepository.findOne(globalSetting.key));
   }
 
   /**
@@ -151,8 +151,9 @@ export class AdminController {
       .catch((err) => {
         res.status(400).json(err);
         return;
-      })
-      .then((retailer) => res.json(retailer));
+      });
+
+    res.json(await retailerRepository.findOne(retailer.id));
   }
 
   /**
@@ -221,13 +222,27 @@ export class AdminController {
     req: Request,
     res: Response
   ) {
-    await getRepository(RetailerDomain)
+    const retailerDomainRepository = getRepository(RetailerDomain);
+
+    const retailerDomain: RetailerDomain | undefined =
+      await retailerDomainRepository.findOne({
+        where: { id: req.params.id },
+      });
+
+    if (retailerDomain === undefined) {
+      res.status(404).json({
+        message: 'Retailer domain not found.',
+      });
+      return;
+    }
+    retailerDomainRepository
       .update({ id: req.params.id }, req.body)
       .catch((err) => {
         res.status(400).json(err);
         return;
-      })
-      .then((retailerDomain) => res.status(201).json(retailerDomain));
+      });
+
+    res.json(await retailerDomainRepository.findOne(retailerDomain.id));
   }
 
   /**
@@ -348,13 +363,12 @@ export class AdminController {
       return;
     }
 
-    await userRepository
-      .update({ id: user.id }, req.body)
-      .catch((err) => {
-        res.status(400).json(err);
-        return;
-      })
-      .then((user) => res.status(201).json(user));
+    await userRepository.update({ id: user.id }, req.body).catch((err) => {
+      res.status(400).json(err);
+      return;
+    });
+
+    res.json(await userRepository.findOne(user.id));
   }
 
   /**
