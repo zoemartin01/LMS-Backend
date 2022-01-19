@@ -62,9 +62,7 @@ export class AdminController {
         res.status(400).json(err);
         return;
       });
-    res
-      .status(204)
-      .json(await globalSettingsRepository.findOne(globalSetting.key));
+    res.json(await globalSettingsRepository.findOne(globalSetting.key));
   }
 
   /**
@@ -155,7 +153,7 @@ export class AdminController {
         return;
       });
 
-    res.status(204).json(await retailerRepository.findOne(retailer.id));
+    res.json(await retailerRepository.findOne(retailer.id));
   }
 
   /**
@@ -244,9 +242,7 @@ export class AdminController {
         return;
       });
 
-    res
-      .status(204)
-      .json(await retailerDomainRepository.findOne(retailerDomain.id));
+    res.json(await retailerDomainRepository.findOne(retailerDomain.id));
   }
 
   /**
@@ -372,7 +368,7 @@ export class AdminController {
       return;
     });
 
-    res.status(204).json(await userRepository.findOne(user.id));
+    res.json(await userRepository.findOne(user.id));
   }
 
   /**
