@@ -21,7 +21,7 @@ export class RetailerDomain extends BaseEntity {
    * @type {Retailer}
    * @readonly
    */
-  @ManyToOne(() => Retailer, (retailer) => retailer.domains)
+  @ManyToOne(() => Retailer, (retailer) => retailer.domains, { eager: true })
   readonly retailer: Retailer;
 
   /**
