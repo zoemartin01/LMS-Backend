@@ -6,6 +6,7 @@ import { MessagingController } from './messaging.controller';
 import { User } from '../models/user.entity';
 import { Token } from '../models/token.entity';
 import { TokenType } from '../types/enums/token-type';
+import { AuthController } from './auth.controller';
 
 /**
  * Controller for User Settings
@@ -21,7 +22,18 @@ export class UserController {
    * @param {Request} req frontend request to get personal user data
    * @param {Response} res backend response with personal user data
    */
-  public static async getUser(req: Request, res: Response) {}
+  public static async getUser(req: Request, res: Response) {
+    const user = await AuthController.getCurrentUser(req);
+
+    if (user === null) {
+      res.status(404).json({
+        message: 'User not found.',
+      });
+      return;
+    }
+
+    res.json(user);
+  }
 
   /**
    * Changes personal user data
@@ -32,7 +44,26 @@ export class UserController {
    * @param {Request} req frontend request to change personal user data
    * @param {Response} res backend response
    */
-  public static async updateUser(req: Request, res: Response) {}
+  public static async updateUser(req: Request, res: Response) {
+    const user = await AuthController.getCurrentUser(req);
+    const userRepository = getRepository(User);
+
+    if (user === null) {
+      res.status(404).json({
+        message: 'user not found.',
+      });
+      return;
+    }
+
+    // TODO: check req body for disallowed fields (e.g. role, emailVerification, isActiveDirectory)
+
+    await userRepository.update({ id: user.id }, req.body).catch((err) => {
+      res.status(400).json(err);
+      return;
+    });
+
+    res.sendStatus(204).json(await userRepository.findOne(user.id));
+  }
 
   /**
    * Deletes own user
@@ -41,7 +72,32 @@ export class UserController {
    * @param {Request} req frontend request to delete own user
    * @param {Response} res backend response deletion
    */
-  public static async deleteUser(req: Request, res: Response) {}
+  public static async deleteUser(req: Request, res: Response) {
+    const user = await AuthController.getCurrentUser(req);
+
+    if (user === null) {
+      res.status(404).json({
+        message: 'User not found.',
+      });
+      return;
+    }
+    const userRepository = getRepository(User);
+
+    await userRepository.delete(user.id);
+
+    res.sendStatus(204);
+
+    await MessagingController.sendMessageToAllAdmins(
+      'User deleted',
+      'User' + user.firstName + user.lastName + 'deleted their account'
+    );
+
+    await MessagingController.sendMessage(
+      user,
+      'Account deleted',
+      'Your account has been deleted. Bye!'
+    );
+  }
 
   /**
    * Registers new user with their personal information
