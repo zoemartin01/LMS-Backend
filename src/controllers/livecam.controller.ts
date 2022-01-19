@@ -56,10 +56,10 @@ export class LivecamController {
       .findOne(req.params.id)
       .then((recording) => {
         if (recording === undefined) {
-          res.sendStatus(404);
+          res.status(404).json({ message: 'Recording not found' });
           return;
         }
-        res.status(200).json(recording);
+        res.json(recording);
       });
   }
 
@@ -78,7 +78,7 @@ export class LivecamController {
     const recording = await repository.findOne(req.params.id);
 
     if (recording === undefined) {
-      res.sendStatus(404);
+      res.status(404).json({ message: 'Recording not found' });
       return;
     }
 
@@ -89,7 +89,7 @@ export class LivecamController {
         return;
       })
       .then((recording) => {
-        res.status(200).json(recording);
+        res.json(recording);
       });
   }
 
@@ -170,7 +170,7 @@ export class LivecamController {
     const recording = await repository.findOne(req.params.id);
 
     if (recording === undefined) {
-      res.sendStatus(404);
+      res.status(404).json({ message: 'Recording not found' });
       return;
     }
 
