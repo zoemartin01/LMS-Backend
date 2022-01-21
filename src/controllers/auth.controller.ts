@@ -466,6 +466,8 @@ export class AuthController {
     res: Response,
     next: NextFunction
   ) {
-    (await AuthController.checkAdmin(req)) ? next() : res.sendStatus(403);
+    await AuthController.checkAdmin(req)
+      ? next()
+      : res.sendStatus(403);
   }
 }
