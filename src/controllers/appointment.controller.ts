@@ -284,11 +284,6 @@ export class AppointmentController {
     const repository = getRepository(AppointmentTimeslot);
     const appointment = await repository.findOne(req.params.id);
 
-    if (!(await AuthController.checkAdmin(req))) {
-      res.sendStatus(403);
-      return;
-    }
-
     if (appointment === undefined) {
       res.status(404).json({ message: 'appointment not found' });
       return;
@@ -297,7 +292,7 @@ export class AppointmentController {
     //single appointment in series can't be edited
     if (appointment.seriesId !== undefined) {
       res
-        .status(405)
+        .status(400)
         .json({ message: 'single appointment of series can`t be edited' });
       return;
     }
@@ -348,11 +343,6 @@ export class AppointmentController {
       where: { seriesId: req.params.id },
       withDeleted: true,
     });
-
-    if (!(await AuthController.checkAdmin(req))) {
-      res.sendStatus(403);
-      return;
-    }
 
     if (appointments.length === 0) {
       res.status(404).json({ message: 'no appointments for series found' });
