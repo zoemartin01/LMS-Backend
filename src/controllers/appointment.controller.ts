@@ -282,7 +282,7 @@ export class AppointmentController {
    */
   public static async updateAppointment(req: Request, res: Response) {
     const repository = getRepository(AppointmentTimeslot);
-    const appointment = await repository.findOne(req.params.id);
+    let appointment = await repository.findOne(req.params.id);
 
     if (appointment === undefined) {
       res.status(404).json({ message: 'appointment not found' });
@@ -290,7 +290,7 @@ export class AppointmentController {
     }
 
     //single appointment in series can't be edited
-    if (appointment.seriesId !== undefined) {
+    if (appointment.seriesId !== null) {
       res
         .status(400)
         .json({ message: 'single appointment of series can`t be edited' });
@@ -302,7 +302,13 @@ export class AppointmentController {
       return;
     });
 
-    res.status(200).json(await repository.findOne(req.params.id));
+    appointment = await repository.findOne(req.params.id);
+
+    if (appointment === undefined) {
+      throw Error("Can't be reached!");
+    }
+
+    res.json(appointment);
 
     await MessagingController.sendMessage(
       appointment.user,
