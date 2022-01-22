@@ -4,6 +4,7 @@ var settings = {
   username: "postgres",
   password: "postgres",
   database: "postgres",
+  synchronize: "true",
   entities: ["src/models/!(*.spec).ts"],
 };
 
