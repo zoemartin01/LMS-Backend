@@ -13,7 +13,7 @@ import { User } from './user.entity';
 chai.use(chaiHttp);
 chai.should();
 
-describe('LivecamController', () => {
+describe('Recording', () => {
   let connection: Connection;
   let repository: Repository<Recording>;
 
