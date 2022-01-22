@@ -11,8 +11,8 @@ testing:
     - name: postgresql:latest
       alias: db
   variables:
-    - POSTGRES_PASSWORD=postgres
-    - DB_HOST: db
+    POSTGRES_PASSWORD: postgres
+    DB_HOST: db
   script:
     - echo "Testing..."
     - npm ci
