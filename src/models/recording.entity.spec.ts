@@ -34,7 +34,7 @@ describe('LivecamController', () => {
   });
 
   describe('Create Recording', () => {
-    it('it should create a new recording', async () => {
+    it('successfully should create a new recording', async () => {
       const user = await factory(User)().create();
       await factory(Recording)({ user }).create();
 
