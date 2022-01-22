@@ -1,24 +1,22 @@
-if (process.env.NODE_ENV === "docker") {
+var settings = {
+  name: "default",
+  type: "postgres",
+  username: "postgres",
+  password: "postgres",
+  database: "postgres",
+  entities: ["src/models/!(*.spec).ts"],
+};
+
+if (process.env.NODE_ENV === "testing") {
   module.exports = {
-    name: "default",
-    type: "postgres",
-    host: "db",
-    port: 5432,
-    username: "postgres",
-    password: "postgres",
-    database: "postgres",
-    entities: ["src/models/*.ts"],
+    ...settings,
+    host: process.env.DB_HOST || "127.0.0.1",
+    port: process.env.DB_PORT || 5433,
   };
 } else {
   module.exports = {
-    name: "default",
-    type: "postgres",
-    host: "127.0.0.1",
-    port: 5432,
-    username: "postgres",
-    password: "postgres",
-    database: "postgres",
-    synchronize: true,
-    entities: ["src/models/*.ts"],
+    ...settings,
+    host: process.env.DB_HOST || "127.0.0.1",
+    port: process.env.DB_PORT || 5432,
   };
 }
