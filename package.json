@@ -5,7 +5,7 @@
   "main": "index.js",
   "private": true,
   "scripts": {
-    "test": "ts-mocha src/**/*.spec.ts --runInBand",
+    "test": "ts-mocha src/**/*.spec.ts src/test.spec.ts",
     "dev": "ts-node ./src/server.ts",
     "prettier": "prettier --write src/**/*.{ts,js,css,html}",
     "prepare": "husky install",
