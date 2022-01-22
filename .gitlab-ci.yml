@@ -5,6 +5,20 @@ stages:          # List of stages for jobs, and their order of execution
   - test
   - deploy
 
+testing:
+  stage: test
+  services:
+    - name: postgresql:latest
+      alias: db
+  variables:
+    - POSTGRES_PASSWORD=postgres
+    - DB_HOST: db
+  script:
+    - echo "Testing..."
+    - npm ci
+    - npm run test
+
+
 build-job:
   stage: build
   script:
