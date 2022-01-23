@@ -2,13 +2,11 @@ import { Connection, getRepository } from 'typeorm';
 import { useRefreshDatabase } from 'typeorm-seeding';
 import chai from 'chai';
 import environment from './environment';
-import App from './app';
 import { Token } from './models/token.entity';
 import { TokenType } from './types/enums/token-type';
 import { User } from './models/user.entity';
 import moment from 'moment';
 import jsonwebtoken from 'jsonwebtoken';
-import { AuthController } from './controllers/auth.controller';
 
 chai.should();
 
