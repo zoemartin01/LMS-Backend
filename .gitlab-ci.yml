@@ -41,6 +41,9 @@ lint-test-job:
 deploy-container-job:
   image: docker:19.03.12
   stage: deploy
+  only:
+    refs:
+      - master
   services:
     - docker:19.03.12-dind
   script:
