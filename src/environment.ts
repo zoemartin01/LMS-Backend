@@ -20,6 +20,7 @@ const environment = {
     },
   },
   apiRoutes: {
+    base: '/api/v1',
     auth: {
       login: '/token',
       logout: '/token',

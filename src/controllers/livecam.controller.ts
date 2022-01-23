@@ -87,10 +87,9 @@ export class LivecamController {
       .catch((err) => {
         res.status(400).json(err);
         return;
-      })
-      .then((recording) => {
-        res.json(recording);
       });
+
+    res.json(await repository.findOne(recording.id));
   }
 
   /**

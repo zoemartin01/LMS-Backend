@@ -1,16 +1,9 @@
 import { Connection, Repository } from 'typeorm';
-import {
-  factory,
-  tearDownDatabase,
-  useRefreshDatabase,
-  useSeeding,
-} from 'typeorm-seeding';
+import { factory, useRefreshDatabase, useSeeding } from 'typeorm-seeding';
 import chai from 'chai';
-import chaiHttp from 'chai-http';
 import { Recording } from './recording.entity';
 import { User } from './user.entity';
 
-chai.use(chaiHttp);
 chai.should();
 
 describe('Recording', () => {
@@ -27,10 +20,6 @@ describe('Recording', () => {
     // Below here settings specific to this test suite
     repository = connection.getRepository(Recording);
     await useSeeding();
-  });
-
-  afterEach(async () => {
-    await tearDownDatabase();
   });
 
   describe('Create Recording', () => {
