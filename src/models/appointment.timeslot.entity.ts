@@ -24,7 +24,7 @@ export class AppointmentTimeslot extends TimeSlot {
    * @type {Room}
    * @readonly
    */
-  @ManyToOne(() => Room, (room) => room.appointments)
+  @ManyToOne(() => Room, (room) => room.appointments, { eager: true })
   readonly room: Room;
 
   /**
@@ -33,7 +33,7 @@ export class AppointmentTimeslot extends TimeSlot {
    * @type {User}
    * @readonly
    */
-  @ManyToOne(() => User, (user) => user.bookings)
+  @ManyToOne(() => User, (user) => user.bookings, { eager: true })
   readonly user: User;
 
   /**

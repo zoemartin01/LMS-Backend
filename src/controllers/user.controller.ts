@@ -54,8 +54,42 @@ export class UserController {
       });
       return;
     }
-
-    // TODO: check req body for disallowed fields (e.g. role, emailVerification, isActiveDirectory)
+    if (req.body.role !== undefined) {
+      res.status(403).json({
+        message: 'No permission to change role.',
+      });
+      return;
+    }
+    if (req.body.emailVerification !== undefined) {
+      res.status(403).json({
+        message: 'No permission to change email verification.',
+      });
+      return;
+    }
+    if (req.body.isActiveDirectory !== undefined) {
+      res.status(403).json({
+        message: 'No permission to change login option.',
+      });
+      return;
+    }
+    if (req.body.firstName !== undefined || req.body.lastName !== undefined) {
+      res.status(403).json({
+        message: 'No permission to change name.',
+      });
+      return;
+    }
+    if (req.body.email !== undefined) {
+      res.status(403).json({
+        message: 'No permission to change email.',
+      });
+      return;
+    }
+    if (req.body.id !== undefined) {
+      res.status(403).json({
+        message: 'No permission to change id.',
+      });
+      return;
+    }
 
     await userRepository.update({ id: user.id }, req.body).catch((err) => {
       res.status(400).json(err);
@@ -145,10 +179,12 @@ export class UserController {
         await MessagingController.sendMessage(
           user,
           'Verify Email to confirm account',
-          'You need to click on this link to confirm your account.',
+          `You need to click on this link to confirm your account or go to ${environment.frontendUrl}/register/verify-email and enter user-ID: ${user.id} and token: ${token.token}.`,
           'Verify Email',
-          `${environment.frontendUrl}/user/verify-email/${user.id}/${token.token}`
+          `${environment.frontendUrl}/register/verify-email/${user.id}/${token.token}`
         );
+
+        res.status(201).json(user);
       }
     );
   }
@@ -190,7 +226,7 @@ export class UserController {
       return;
     }
 
-    await userRepository.update(user, { emailVerification: true })
+    await userRepository.update(user, { emailVerification: true });
 
     await MessagingController.sendMessageToAllAdmins(
       'Accept User Registration',
@@ -198,5 +234,9 @@ export class UserController {
       'Accept User',
       `${environment.frontendUrl}/users`
     );
+
+    await tokenRepository.delete(tokenObject.id);
+
+    res.status(200).json(user);
   }
 }

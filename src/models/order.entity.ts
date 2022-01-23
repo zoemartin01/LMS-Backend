@@ -56,7 +56,11 @@ export class Order extends BaseEntity {
    * @type {OrderStatus}
    * @default OrderStatus.pending
    */
-  @Column({ default: OrderStatus.pending })
+  @Column({
+    type: 'enum',
+    enum: OrderStatus,
+    default: OrderStatus.pending,
+  })
   @IsOptional()
   @IsEnum(OrderStatus)
   status: OrderStatus;

@@ -24,7 +24,9 @@ export class RoomController {
    * @param {Response} res backend response with data about all rooms
    */
   public static async getAllRooms(req: Request, res: Response) {
-    const rooms = await getRepository(Room).find();
+    const rooms = await getRepository(Room).find({
+      relations: ['appointments', 'availableTimeSlots', 'unavailableTimeSlots'],
+    });
     res.json(rooms);
   }
 
@@ -37,7 +39,9 @@ export class RoomController {
    * @param {Response} res backend response with data about one room
    */
   public static async getRoomById(req: Request, res: Response) {
-    const room = await getRepository(Room).findOne(req.params.id);
+    const room = await getRepository(Room).findOne(req.params.id, {
+      relations: ['appointments', 'availableTimeSlots', 'unavailableTimeSlots'],
+    });
 
     if (room === undefined) {
       res.status(404).json({ message: 'Room not found' });
@@ -97,7 +101,15 @@ export class RoomController {
       return;
     });
 
-    res.json(await repository.findOne(room.id));
+    res.json(
+      await repository.findOne(room.id, {
+        relations: [
+          'appointments',
+          'availableTimeSlots',
+          'unavailableTimeSlots',
+        ],
+      })
+    );
   }
 
   /**
