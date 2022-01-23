@@ -34,7 +34,7 @@ export class Helpers {
     return `Bearer ${accessToken}`;
   }
 
-  public static async getCurrentUser(app: App): Promise<User> {
+  public static async getCurrentUser(): Promise<User> {
     const authHeader = await this.getAuthHeader();
 
     if (authHeader === undefined) throw new Error('Auth header is undefined');

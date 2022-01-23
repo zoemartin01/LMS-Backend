@@ -35,8 +35,8 @@ describe('LivecamController', () => {
     await runSeeder(CreateTestUsers);
 
     // Authentication
-    auth_header = await Helpers.getAuthHeader(app);
-    user = await Helpers.getCurrentUser(app);
+    auth_header = await Helpers.getAuthHeader();
+    user = await Helpers.getCurrentUser();
   });
 
   describe('GET /livecam/recordings', () => {
@@ -90,25 +90,16 @@ describe('LivecamController', () => {
         });
     });
 
-    // it('should fail with negative size', (done) => {
+    // it('should fail with negative size', async () => {
+    //   const recording = await factory(Recording)(user).create();
+
     //   chai
     //     .request(app.app)
-    //     .get(
-    //       `${environment.apiRoutes.base}${environment.apiRoutes.livecam.getAllScheduled}`
-    //     )
+    //     .patch(uri.replace(':id', recording.id))
     //     .set('Authorization', auth_header)
+    //     .send({ size: -1 })
     //     .end((err, res) => {
-    //       const id = res.body[0].id;
-
-    //       chai
-    //         .request(app.app)
-    //         .patch(uri.replace(':id', id))
-    //         .set('Authorization', auth_header)
-    //         .send({ size: -1 })
-    //         .end((err, res) => {
-    //           expect(res.status).to.equal(400);
-    //           done();
-    //         });
+    //       expect(res.status).to.equal(400);
     //     });
     // });
 
