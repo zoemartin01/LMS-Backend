@@ -27,14 +27,14 @@ describe('Database', () => {
 });
 
 export class Helpers {
-  public static async getAuthHeader(): Promise<string> {
-    const { accessToken } = await this.genTokens('admin@test.com');
+  public static async getAuthHeader(admin = true): Promise<string> {
+    const { accessToken } = await this.genTokens(
+      admin ? 'admin@test.com' : 'visitor@test.com'
+    );
     return `Bearer ${accessToken}`;
   }
 
-  public static async getCurrentUser(): Promise<User> {
-    const authHeader = await this.getAuthHeader();
-
+  public static async getCurrentUser(authHeader: string): Promise<User> {
     if (authHeader === undefined) throw new Error('Auth header is undefined');
 
     const token = authHeader.split(' ')[1];
