@@ -6,6 +6,9 @@ import App from './app';
 import { Token } from './models/token.entity';
 import { TokenType } from './types/enums/token-type';
 import { User } from './models/user.entity';
+import moment from 'moment';
+import jsonwebtoken from 'jsonwebtoken';
+import { AuthController } from './controllers/auth.controller';
 
 chai.should();
 
@@ -26,18 +29,13 @@ describe('Database', () => {
 });
 
 export class Helpers {
-  public static async getAuthHeader(app: App): Promise<string> {
-    return await chai
-      .request(app.app)
-      .post(`${environment.apiRoutes.base}${environment.apiRoutes.auth.login}`)
-      .send({ email: 'admin@test.com', password: 'admin' })
-      .then((res) => {
-        return `Bearer ${res.body.accessToken}`;
-      });
+  public static async getAuthHeader(): Promise<string> {
+    const { accessToken } = await this.genTokens('admin@test.com');
+    return `Bearer ${accessToken}`;
   }
 
   public static async getCurrentUser(app: App): Promise<User> {
-    const authHeader = await this.getAuthHeader(app);
+    const authHeader = await this.getAuthHeader();
 
     if (authHeader === undefined) throw new Error('Auth header is undefined');
 
@@ -54,5 +52,50 @@ export class Helpers {
     if (user === undefined) throw new Error('User is undefined');
 
     return user;
+  }
+
+  private static async genTokens(email: string) {
+    const user = await getRepository(User).findOne({ where: { email } });
+
+    if (user === undefined) throw new Error('User is undefined');
+
+    const tokenRepository = getRepository(Token);
+
+    const expiration = moment().add(20, 'years').unix();
+
+    const refreshToken = jsonwebtoken.sign(
+      {
+        userId: user.id,
+      },
+      environment.refreshTokenSecret
+    );
+
+    const refreshTokenModel = await tokenRepository.save(
+      tokenRepository.create({
+        token: refreshToken,
+        user: user,
+        type: TokenType.refreshToken,
+      })
+    );
+
+    const accessToken = jsonwebtoken.sign(
+      {
+        exp: expiration,
+        userId: user.id,
+      },
+      environment.accessTokenSecret
+    );
+
+    await tokenRepository.save(
+      tokenRepository.create({
+        token: accessToken,
+        user: user,
+        type: TokenType.authenticationToken,
+        refreshToken: refreshTokenModel,
+        expiresAt: new Date(1000 * expiration),
+      })
+    );
+
+    return { accessToken, refreshToken };
   }
 }
