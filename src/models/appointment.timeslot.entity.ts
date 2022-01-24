@@ -3,6 +3,7 @@ import { ConfirmationStatus } from '../types/enums/confirmation-status';
 import { Room } from './room.entity';
 import { TimeSlot } from './timeslot.entity';
 import { User } from './user.entity';
+import { TimeSlotType } from '../types/enums/timeslot-type';
 
 /**
  * Appointment Timeslot
@@ -16,7 +17,7 @@ import { User } from './user.entity';
  * @property {ConfirmationStatus} confirmationStatus - The confirmation status of the time slot.
  * @property {string} seriesId - The id of the series the time slot belongs to.
  */
-@ChildEntity()
+@ChildEntity(TimeSlotType.booked)
 export class AppointmentTimeslot extends TimeSlot {
   /**
    * The room the time slot belongs to.

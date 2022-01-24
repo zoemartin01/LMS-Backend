@@ -15,17 +15,17 @@ import { Helpers } from '../test.spec';
 import { User } from '../models/user.entity';
 import { Room } from '../models/room.entity';
 import { TimeSlot } from '../models/timeslot.entity';
+import { AvailableTimeslot } from '../models/available.timeslot.entity';
+import { TimeSlotType } from '../types/enums/timeslot-type';
 
 chai.use(chaiHttp);
 chai.should();
 
-describe('LivecamController', () => {
+describe('RoomController', () => {
   const app: App = new App(3000);
   let connection: Connection;
   let adminHeader: string;
   let admin: User;
-  let rooms: Room[];
-  let room: Room;
   let visitorHeader: string;
   let visitor: User;
 
@@ -45,8 +45,6 @@ describe('LivecamController', () => {
 
     visitorHeader = await Helpers.getAuthHeader(false);
     visitor = await Helpers.getCurrentUser(visitorHeader);
-
-    room = await factory(Room)(admin).create();
   });
 
   describe('GET /rooms', () => {
@@ -58,28 +56,6 @@ describe('LivecamController', () => {
         .get(uri)
         .end((err, res) => {
           expect(res.status).to.equal(400);
-          done();
-        });
-    });
-
-    it('should fail as non-admin', (done) => {
-      chai
-        .request(app.app)
-        .get(uri)
-        .set('Authorization', visitorHeader)
-        .end((err, res) => {
-          expect(res.status).to.equal(403);
-          done();
-        });
-    });
-
-    it('should fail with invalid id', (done) => {
-      chai
-        .request(app.app)
-        .get(uri.replace(':id', 'invalid'))
-        .set('Authorization', adminHeader)
-        .end((err, res) => {
-          expect(res.status).to.equal(404);
           done();
         });
     });
@@ -99,18 +75,16 @@ describe('LivecamController', () => {
     });
 
     it('should get all rooms', async () => {
-      const room = await factory(Room)(admin).create();
-      const room2 = await factory(Room)(admin).create();
-      const room3 = await factory(Room)(admin).create();
+      const rooms = await factory(Room)().createMany(3);
 
       chai
         .request(app.app)
         .get(uri)
-        .set('Room', adminHeader)
+        .set('Authorization', adminHeader)
         .end((err, res) => {
           expect(res.status).to.equal(200);
           expect(res.body).to.be.an('array');
-          expect(res.body.length).to.be.equal(2);
+          expect(res.body.length).to.be.equal(3);
         });
     });
   });
@@ -128,17 +102,6 @@ describe('LivecamController', () => {
         });
     });
 
-    it('should fail as non-admin', (done) => {
-      chai
-        .request(app.app)
-        .get(uri.replace(':id', uuidv4()))
-        .set('Authorization', visitorHeader)
-        .end((err, res) => {
-          expect(res.status).to.equal(403);
-          done();
-        });
-    });
-
     it('should fail with invalid id', (done) => {
       chai
         .request(app.app)
@@ -151,7 +114,7 @@ describe('LivecamController', () => {
     });
 
     it('should get a specific room', async () => {
-      const room = await factory(Room)(admin).create();
+      const room = await factory(Room)().create();
       chai
         .request(app.app)
         .get(uri.replace(':id', room.id))
@@ -159,8 +122,8 @@ describe('LivecamController', () => {
         .send({ size: 1 })
         .end((err, res) => {
           expect(res.status).to.equal(200);
-          expect(res.body).to.be.an('array');
-          expect(res.body.size).to.be.equal(1);
+          expect(res.body.name).to.exist;
+          expect(res.body.id).to.equal(room.id);
         });
     });
   });
@@ -181,7 +144,7 @@ describe('LivecamController', () => {
     it('should fail as non-admin', (done) => {
       chai
         .request(app.app)
-        .patch(uri)
+        .patch(uri.replace(':id', uuidv4()))
         .set('Authorization', visitorHeader)
         .end((err, res) => {
           expect(res.status).to.equal(403);
@@ -201,15 +164,15 @@ describe('LivecamController', () => {
     });
 
     it('should update a specific room', async () => {
-      const room = await factory(Room)(admin).create();
+      const room = await factory(Room)().create();
       chai
         .request(app.app)
         .patch(uri.replace(':id', room.id))
         .set('Authorization', adminHeader)
-        .send({ size: 1 })
+        .send({ name: 'testRoomUpdate' })
         .end((err, res) => {
           expect(res.status).to.equal(200);
-          expect(res.body.size).to.be.equal(1);
+          expect(res.body.name).to.equal('testRoomUpdate');
         });
     });
   });
@@ -227,17 +190,6 @@ describe('LivecamController', () => {
         });
     });
 
-    it('should fail with invalid id', (done) => {
-      chai
-        .request(app.app)
-        .post(uri.replace(':id', 'invalid'))
-        .set('Authorization', adminHeader)
-        .end((err, res) => {
-          expect(res.status).to.equal(404);
-          done();
-        });
-    });
-
     it('should fail as non-admin', (done) => {
       chai
         .request(app.app)
@@ -250,18 +202,19 @@ describe('LivecamController', () => {
     });
 
     it('should successfully create a new room', async () => {
-      const room = await factory(Room)(admin).create();
+      const room = await factory(Room)().make();
       const repository = getRepository(Room);
 
       chai
         .request(app.app)
-        .post(uri.replace(':id', room.id))
+        .post(uri)
         .set('Authorization', adminHeader)
+        .send(room)
         .end((err, res) => {
-          expect(res.status).to.equal(204);
+          expect(res.status).to.equal(201);
 
-          repository.findOne({ id: room.id }).then((room) => {
-            expect(room).to.be.undefined;
+          repository.findOne({ name: room.name }).then((room) => {
+            expect(room).to.exist;
           });
         });
     });
@@ -294,7 +247,7 @@ describe('LivecamController', () => {
     it('should fail as non-admin', (done) => {
       chai
         .request(app.app)
-        .delete(uri)
+        .delete(uri.replace(':id', uuidv4()))
         .set('Authorization', visitorHeader)
         .end((err, res) => {
           expect(res.status).to.equal(403);
@@ -303,7 +256,7 @@ describe('LivecamController', () => {
     });
 
     it('should delete a specific room', async () => {
-      const room = await factory(Room)(admin).create();
+      const room = await factory(Room)().create();
       const repository = getRepository(Room);
 
       repository.findOne({ id: room.id }).then((room) => {
@@ -328,7 +281,7 @@ describe('LivecamController', () => {
     const uri = `${environment.apiRoutes.base}${environment.apiRoutes.rooms.createTimeslot}`;
 
     it('should fail without authentification', async () => {
-      const room = await factory(Room)(admin).create();
+      const room = await factory(Room)().create();
       chai
         .request(app.app)
         .post(uri.replace(':roomId', room.id))
@@ -337,19 +290,8 @@ describe('LivecamController', () => {
         });
     });
 
-    it('should fail with invalid id', async () => {
-      const room = await factory(Room)(admin).create();
-      chai
-        .request(app.app)
-        .post(uri.replace(':roomId', room.id))
-        .set('Authorization', adminHeader)
-        .end((err, res) => {
-          expect(res.status).to.equal(404);
-        });
-    });
-
     it('should fail as non-admin', async () => {
-      const room = await factory(Room)(admin).create();
+      const room = await factory(Room)().create();
       chai
         .request(app.app)
         .post(uri)
@@ -360,25 +302,21 @@ describe('LivecamController', () => {
     });
 
     it('should successfully create a new timeslot', async () => {
-      const timeslot = await factory(TimeSlot)(admin).create();
+      const room = await factory(Room)().create();
+      const timeslot = await factory(AvailableTimeslot)(room).make();
       const timeSlotRepository = getRepository(TimeSlot);
-
-      timeSlotRepository.findOne({ id: timeslot.id }).then((room) => {
-        expect(timeslot).to.be.not.undefined;
-      });
+      const expectedAmount = await timeSlotRepository.count();
+      timeslot.type = TimeSlotType.available;
 
       chai
         .request(app.app)
-        .post(
-          uri.replace(':roomId', room.id).replace(':timeslotId', timeslot.id)
-        )
+        .post(uri.replace(':roomId', room.id))
         .set('Authorization', adminHeader)
-        .end((err, res) => {
-          expect(res.status).to.equal(204);
+        .send(timeslot)
+        .end(async (err, res) => {
+          expect(res.status).to.equal(201);
 
-          timeSlotRepository.findOne({ id: timeslot.id }).then((timeslot) => {
-            expect(timeslot).to.be.undefined;
-          });
+          expect(await timeSlotRepository.find()).to.equal(expectedAmount + 1);
         });
     });
   });
@@ -386,7 +324,8 @@ describe('LivecamController', () => {
   describe('DELETE /rooms/:roomId/timeslots/:timeslotId', () => {
     const uri = `${environment.apiRoutes.base}${environment.apiRoutes.rooms.deleteTimeslot}`;
 
-    it('should fail without authentification', (done) => {
+    it('should fail without authentification', async () => {
+      const room = await factory(Room)().create();
       chai
         .request(app.app)
         .delete(
@@ -394,11 +333,12 @@ describe('LivecamController', () => {
         )
         .end((err, res) => {
           expect(res.status).to.equal(400);
-          done();
         });
     });
 
-    it('should fail with invalid id', (done) => {
+    it('should fail with invalid id', async () => {
+      const room = await factory(Room)().create();
+
       chai
         .request(app.app)
         .delete(
@@ -407,23 +347,26 @@ describe('LivecamController', () => {
         .set('Authorization', adminHeader)
         .end((err, res) => {
           expect(res.status).to.equal(404);
-          done();
         });
     });
 
-    it('should fail as non-admin', (done) => {
+    it('should fail as non-admin', async () => {
+      const room = await factory(Room)().create();
+
       chai
         .request(app.app)
-        .delete(uri)
+        .delete(
+          uri.replace(':roomId', room.id).replace(':timeslotId', uuidv4())
+        )
         .set('Authorization', visitorHeader)
         .end((err, res) => {
           expect(res.status).to.equal(403);
-          done();
         });
     });
 
     it('should delete a specific timeslot', async () => {
-      const timeslot = await factory(TimeSlot)(admin).create();
+      const room = await factory(Room)().create();
+      const timeslot = await factory(AvailableTimeslot)(room).create();
       const timeSlotRepository = getRepository(TimeSlot);
 
       timeSlotRepository.findOne({ id: timeslot.id }).then((room) => {
