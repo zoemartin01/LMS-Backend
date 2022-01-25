@@ -4,10 +4,8 @@ const environment = {
   accessTokenSecret: 'V50jPXQVocPUSPHl0yzPJhXZzh32bp',
   refreshTokenSecret: '3pqOHs7R1TrCgsRKksPp4J3Kfs0l0X',
   activeDirectoryConfig: {
-    url: 'ldap://',
-    baseDN: 'dc=',
-    username: '',
-    password: '',
+    url: 'ldaps://ldap.teco.edu:636',
+    //baseDN: 'dc=',
   },
   livecam_server: {
     host: 'localhost',
