@@ -1,3 +1,4 @@
+import { IsEnum, ValidateIf } from 'class-validator';
 import { ChildEntity, Column, ManyToOne } from 'typeorm';
 import { ConfirmationStatus } from '../types/enums/confirmation-status';
 import { TimeSlotType } from '../types/enums/timeslot-type';
@@ -15,6 +16,7 @@ import { User } from './user.entity';
  * @property {Room} room - The room the time slot belongs to.
  * @property {User} user - The user who booked the appointment.
  * @property {ConfirmationStatus} confirmationStatus - The confirmation status of the time slot.
+ * @property {string} seriesId - The id of the series the time slot belongs to.
  */
 @ChildEntity(TimeSlotType.booked)
 export class AppointmentTimeslot extends TimeSlot {
@@ -24,8 +26,8 @@ export class AppointmentTimeslot extends TimeSlot {
    * @type {Room}
    * @readonly
    */
-  @ManyToOne(() => Room, (room) => room.appointments)
-  room: Room;
+  @ManyToOne(() => Room, (room) => room.appointments, { eager: true })
+  readonly room: Room;
 
   /**
    * If TimeSlotType is booked, the user associated with the time slot.
@@ -33,8 +35,8 @@ export class AppointmentTimeslot extends TimeSlot {
    * @type {User}
    * @readonly
    */
-  @ManyToOne(() => User, (user) => user.bookings)
-  user: User;
+  @ManyToOne(() => User, (user) => user.bookings, { eager: true })
+  readonly user: User;
 
   /**
    * The confirmation status of the time slot.
@@ -47,5 +49,16 @@ export class AppointmentTimeslot extends TimeSlot {
     enum: ConfirmationStatus,
     default: ConfirmationStatus.pending,
   })
+  @ValidateIf((appointment) => appointment.type)
+  @IsEnum(ConfirmationStatus)
   confirmationStatus: ConfirmationStatus;
+
+  /**
+   * The id of the series the time slot belongs to.
+   *
+   * @type {string}
+   * @readonly
+   */
+  @Column()
+  seriesId: string;
 }

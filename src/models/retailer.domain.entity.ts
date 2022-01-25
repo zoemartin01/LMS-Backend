@@ -1,3 +1,4 @@
+import { IsNotEmpty } from 'class-validator';
 import { Column, Entity, ManyToOne } from 'typeorm';
 import { BaseEntity } from './base.entity';
 import { Retailer } from './retailer.entity';
@@ -18,17 +19,18 @@ export class RetailerDomain extends BaseEntity {
    * Retailer
    *
    * @type {Retailer}
+   * @readonly
    */
-  @ManyToOne(() => Retailer, (retailer) => retailer.domains, {
-    onDelete: 'CASCADE',
-  })
-  public retailer: Retailer;
+  @ManyToOne(() => Retailer, (retailer) => retailer.domains)
+  readonly retailer: Retailer;
 
   /**
    * Retailer domain
    *
    * @type {string}
+   * @readonly
    */
   @Column()
-  domain: string;
+  @IsNotEmpty()
+  readonly domain: string;
 }

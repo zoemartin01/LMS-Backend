@@ -117,14 +117,16 @@ export class MessagingController {
       return;
     }
 
-    if (req.body != { readStatus: true } && req.body != { readStatus: false }) {
+    if (req.body.readStatus !== true && req.body.readStatus !== false) {
       res.status(400).json({
         message: 'Malformed request.',
       });
       return;
     }
 
-    const message: Message | undefined = await messageRepository.findOne(req.params.id);
+    const message: Message | undefined = await messageRepository.findOne(
+      req.params.id
+    );
 
     if (message === undefined) {
       res.status(404).json({

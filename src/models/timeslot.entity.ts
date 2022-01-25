@@ -1,3 +1,4 @@
+import { IsDateString } from 'class-validator';
 import { Column, Entity, TableInheritance } from 'typeorm';
 import { TimeSlotType } from '../types/enums/timeslot-type';
 import { BaseEntity } from './base.entity';
@@ -26,6 +27,7 @@ export class TimeSlot extends BaseEntity {
    * @readonly
    */
   @Column()
+  @IsDateString()
   start: Date;
 
   /**
@@ -35,6 +37,7 @@ export class TimeSlot extends BaseEntity {
    * @readonly
    */
   @Column()
+  @IsDateString()
   end: Date;
 
   /**

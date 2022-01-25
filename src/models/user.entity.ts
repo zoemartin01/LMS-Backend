@@ -1,3 +1,10 @@
+import {
+  IsBoolean,
+  IsEmail,
+  IsEnum,
+  IsNotEmpty,
+  ValidateIf,
+} from 'class-validator';
 import { Entity, Column, OneToMany } from 'typeorm';
 import { NotificationChannel } from '../types/enums/notification-channel';
 import { UserRole } from '../types/enums/user-role';
@@ -35,6 +42,7 @@ export class User extends BaseEntity {
    *
    * @type {string}
    */
+  @IsEmail()
   @Column()
   email: string;
 
@@ -44,6 +52,7 @@ export class User extends BaseEntity {
    * @type {string}
    */
   @Column()
+  @IsNotEmpty()
   firstName: string;
 
   /**
@@ -52,6 +61,7 @@ export class User extends BaseEntity {
    * @type {string}
    */
   @Column()
+  @IsNotEmpty()
   lastName: string;
 
   /**
@@ -60,6 +70,7 @@ export class User extends BaseEntity {
    * @type {string}
    */
   @Column()
+  @IsNotEmpty()
   password: string;
 
   /**
@@ -73,6 +84,8 @@ export class User extends BaseEntity {
     enum: UserRole,
     default: UserRole.pending,
   })
+  @ValidateIf((user) => user.role)
+  @IsEnum(UserRole)
   role: UserRole;
 
   /**
@@ -82,6 +95,8 @@ export class User extends BaseEntity {
    * @default false
    */
   @Column({ default: false })
+  @ValidateIf((user) => user.emailVerification)
+  @IsBoolean()
   emailVerification: boolean;
 
   /**
@@ -92,7 +107,7 @@ export class User extends BaseEntity {
    * @readonly
    */
   @Column({ default: false })
-  isActiveDirectory: boolean;
+  readonly isActiveDirectory: boolean;
 
   /**
    * The chosen notification channel of the user.
@@ -105,6 +120,8 @@ export class User extends BaseEntity {
     enum: NotificationChannel,
     default: NotificationChannel.emailOnly,
   })
+  @ValidateIf((user) => user.notificationChannel)
+  @IsEnum(NotificationChannel)
   notificationChannel: NotificationChannel;
 
   /**

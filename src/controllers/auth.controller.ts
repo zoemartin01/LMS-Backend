@@ -206,7 +206,8 @@ export class AuthController {
   ): Promise<{ accessToken: string; refreshToken: string }> {
     const tokenRepository = getRepository(Token);
 
-    const expiration = moment().add(20, 'minutes').unix();
+    //@todo Adrian reset to minutes after development phase
+    const expiration = moment().add(20, 'years').unix();
 
     const refreshToken = jsonwebtoken.sign(
       {
@@ -382,8 +383,8 @@ export class AuthController {
 
     jsonwebtoken.verify(token, environment.accessTokenSecret, async (err) => {
       if (err) {
-        res.status(400).json({
-          message: 'Malformed token.',
+        res.status(401).json({
+          message: 'Invalid token.',
         });
         return;
       }
@@ -400,7 +401,7 @@ export class AuthController {
 
       if (tokenObject === undefined) {
         res.status(401).json({
-          message: 'There is a problem with your token.',
+          message: 'Invalid token.',
         });
         return;
       }
@@ -420,15 +421,23 @@ export class AuthController {
     if (authHeader) {
       const token = authHeader.split(' ')[1];
 
-      await getRepository(Token)
+      return getRepository(Token)
         .findOne({
           where: { token, type: TokenType.authenticationToken },
         })
-        .then((tokenObject: Token | undefined) => {
-          if (tokenObject != undefined) {
-            return tokenObject.user;
+        .then(
+          async (tokenObject: Token | undefined) => {
+            if (tokenObject === undefined) {
+              return null;
+            }
+            return (
+              (await getRepository(User).findOne(tokenObject.userId)) || null
+            );
+          },
+          () => {
+            return null;
           }
-        });
+        );
     }
     return null;
   }
@@ -442,7 +451,7 @@ export class AuthController {
   public static async checkAdmin(req: Request): Promise<boolean> {
     const user: User | null = await AuthController.getCurrentUser(req);
 
-    return user === null || user.role == UserRole.admin;
+    return user === null || user.role === UserRole.admin;
   }
 
   /**
@@ -457,6 +466,8 @@ export class AuthController {
     res: Response,
     next: NextFunction
   ) {
-    (await AuthController.checkAdmin(req)) ? next() : res.sendStatus(403);
+    await AuthController.checkAdmin(req)
+      ? next()
+      : res.sendStatus(403);
   }
 }

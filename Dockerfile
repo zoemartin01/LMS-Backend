@@ -1,8 +1,8 @@
 FROM node:lts-alpine as build
 
-WORKDIR /usr/local/backend
 COPY ./ /usr/local/backend
+WORKDIR /usr/local/backend
 
-RUN npm install
+RUN npm ci
 EXPOSE 3000
-ENTRYPOINT [ "node", "app.js" ]
+ENTRYPOINT [ "npx", "ts-node", "src/server.ts" ]

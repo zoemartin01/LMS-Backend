@@ -1,3 +1,11 @@
+import {
+  IsBoolean,
+  IsNotEmpty,
+  IsNumber,
+  IsOptional,
+  IsString,
+  Min,
+} from 'class-validator';
 import { Column, Entity, OneToMany } from 'typeorm';
 import { AppointmentTimeslot } from './appointment.timeslot.entity';
 import { AvailableTimeslot } from './available.timeslot.entity';
@@ -27,6 +35,8 @@ export class Room extends BaseEntity {
    * @type {string}
    */
   @Column()
+  @IsNotEmpty()
+  @IsString()
   name: string;
 
   /**
@@ -36,6 +46,8 @@ export class Room extends BaseEntity {
    * @default ''
    */
   @Column({ default: '' })
+  @IsOptional()
+  @IsString()
   description: string;
 
   /**
@@ -45,6 +57,9 @@ export class Room extends BaseEntity {
    * @default 1
    */
   @Column({ default: 1 })
+  @IsOptional()
+  @IsNumber()
+  @Min(1)
   maxConcurrentBookings: number;
 
   /**
@@ -54,6 +69,8 @@ export class Room extends BaseEntity {
    * @default false
    */
   @Column({ default: false })
+  @IsOptional()
+  @IsBoolean()
   autoAcceptBookings: boolean;
 
   /**

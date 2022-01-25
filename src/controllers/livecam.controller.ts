@@ -1,11 +1,10 @@
 import { Request, Response } from 'express';
-import { getRepository, LessThan, MoreThan } from 'typeorm';
+import { DeepPartial, getRepository, LessThan, MoreThan } from 'typeorm';
 import { Recording } from '../models/recording.entity';
 import environment from '../environment';
 import { promisify } from 'util';
 import { pipeline } from 'stream';
 import axios from 'axios';
-import { VideoResolution } from '../types/enums/video-resolution';
 
 /**
  * Controller for the LiveCam System
@@ -56,7 +55,11 @@ export class LivecamController {
     await getRepository(Recording)
       .findOne(req.params.id)
       .then((recording) => {
-        res.status(200).json(recording);
+        if (recording === undefined) {
+          res.status(404).json({ message: 'Recording not found' });
+          return;
+        }
+        res.json(recording);
       });
   }
 
@@ -70,8 +73,23 @@ export class LivecamController {
    * @param {Response} res backend response
    */
   public static async updateRecording(req: Request, res: Response) {
-    await getRepository(Recording).update({ id: req.params.id }, req.body);
-    res.sendStatus(200);
+    const repository = getRepository(Recording);
+
+    const recording = await repository.findOne(req.params.id);
+
+    if (recording === undefined) {
+      res.status(404).json({ message: 'Recording not found' });
+      return;
+    }
+
+    await getRepository(Recording)
+      .update(recording.id, req.body)
+      .catch((err) => {
+        res.status(400).json(err);
+        return;
+      });
+
+    res.json(await repository.findOne(recording.id));
   }
 
   /**
@@ -87,19 +105,24 @@ export class LivecamController {
    * @param {Response} res backend response
    */
   public static async scheduleRecording(req: Request, res: Response) {
-    const recording = await getRepository(Recording).save(req.body);
+    const repository = getRepository(Recording);
+    let recording: Recording;
+    try {
+      recording = await repository.save(
+        repository.create(<DeepPartial<Recording>>req.body)
+      );
+    } catch (err) {
+      res.status(400).json(err);
+      return;
+    }
+
     const response = await axios.post(
-      `http://${environment.livecam_server.host}:${environment.livecam_server.port}
-      ${environment.livecam_server.apiPath}
-      ${environment.livecam_server.endpoints.schedule}`,
-      {
-        id: recording.id,
-        start: recording.start.getTime(),
-        end: recording.end.getTime(),
-        bitrate: req.body.bitrate,
-        resolution: VideoResolution.V1080,
-      }
+      `http://${environment.livecam_server.host}:${environment.livecam_server.port}` +
+        `${environment.livecam_server.apiPath}` +
+        `${environment.livecam_server.endpoints.schedule}`,
+      { recording }
     );
+
     res.status(response.status).json(recording);
   }
 
@@ -113,16 +136,20 @@ export class LivecamController {
    */
   public static async streamRecording(req: Request, res: Response) {
     const response = await axios.get(
-      `http://${environment.livecam_server.host}:${
-        environment.livecam_server.port
-      }
-      ${environment.livecam_server.apiPath}
-      ${environment.livecam_server.endpoints.download.replace(
-        ':id',
-        req.params.id
-      )}`,
+      `http://${environment.livecam_server.host}:${environment.livecam_server.port}` +
+        `${environment.livecam_server.apiPath}` +
+        `${environment.livecam_server.endpoints.download}`.replace(
+          ':id',
+          req.params.id
+        ),
       { responseType: 'stream' }
     );
+
+    if (response.status != 200) {
+      res.sendStatus(response.status);
+      return;
+    }
+
     res.attachment(`${req.params.id}.mp4`);
     const streamPipeline = promisify(pipeline);
     await streamPipeline(response.data, res);
@@ -137,11 +164,18 @@ export class LivecamController {
    * @param {Response} res backend response
    */
   public static async deleteRecording(req: Request, res: Response) {
-    await getRepository(Recording)
-      .delete(req.params.id)
-      .then(() => {
-        res.sendStatus(204);
-      });
+    const repository = getRepository(Recording);
+
+    const recording = await repository.findOne(req.params.id);
+
+    if (recording === undefined) {
+      res.status(404).json({ message: 'Recording not found' });
+      return;
+    }
+
+    await repository.remove(recording).then(() => {
+      res.sendStatus(204);
+    });
   }
 
   /**

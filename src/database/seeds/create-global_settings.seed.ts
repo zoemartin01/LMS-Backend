@@ -4,7 +4,7 @@ import { GlobalSetting } from '../../models/global_settings.entity';
 
 export default class CreateGlobalSettings implements Seeder {
   public async run(factory: Factory, connection: Connection): Promise<void> {
-    if (await connection.manager.find(GlobalSetting)) {
+    if ((await connection.manager.find(GlobalSetting)).length > 0) {
       return;
     }
 
@@ -20,7 +20,7 @@ export default class CreateGlobalSettings implements Seeder {
         },
         {
           key: 'recording.auto_delete',
-          value: '86400000 ',
+          value: '86400000',
           description: 'Time after a recording gets automatically deleted',
         },
       ])

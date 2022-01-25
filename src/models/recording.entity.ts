@@ -1,3 +1,4 @@
+import { IsDateString, IsNumber, IsOptional, Min } from 'class-validator';
 import { Column, Entity, ManyToOne } from 'typeorm';
 import { VideoResolution } from '../types/enums/video-resolution';
 import { BaseEntity } from './base.entity';
@@ -26,7 +27,7 @@ export class Recording extends BaseEntity {
    * @readonly
    */
   @ManyToOne(() => User, (user) => user.recordings)
-  user: User;
+  readonly user: User;
 
   /**
    * The start date of the recording.
@@ -35,7 +36,8 @@ export class Recording extends BaseEntity {
    * @readonly
    */
   @Column()
-  start: Date;
+  @IsDateString()
+  readonly start: Date;
 
   /**
    * The end date of the recording.
@@ -44,7 +46,8 @@ export class Recording extends BaseEntity {
    * @readonly
    */
   @Column()
-  end: Date;
+  @IsDateString()
+  readonly end: Date;
 
   /**
    * The resolution of the recording.
@@ -56,7 +59,7 @@ export class Recording extends BaseEntity {
     type: 'enum',
     enum: VideoResolution,
   })
-  resolution: VideoResolution;
+  readonly resolution: VideoResolution;
 
   /**
    * The bitrate of the recording in kbps.
@@ -65,7 +68,9 @@ export class Recording extends BaseEntity {
    * @readonly
    */
   @Column()
-  bitrate: number;
+  @IsNumber()
+  @Min(0)
+  readonly bitrate: number;
 
   /**
    * The size of the recording in bytes. 0 if the recording is not yet uploaded.
@@ -74,5 +79,8 @@ export class Recording extends BaseEntity {
    * @default 0
    */
   @Column({ default: 0 })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
   size: number;
 }

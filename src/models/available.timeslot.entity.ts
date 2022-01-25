@@ -6,7 +6,7 @@ import { TimeSlot } from './timeslot.entity';
 /**
  * Available Timeslot
  *
- * @typedef {Entity} AvailableTimeslot
+ * @typedef {Object} AvailableTimeslot
  * @class
  * @extends TimeSlot
  *
@@ -20,6 +20,6 @@ export class AvailableTimeslot extends TimeSlot {
    * @type {Room}
    * @readonly
    */
-  @ManyToOne(() => Room, (room) => room.availableTimeSlots)
+  @ManyToOne(() => Room, (room) => room.availableTimeSlots, { eager: true })
   readonly room: Room;
 }

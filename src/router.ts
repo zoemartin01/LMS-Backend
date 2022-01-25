@@ -10,13 +10,21 @@ import { RoomController } from './controllers/room.controller';
 import { UserController } from './controllers/user.controller';
 import environment from './environment';
 
+const addUUIDRegexToRoute = (route: string) => {
+  const uuid_regex =
+    '([0-9A-F]{8}-[0-9A-F]{4}-4[0-9A-F]{3}-[89AB][0-9A-F]{3}-[0-9A-F]{12})';
+
+  const matches = route.match(/:\w+/g);
+  for (const i in matches) {
+    route = route.replace(matches[+i], matches[+i] + uuid_regex);
+  }
+  return route;
+};
+
 const router: Router = Router();
 
 // Authentication
-router.post(
-  environment.apiRoutes.auth.login,
-  AuthController.login
-);
+router.post(environment.apiRoutes.auth.login, AuthController.login);
 router.delete(
   environment.apiRoutes.auth.logout,
   AuthController.checkAuthenticationMiddleware,
@@ -44,12 +52,12 @@ router.get(
   MessagingController.getUnreadMessagesAmounts
 );
 router.delete(
-  environment.apiRoutes.messages.deleteMessage,
+  addUUIDRegexToRoute(environment.apiRoutes.messages.deleteMessage),
   AuthController.checkAuthenticationMiddleware,
   MessagingController.deleteMessage
 );
 router.patch(
-  environment.apiRoutes.messages.updateMessage,
+  addUUIDRegexToRoute(environment.apiRoutes.messages.updateMessage),
   AuthController.checkAuthenticationMiddleware,
   MessagingController.updateMessage
 );
@@ -93,10 +101,21 @@ router.patch(
 );
 
 router.get(
-  environment.apiRoutes.admin_settings.getWhitelistRetailer,
+  addUUIDRegexToRoute(
+    environment.apiRoutes.admin_settings.getWhitelistRetailer
+  ),
   AuthController.checkAuthenticationMiddleware,
+  AuthController.checkAdminMiddleware,
   AdminController.getWhitelistRetailer
 );
+
+router.get(
+  environment.apiRoutes.admin_settings.getWhitelistRetailers,
+  AuthController.checkAuthenticationMiddleware,
+  AuthController.checkAdminMiddleware,
+  AdminController.getWhitelistRetailers
+);
+
 router.post(
   environment.apiRoutes.admin_settings.createWhitelistRetailer,
   AuthController.checkAuthenticationMiddleware,
@@ -104,32 +123,42 @@ router.post(
   AdminController.createWhitelistRetailer
 );
 router.patch(
-  environment.apiRoutes.admin_settings.updateWhitelistRetailer,
+  addUUIDRegexToRoute(
+    environment.apiRoutes.admin_settings.updateWhitelistRetailer
+  ),
   AuthController.checkAuthenticationMiddleware,
   AuthController.checkAdminMiddleware,
   AdminController.updateWhitelistRetailer
 );
 router.delete(
-  environment.apiRoutes.admin_settings.deleteWhitelistRetailer,
+  addUUIDRegexToRoute(
+    environment.apiRoutes.admin_settings.deleteWhitelistRetailer
+  ),
   AuthController.checkAuthenticationMiddleware,
   AuthController.checkAdminMiddleware,
   AdminController.deleteWhitelistRetailer
 );
 
 router.post(
-  environment.apiRoutes.admin_settings.addDomainToWhitelistRetailer,
+  addUUIDRegexToRoute(
+    environment.apiRoutes.admin_settings.addDomainToWhitelistRetailer
+  ),
   AuthController.checkAuthenticationMiddleware,
   AuthController.checkAdminMiddleware,
   AdminController.addDomainToWhitelistRetailer
 );
 router.patch(
-  environment.apiRoutes.admin_settings.updateDomainOfWhitelistRetailer,
+  addUUIDRegexToRoute(
+    environment.apiRoutes.admin_settings.updateDomainOfWhitelistRetailer
+  ),
   AuthController.checkAuthenticationMiddleware,
   AuthController.checkAdminMiddleware,
   AdminController.editDomainOfWhitelistRetailer
 );
 router.delete(
-  environment.apiRoutes.admin_settings.deleteDomainOfWhitelistRetailer,
+  addUUIDRegexToRoute(
+    environment.apiRoutes.admin_settings.deleteDomainOfWhitelistRetailer
+  ),
   AuthController.checkAuthenticationMiddleware,
   AuthController.checkAdminMiddleware,
   AdminController.deleteDomainOfWhitelistRetailer
@@ -147,19 +176,19 @@ router.get(
   AdminController.getUsers
 );
 router.get(
-  environment.apiRoutes.user_management.getSingleUser,
+  addUUIDRegexToRoute(environment.apiRoutes.user_management.getSingleUser),
   AuthController.checkAuthenticationMiddleware,
   AuthController.checkAdminMiddleware,
   AdminController.getUser
 );
 router.patch(
-  environment.apiRoutes.user_management.updateUser,
+  addUUIDRegexToRoute(environment.apiRoutes.user_management.updateUser),
   AuthController.checkAuthenticationMiddleware,
   AuthController.checkAdminMiddleware,
   AdminController.updateUser
 );
 router.delete(
-  environment.apiRoutes.user_management.deleteUser,
+  addUUIDRegexToRoute(environment.apiRoutes.user_management.deleteUser),
   AuthController.checkAuthenticationMiddleware,
   AuthController.checkAdminMiddleware,
   AdminController.deleteUser
@@ -172,7 +201,7 @@ router.get(
   RoomController.getAllRooms
 );
 router.get(
-  environment.apiRoutes.rooms.getSingleRoom,
+  addUUIDRegexToRoute(environment.apiRoutes.rooms.getSingleRoom),
   AuthController.checkAuthenticationMiddleware,
   RoomController.getRoomById
 );
@@ -183,13 +212,13 @@ router.post(
   RoomController.createRoom
 );
 router.patch(
-  environment.apiRoutes.rooms.updateRoom,
+  addUUIDRegexToRoute(environment.apiRoutes.rooms.updateRoom),
   AuthController.checkAuthenticationMiddleware,
   AuthController.checkAdminMiddleware,
   RoomController.updateRoom
 );
 router.delete(
-  environment.apiRoutes.rooms.deleteRoom,
+  addUUIDRegexToRoute(environment.apiRoutes.rooms.deleteRoom),
   AuthController.checkAuthenticationMiddleware,
   AuthController.checkAdminMiddleware,
   RoomController.deleteRoom
@@ -201,7 +230,7 @@ router.post(
   RoomController.createTimeslot
 );
 router.delete(
-  environment.apiRoutes.rooms.deleteTimeslot,
+  addUUIDRegexToRoute(environment.apiRoutes.rooms.deleteTimeslot),
   AuthController.checkAuthenticationMiddleware,
   AuthController.checkAdminMiddleware,
   RoomController.deleteTimeslot
@@ -220,17 +249,17 @@ router.get(
   AppointmentController.getAppointmentsForCurrentUser
 );
 router.get(
-  environment.apiRoutes.appointments.getRoomAppointments,
+  addUUIDRegexToRoute(environment.apiRoutes.appointments.getRoomAppointments),
   AuthController.checkAuthenticationMiddleware,
   AppointmentController.getAppointmentsForRoom
 );
 router.get(
-  environment.apiRoutes.appointments.getSeriesAppointments,
+  addUUIDRegexToRoute(environment.apiRoutes.appointments.getSeriesAppointments),
   AuthController.checkAuthenticationMiddleware,
   AppointmentController.getAppointmentsForSeries
 );
 router.get(
-  environment.apiRoutes.appointments.getSingleAppointment,
+  addUUIDRegexToRoute(environment.apiRoutes.appointments.getSingleAppointment),
   AuthController.checkAuthenticationMiddleware,
   AppointmentController.getAppointment
 );
@@ -245,25 +274,29 @@ router.post(
   AppointmentController.createAppointmentSeries
 );
 router.patch(
-  environment.apiRoutes.appointments.updateAppointment,
+  addUUIDRegexToRoute(environment.apiRoutes.appointments.updateAppointment),
   AuthController.checkAuthenticationMiddleware,
   AuthController.checkAdminMiddleware,
   AppointmentController.updateAppointment
 );
 router.put(
-  environment.apiRoutes.appointments.updateAppointmentSeries,
+  addUUIDRegexToRoute(
+    environment.apiRoutes.appointments.updateAppointmentSeries
+  ),
   AuthController.checkAuthenticationMiddleware,
   AuthController.checkAdminMiddleware,
   AppointmentController.updateAppointmentSeries
 );
 router.delete(
-  environment.apiRoutes.appointments.deleteAppointment,
+  addUUIDRegexToRoute(environment.apiRoutes.appointments.deleteAppointment),
   AuthController.checkAuthenticationMiddleware,
   AuthController.checkAdminMiddleware,
   AppointmentController.deleteAppointment
 );
 router.delete(
-  environment.apiRoutes.appointments.deleteAppointmentSeries,
+  addUUIDRegexToRoute(
+    environment.apiRoutes.appointments.deleteAppointmentSeries
+  ),
   AuthController.checkAuthenticationMiddleware,
   AuthController.checkAdminMiddleware,
   AppointmentController.deleteAppointmentSeries
@@ -276,7 +309,7 @@ router.get(
   InventoryController.getAllInventoryItems
 );
 router.get(
-  environment.apiRoutes.inventory_item.getSingleItem,
+  addUUIDRegexToRoute(environment.apiRoutes.inventory_item.getSingleItem),
   AuthController.checkAuthenticationMiddleware,
   InventoryController.getInventoryItem
 );
@@ -287,13 +320,13 @@ router.post(
   InventoryController.createInventoryItem
 );
 router.patch(
-  environment.apiRoutes.inventory_item.updateItem,
+  addUUIDRegexToRoute(environment.apiRoutes.inventory_item.updateItem),
   AuthController.checkAuthenticationMiddleware,
   AuthController.checkAdminMiddleware,
   InventoryController.updateInventoryItem
 );
 router.delete(
-  environment.apiRoutes.inventory_item.deleteItem,
+  addUUIDRegexToRoute(environment.apiRoutes.inventory_item.deleteItem),
   AuthController.checkAuthenticationMiddleware,
   AuthController.checkAdminMiddleware,
   InventoryController.deleteInventoryItem
@@ -312,7 +345,7 @@ router.get(
   OrderController.getOrdersForCurrentUser
 );
 router.get(
-  environment.apiRoutes.orders.getSingleOrder,
+  addUUIDRegexToRoute(environment.apiRoutes.orders.getSingleOrder),
   AuthController.checkAuthenticationMiddleware,
   OrderController.getOrder
 );
@@ -322,12 +355,12 @@ router.post(
   OrderController.createOrder
 );
 router.patch(
-  environment.apiRoutes.orders.updateOrder,
+  addUUIDRegexToRoute(environment.apiRoutes.orders.updateOrder),
   AuthController.checkAuthenticationMiddleware,
   OrderController.updateOrder
 );
 router.delete(
-  environment.apiRoutes.orders.deleteOrder,
+  addUUIDRegexToRoute(environment.apiRoutes.orders.deleteOrder),
   AuthController.checkAuthenticationMiddleware,
   OrderController.deleteOrder
 );
@@ -346,7 +379,7 @@ router.get(
   LivecamController.getScheduledRecordings
 );
 router.get(
-  environment.apiRoutes.livecam.getSingleRecording,
+  addUUIDRegexToRoute(environment.apiRoutes.livecam.getSingleRecording),
   AuthController.checkAuthenticationMiddleware,
   AuthController.checkAdminMiddleware,
   LivecamController.getRecordingById
@@ -358,19 +391,19 @@ router.post(
   LivecamController.scheduleRecording
 );
 router.patch(
-  environment.apiRoutes.livecam.updateRecording,
+  addUUIDRegexToRoute(environment.apiRoutes.livecam.updateRecording),
   AuthController.checkAuthenticationMiddleware,
   AuthController.checkAdminMiddleware,
   LivecamController.updateRecording
 );
 router.get(
-  environment.apiRoutes.livecam.downloadRecording,
+  addUUIDRegexToRoute(environment.apiRoutes.livecam.downloadRecording),
   AuthController.checkAuthenticationMiddleware,
   AuthController.checkAdminMiddleware,
   LivecamController.streamRecording
 );
 router.delete(
-  environment.apiRoutes.livecam.deleteRecording,
+  addUUIDRegexToRoute(environment.apiRoutes.livecam.deleteRecording),
   AuthController.checkAuthenticationMiddleware,
   AuthController.checkAdminMiddleware,
   LivecamController.deleteRecording

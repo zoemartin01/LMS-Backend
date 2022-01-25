@@ -1,3 +1,4 @@
+import { IsBoolean, IsNotEmpty, IsOptional } from 'class-validator';
 import { Column, Entity, ManyToOne } from 'typeorm';
 import { BaseEntity } from './base.entity';
 import { User } from './user.entity';
@@ -25,7 +26,8 @@ export class Message extends BaseEntity {
    * @readonly
    */
   @Column()
-  title: string;
+  @IsNotEmpty()
+  readonly title: string;
 
   /**
    * The message content.
@@ -34,7 +36,8 @@ export class Message extends BaseEntity {
    * @readonly
    */
   @Column()
-  content: string;
+  @IsNotEmpty()
+  readonly content: string;
 
   /**
    * The message corresponding url.
@@ -45,7 +48,7 @@ export class Message extends BaseEntity {
   @Column({
     nullable: true,
   })
-  correspondingUrl: string;
+  readonly correspondingUrl: string;
 
   /**
    * The message corresponding url text.
@@ -56,7 +59,7 @@ export class Message extends BaseEntity {
   @Column({
     nullable: true,
   })
-  correspondingUrlText: string;
+  readonly correspondingUrlText: string;
 
   /**
    * The message recipient.
@@ -64,8 +67,8 @@ export class Message extends BaseEntity {
    * @type {User}
    * @readonly
    */
-  @ManyToOne(() => User, (user) => user.messages)
-  recipient: User;
+  @ManyToOne(() => User, (user) => user.messages, { eager: true })
+  readonly recipient: User;
 
   /**
    * The message is read.
@@ -74,5 +77,7 @@ export class Message extends BaseEntity {
    * @default false
    */
   @Column({ default: false })
+  @IsOptional()
+  @IsBoolean()
   readStatus: boolean;
 }
