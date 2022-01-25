@@ -114,7 +114,7 @@ export class MessagingController {
       return;
     }
 
-    if (req.body != { readStatus: true } && req.body != { readStatus: false }) {
+    if (req.body.readStatus !== true && req.body.readStatus !== false) {
       res.status(400).json({
         message: 'Malformed request.',
       });
