@@ -1,9 +1,12 @@
 import { Request, Response } from 'express';
 import { getRepository } from 'typeorm';
+import nodemailer from 'nodemailer';
 import { AuthController } from './auth.controller';
 import { Message } from '../models/message.entity';
 import { User } from '../models/user.entity';
 import { UserRole } from '../types/enums/user-role';
+import { NotificationChannel } from "../types/enums/notification-channel";
+import environment from "../environment";
 
 /**
  * Controller for messaging
@@ -150,27 +153,87 @@ export class MessagingController {
     content: string,
     linkText: string | null = null,
     linkUrl: string | null = null
-  ): Promise<Message> {
+  ): Promise<void> {
+    if (NotificationChannel.emailAndMessageBox ||  NotificationChannel.messageBoxOnly) {
+      this.sendMessageViaMessageBox(recipient, title, content, linkText, linkUrl);
+    }
+
+    if (NotificationChannel.emailAndMessageBox ||  NotificationChannel.emailOnly) {
+      this.sendMessageViaEmail(recipient, title, content, linkText, linkUrl);
+    }
+  }
+
+  /**
+   * Sends a message to a user using message box
+   *
+   * @param {User} recipient - recipient of the message
+   * @param {string} title - message title
+   * @param {string} content - message content
+   * @param {string|null} linkText - message link text (optional)
+   * @param {string|null} linkUrl - message link url (optional)
+   */
+  public static async sendMessageViaMessageBox(
+    recipient: User,
+    title: string,
+    content: string,
+    linkText: string | null = null,
+    linkUrl: string | null = null
+  ): Promise<void> {
     const messageRepository = getRepository(Message);
 
     const message =
       linkText === null || linkUrl === null
         ? messageRepository.create({
-            recipient,
-            title,
-            content,
-          })
+          recipient,
+          title,
+          content,
+        })
         : messageRepository.create({
-            recipient,
-            title,
-            content,
-            correspondingUrlText: linkText,
-            correspondingUrl: linkUrl,
-          });
+          recipient,
+          title,
+          content,
+          correspondingUrlText: linkText,
+          correspondingUrl: linkUrl,
+        });
 
     await messageRepository.save(message);
+  }
 
-    return message;
+  /**
+   * Sends a message to a user using email
+   *
+   * @param {User} recipient - recipient of the message
+   * @param {string} title - message title
+   * @param {string} content - message content
+   * @param {string|null} linkText - message link text (optional)
+   * @param {string|null} linkUrl - message link url (optional)
+   */
+  public static async sendMessageViaEmail(
+    recipient: User,
+    title: string,
+    content: string,
+    linkText: string | null = null,
+    linkUrl: string | null = null
+  ): Promise<void> {
+    const transporter = nodemailer.createTransport(environment.smtpConfig);
+
+    const message =
+      linkText === null || linkUrl === null
+        ? {
+          from: `"TECO HWLab System" <${environment.smtpSender}>`,
+          to: recipient.email,
+          subject: title,
+          text: `${content}`,
+        }
+        : {
+          from: `"TECO HWLab System" <${environment.smtpSender}>`,
+          to: recipient.email,
+          subject: title,
+          text: `${content}\n${linkText}: ${environment.frontendUrl}${linkUrl}`,
+          html: `<p>${content}</p><br><a href="${environment.frontendUrl}${linkUrl}">${linkText}</a>`,
+        };
+
+    await transporter.sendMail(message);
   }
 
   /**
@@ -186,20 +249,15 @@ export class MessagingController {
     content: string,
     linkText: string | null = null,
     linkUrl: string | null = null
-  ): Promise<Message[]> {
+  ): Promise<void> {
     const userRepository = getRepository(User);
 
     const admins: User[] = await userRepository.find({
       where: { type: UserRole.admin },
     });
 
-    const messages: Message[] = [];
     for (const recipient of admins) {
-      messages.push(
-        await this.sendMessage(recipient, title, content, linkText, linkUrl)
-      );
+      await this.sendMessage(recipient, title, content, linkText, linkUrl)
     }
-
-    return messages;
   }
 }
