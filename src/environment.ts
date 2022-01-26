@@ -4,11 +4,20 @@ const environment = {
   accessTokenSecret: 'V50jPXQVocPUSPHl0yzPJhXZzh32bp',
   refreshTokenSecret: '3pqOHs7R1TrCgsRKksPp4J3Kfs0l0X',
   activeDirectoryConfig: {
-    url: 'ldap://',
-    baseDN: 'dc=',
-    username: '',
-    password: '',
+    url: 'ldaps://ldap.teco.edu:636',
+    //baseDN: 'dc=',
   },
+  //@todo add SMTP credentials & sender email
+  smtpConfig: {
+    host: "smtp.example.com",
+    port: 587,
+    secure: true,
+    auth: {
+      user: "username",
+      pass: "password",
+    },
+  },
+  smtpSender: '',
   livecam_server: {
     host: 'localhost',
     port: 7000,
@@ -20,6 +29,7 @@ const environment = {
     },
   },
   apiRoutes: {
+    base: '/api/v1',
     auth: {
       login: '/token',
       logout: '/token',

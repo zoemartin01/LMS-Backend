@@ -1,6 +1,9 @@
 import faker from 'faker';
 import { Connection, DeepPartial, getRepository } from 'typeorm';
 import { Factory, Seeder } from 'typeorm-seeding';
+import bcrypt from 'bcrypt';
+import environment from '../../environment';
+
 import { AppointmentTimeslot } from '../../models/appointment.timeslot.entity';
 import { InventoryItem } from '../../models/inventory-item.entity';
 import { Message } from '../../models/message.entity';
@@ -9,8 +12,7 @@ import { Recording } from '../../models/recording.entity';
 import { Room } from '../../models/room.entity';
 import { User } from '../../models/user.entity';
 import { UserRole } from '../../types/enums/user-role';
-import bcrypt from 'bcrypt';
-import environment from '../../environment';
+import { NotificationChannel } from "../../types/enums/notification-channel";
 
 export default class CreateTestUsers implements Seeder {
   public async run(factory: Factory, connection: Connection): Promise<void> {
@@ -21,6 +23,7 @@ export default class CreateTestUsers implements Seeder {
       password: await CreateTestUsers.hashPassword('admin'),
       role: UserRole.admin,
       emailVerification: true,
+      notificationChannel: NotificationChannel.emailAndMessageBox,
     });
 
     const visitor = await getRepository(User).save(<DeepPartial<User>>{
@@ -30,6 +33,7 @@ export default class CreateTestUsers implements Seeder {
       password: await CreateTestUsers.hashPassword('visitor'),
       role: UserRole.visitor,
       emailVerification: true,
+      notificationChannel: NotificationChannel.emailAndMessageBox,
     });
 
     const rooms = await connection.getRepository(Room).find();

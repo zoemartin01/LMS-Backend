@@ -3,7 +3,8 @@ services:
   backend:
     build: .
     environment:
-      - NODE_ENV=docker
+      - DB_HOST="db"
+      - DB_PORT="5432"
     ports:
       - "3000:3000"
     networks:

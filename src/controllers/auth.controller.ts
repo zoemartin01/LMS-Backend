@@ -102,7 +102,6 @@ export class AuthController {
     );
     const userRepository = getRepository(User);
 
-    //@todo Adrian: test retrieving user data from AD
     return ad.findUser(
       email,
       async (err: boolean, adUser: { givenName: string; surname: string }) => {
