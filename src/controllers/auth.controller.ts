@@ -102,7 +102,6 @@ export class AuthController {
     );
     const userRepository = getRepository(User);
 
-    //@todo Adrian: test retrieving user data from AD
     return ad.findUser(
       email,
       async (err: boolean, adUser: { givenName: string; surname: string }) => {
@@ -375,7 +374,9 @@ export class AuthController {
     const authHeader = req.headers['authorization'];
 
     if (!authHeader) {
-      res.sendStatus(400);
+      res.sendStatus(401).json({
+        message: 'Missing authorization header.',
+      });
       return;
     }
 

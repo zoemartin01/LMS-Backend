@@ -5,6 +5,7 @@ import environment from '../environment';
 import { promisify } from 'util';
 import { pipeline } from 'stream';
 import axios from 'axios';
+import { AuthController } from './auth.controller';
 
 /**
  * Controller for the LiveCam System
@@ -22,7 +23,10 @@ export class LivecamController {
    */
   public static async getRecordings(req: Request, res: Response) {
     await getRepository(Recording)
-      .find({ where: { end: LessThan(new Date()), size: MoreThan(0) } })
+      .find({
+        where: { end: LessThan(new Date()), size: MoreThan(0) },
+        relations: ['user'],
+      })
       .then((recordings) => {
         res.status(200).json(recordings);
       });
@@ -37,7 +41,7 @@ export class LivecamController {
    */
   public static async getScheduledRecordings(req: Request, res: Response) {
     await getRepository(Recording)
-      .find({ where: { start: MoreThan(new Date()) } })
+      .find({ where: { end: MoreThan(new Date()) }, relations: ['user'] })
       .then((recordings) => {
         res.status(200).json(recordings);
       });
@@ -53,7 +57,7 @@ export class LivecamController {
    */
   public static async getRecordingById(req: Request, res: Response) {
     await getRepository(Recording)
-      .findOne(req.params.id)
+      .findOne(req.params.id, { relations: ['user'] })
       .then((recording) => {
         if (recording === undefined) {
           res.status(404).json({ message: 'Recording not found' });
@@ -105,11 +109,18 @@ export class LivecamController {
    * @param {Response} res backend response
    */
   public static async scheduleRecording(req: Request, res: Response) {
+    const user = await AuthController.getCurrentUser(req);
+
+    if (user === undefined) {
+      res.status(401).json({ message: 'Not logged in' });
+      return;
+    }
+
     const repository = getRepository(Recording);
     let recording: Recording;
     try {
       recording = await repository.save(
-        repository.create(<DeepPartial<Recording>>req.body)
+        repository.create(<DeepPartial<Recording>>{ ...req.body, user: user })
       );
     } catch (err) {
       res.status(400).json(err);
@@ -120,7 +131,7 @@ export class LivecamController {
       `http://${environment.livecam_server.host}:${environment.livecam_server.port}` +
         `${environment.livecam_server.apiPath}` +
         `${environment.livecam_server.endpoints.schedule}`,
-      { recording }
+      { ...recording }
     );
 
     res.status(response.status).json(recording);

@@ -54,7 +54,7 @@ describe('LivecamController', () => {
         .request(app.app)
         .get(uri)
         .end((err, res) => {
-          expect(res.status).to.equal(400);
+          expect(res.status).to.equal(401);
           done();
         });
     });
@@ -118,7 +118,7 @@ describe('LivecamController', () => {
         .request(app.app)
         .get(uri)
         .end((err, res) => {
-          expect(res.status).to.equal(400);
+          expect(res.status).to.equal(401);
           done();
         });
     });
@@ -132,7 +132,7 @@ describe('LivecamController', () => {
         .request(app.app)
         .patch(uri.replace(':id', uuidv4()))
         .end((err, res) => {
-          expect(res.status).to.equal(400);
+          expect(res.status).to.equal(401);
           done();
         });
     });
@@ -184,7 +184,7 @@ describe('LivecamController', () => {
         .request(app.app)
         .delete(uri.replace(':id', uuidv4()))
         .end((err, res) => {
-          expect(res.status).to.equal(400);
+          expect(res.status).to.equal(401);
           done();
         });
     });
