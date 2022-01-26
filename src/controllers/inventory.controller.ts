@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { getRepository } from 'typeorm';
 import { InventoryItem } from '../models/inventory-item.entity';
+import environment from "../environment";
 
 /**
  * Controller for inventory management
@@ -73,7 +74,8 @@ export class InventoryController {
       return;
     }
 
-    res.status(303).json(existingInventoryItem);
+    res.status(303).send(environment.apiRoutes.inventory_item.getSingleItem
+      .replace(':id', existingInventoryItem.id));
   }
 
   /**
