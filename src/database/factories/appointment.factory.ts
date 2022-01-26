@@ -8,7 +8,10 @@ import { getRepository } from 'typeorm';
 
 define(
   AppointmentTimeslot,
-  (faker: typeof Faker, context?: { user: User; room: Room }) => {
+  (
+    faker: typeof Faker,
+    context?: { user: User; room: Room; seriesId: string | undefined }
+  ) => {
     if (!context)
       throw new Error('Factory AppointmentTimeslot requires user and room');
     const start = faker.date.future().toISOString();
@@ -21,13 +24,22 @@ define(
       ConfirmationStatus.denied,
     ]);
 
-    const appointmentTimeslot = getRepository(AppointmentTimeslot).create({
+    if (context.seriesId === undefined) {
+      return getRepository(AppointmentTimeslot).create({
+        start,
+        end,
+        room,
+        user,
+        confirmationStatus,
+      });
+    }
+    return getRepository(AppointmentTimeslot).create({
       start,
       end,
       room,
       user,
       confirmationStatus,
+      seriesId: context.seriesId,
     });
-    return appointmentTimeslot;
   }
 );
