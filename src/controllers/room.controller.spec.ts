@@ -60,7 +60,7 @@ describe('RoomController', () => {
         });
     });
 
-    it('should get no rooms', (done) => {
+    it('should get initial 3 rooms', (done) => {
       // Seeding doesn't create any rooms
       chai
         .request(app.app)
@@ -69,12 +69,12 @@ describe('RoomController', () => {
         .end((err, res) => {
           expect(res.status).to.equal(200);
           expect(res.body).to.be.an('array');
-          expect(res.body.length).to.be.equal(0);
+          expect(res.body.length).to.be.equal(3);
           done();
         });
     });
 
-    it('should get all rooms', async () => {
+    it('should get 3 more rooms', async () => {
       const rooms = await factory(Room)().createMany(3);
       const res = await chai
         .request(app.app)
@@ -82,7 +82,7 @@ describe('RoomController', () => {
         .set('Authorization', adminHeader);
       expect(res.status).to.equal(200);
       expect(res.body).to.be.an('array');
-      expect(res.body.length).to.be.equal(3);
+      expect(res.body.length).to.be.equal(6);
     });
   });
 
@@ -288,7 +288,7 @@ describe('RoomController', () => {
 
     it('should successfully create a new timeslot', async () => {
       const room = await factory(Room)().create();
-      const timeslot = await factory(AvailableTimeslot)(room).make();
+      const timeslot = await factory(AvailableTimeslot)({ room }).make();
       const timeSlotRepository = getRepository(TimeSlot);
       const expectedAmount = await timeSlotRepository.count();
       timeslot.type = TimeSlotType.available;
@@ -299,7 +299,7 @@ describe('RoomController', () => {
         .set('Authorization', adminHeader)
         .send(timeslot);
       expect(res.status).to.equal(201);
-      expect(await timeSlotRepository.find()).to.equal(expectedAmount + 1);
+      expect(await timeSlotRepository.count()).to.equal(expectedAmount + 1);
     });
   });
 
@@ -342,10 +342,10 @@ describe('RoomController', () => {
 
     it('should delete a specific timeslot', async () => {
       const room = await factory(Room)().create();
-      const timeslot = await factory(AvailableTimeslot)(room).create();
+      const timeslot = await factory(AvailableTimeslot)({ room }).create();
       const timeSlotRepository = getRepository(TimeSlot);
 
-      timeSlotRepository.findOne({ id: timeslot.id }).then((room) => {
+      timeSlotRepository.findOne({ id: timeslot.id }).then((timeslot) => {
         expect(timeslot).to.be.not.undefined;
       });
 
