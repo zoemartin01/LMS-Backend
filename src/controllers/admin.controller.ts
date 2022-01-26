@@ -4,7 +4,6 @@ import { GlobalSetting } from '../models/global_settings.entity';
 import { Retailer } from '../models/retailer.entity';
 import { RetailerDomain } from '../models/retailer.domain.entity';
 import { User } from '../models/user.entity';
-import { MessagingController } from './messaging.controller';
 
 /**
  * Controller for Admin Management
@@ -27,42 +26,61 @@ export class AdminController {
     const globalSettings: GlobalSetting[] = await getRepository(
       GlobalSetting
     ).find();
-
     res.json(globalSettings);
   }
 
   /**
    * Updates global settings
    *
-   * @route {PATCH} /global-settings/:key
-   * @routeParam {string} key - a global setting key
-   * @bodyParam {string [Optional]} value - a new value
-   * @bodyParam {string [Optional]} description - a new description
+   * @route {PATCH} /global-settings
+   * @bodyParam {GlobalSetting[]} globalSettings new values for global settings
    * @param {Request} req frontend request to change data about global settings
    * @param {Response} res backend response with data change of one global settings
    */
   public static async updateGlobalSettings(req: Request, res: Response) {
     const globalSettingsRepository = getRepository(GlobalSetting);
 
-    const globalSetting: GlobalSetting | undefined =
-      await globalSettingsRepository.findOne({
-        where: { key: req.params.key },
-      });
+    const globalSettings: GlobalSetting[] | undefined = req.body;
 
-    if (globalSetting === undefined) {
+    if (globalSettings === undefined) {
       res.status(404).json({
-        message: `Global setting '${req.params.key}' not found.`,
+        message: `Global setting not found.`,
       });
       return;
     }
 
-    await globalSettingsRepository
-      .update({ key: req.params.key }, req.body)
-      .catch((err) => {
+    for (const globalSetting in globalSettings) {
+      if (globalSettings[globalSetting].value === undefined) {
+        res.status(404).json({
+          message: `Global setting not found.`,
+        });
+        return;
+      }
+      if (globalSettings[globalSetting].key === undefined) {
+        res.status(404).json({
+          message: `Global setting not found.`,
+        });
+        return;
+      }
+    }
+
+    for (const globalSetting in globalSettings) {
+      const value = globalSettings[globalSetting].value;
+      const key = globalSettings[globalSetting].key;
+
+      await globalSettingsRepository.update({ key }, { value }).catch((err) => {
         res.status(400).json(err);
         return;
       });
-    res.json(await globalSettingsRepository.findOne(globalSetting.key));
+    }
+    res.json(await globalSettingsRepository.find());
+    /*  await globalSettingsRepository
+          .update({ key: req.body[i].params.key }, req.body[i].value)
+          .catch((err) => {
+            res.status(400).json(err);
+            return;
+          });
+        res.json(await globalSettingsRepository.find());*/
   }
 
   /**
@@ -393,14 +411,14 @@ export class AdminController {
       return;
     }
 
-    await userRepository.delete(user.id);
+    //@TODO Adrian send email
+    // await MessagingController.sendMessage(
+    //   user,
+    //   'Account deletion',
+    //   'Your account has been deleted by an admin. Bye!'
+    //);
+    await userRepository.softDelete(user.id);
 
     res.sendStatus(204);
-
-    await MessagingController.sendMessage(
-      user,
-      'Account deletion',
-      'Your account has been deleted by an admin. Bye!'
-    );
   }
 }

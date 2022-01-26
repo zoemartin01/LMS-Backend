@@ -80,6 +80,7 @@ router.delete(
 router.get(
   environment.apiRoutes.admin_settings.getGlobalSettings,
   AuthController.checkAuthenticationMiddleware,
+  AuthController.checkAdminMiddleware,
   AdminController.getGlobalSettings
 );
 router.patch(
