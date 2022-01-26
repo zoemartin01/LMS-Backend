@@ -12,7 +12,7 @@ define(
     faker: typeof Faker,
     context?: { user: User; room: Room; seriesId: string | undefined }
   ) => {
-    if (!context)
+    if (!context || !context.user || !context.room)
       throw new Error('Factory AppointmentTimeslot requires user and room');
     const start = faker.date.future().toISOString();
     const end = new Date(Date.parse(start) + 60 * 1000).toISOString();
