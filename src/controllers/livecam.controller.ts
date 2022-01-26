@@ -120,7 +120,7 @@ export class LivecamController {
       `http://${environment.livecam_server.host}:${environment.livecam_server.port}` +
         `${environment.livecam_server.apiPath}` +
         `${environment.livecam_server.endpoints.schedule}`,
-      { recording }
+      { ...recording }
     );
 
     res.status(response.status).json(recording);
