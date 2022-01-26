@@ -55,7 +55,7 @@ describe('RoomController', () => {
         .request(app.app)
         .get(uri)
         .end((err, res) => {
-          expect(res.status).to.equal(400);
+          expect(res.status).to.equal(401);
           done();
         });
     });
@@ -94,7 +94,7 @@ describe('RoomController', () => {
         .request(app.app)
         .get(uri.replace(':id', uuidv4()))
         .end((err, res) => {
-          expect(res.status).to.equal(400);
+          expect(res.status).to.equal(401);
           done();
         });
     });
@@ -131,7 +131,7 @@ describe('RoomController', () => {
         .request(app.app)
         .patch(uri.replace(':id', uuidv4()))
         .end((err, res) => {
-          expect(res.status).to.equal(400);
+          expect(res.status).to.equal(401);
           done();
         });
     });
@@ -179,7 +179,7 @@ describe('RoomController', () => {
         .request(app.app)
         .post(uri.replace(':id', uuidv4()))
         .end((err, res) => {
-          expect(res.status).to.equal(400);
+          expect(res.status).to.equal(401);
           done();
         });
     });
@@ -219,7 +219,7 @@ describe('RoomController', () => {
         .request(app.app)
         .delete(uri.replace(':id', uuidv4()))
         .end((err, res) => {
-          expect(res.status).to.equal(400);
+          expect(res.status).to.equal(401);
           done();
         });
     });
@@ -274,7 +274,7 @@ describe('RoomController', () => {
       const res = await chai
         .request(app.app)
         .post(uri.replace(':roomId', room.id));
-      expect(res.status).to.equal(400);
+      expect(res.status).to.equal(401);
     });
 
     it('should fail as non-admin', async () => {
@@ -313,7 +313,7 @@ describe('RoomController', () => {
         .delete(
           uri.replace(':roomId', room.id).replace(':timeslotId', uuidv4())
         );
-      expect(res.status).to.equal(400);
+      expect(res.status).to.equal(401);
     });
 
     it('should fail with invalid id', async () => {

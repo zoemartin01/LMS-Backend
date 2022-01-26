@@ -55,7 +55,7 @@ describe('RoomController', () => {
         .request(app.app)
         .get(uri)
         .end((err, res) => {
-          expect(res.status).to.equal(400);
+          expect(res.status).to.equal(401);
           done();
         });
     });
@@ -111,7 +111,7 @@ describe('RoomController', () => {
         .request(app.app)
         .get(uri.replace(':id', uuidv4()))
         .end((err, res) => {
-          expect(res.status).to.equal(400);
+          expect(res.status).to.equal(401);
           done();
         });
     });
@@ -151,7 +151,7 @@ describe('RoomController', () => {
         .request(app.app)
         .get(uri.replace(':id', room.id))
         .end((err, res) => {
-          expect(res.status).to.equal(400);
+          expect(res.status).to.equal(401);
           done();
         });
     });
@@ -204,7 +204,7 @@ describe('RoomController', () => {
         .request(app.app)
         .get(uri.replace(':id', uuidv4()))
         .end((err, res) => {
-          expect(res.status).to.equal(400);
+          expect(res.status).to.equal(401);
           done();
         });
     });
@@ -245,7 +245,7 @@ describe('RoomController', () => {
         .request(app.app)
         .get(uri)
         .end((err, res) => {
-          expect(res.status).to.equal(400);
+          expect(res.status).to.equal(401);
           done();
         });
     });
