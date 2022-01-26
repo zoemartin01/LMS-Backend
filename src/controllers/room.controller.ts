@@ -1,4 +1,4 @@
-import { getRepository } from 'typeorm';
+import { Between, getRepository } from 'typeorm';
 import { Room } from '../models/room.entity';
 import { Request, Response } from 'express';
 import { TimeSlot } from '../models/timeslot.entity';
@@ -6,6 +6,7 @@ import { TimeSlotType } from '../types/enums/timeslot-type';
 import { AppointmentTimeslot } from '../models/appointment.timeslot.entity';
 import { AvailableTimeslot } from '../models/available.timeslot.entity';
 import { UnavailableTimeslot } from '../models/unavaliable.timeslot.entity';
+import moment from "moment/moment";
 
 /**
  * Controller for room management
@@ -49,6 +50,156 @@ export class RoomController {
     }
 
     res.json(room);
+  }
+
+  /**
+   * Returns timeslots as calendar for one room by its id
+   *
+   * @route {GET} /rooms/:id/calendar
+   * @routeParam {string} id - id of the room
+   * @getParam {date} date
+   * @param {Request} req frontend request to get data about one room
+   * @param {Response} res backend response with data about one room
+   */
+  public static async getRoomCalendar(req: Request, res: Response) {
+    //@todo get parameter to get week
+    const date: moment.Moment = moment();
+
+    const from: string = date.day(0).format("YYYY-MM-DD");
+    const to: string = date.day(0).add(7, 'days').format("YYYY-MM-DD");
+
+    const room = await getRepository(Room).findOne(req.params.id);
+
+    if (room === undefined) {
+      res.status(404).json({message: 'Room not found'});
+      return;
+    }
+
+    const timeSlotRepository = getRepository(TimeSlot);
+    const appointments = await timeSlotRepository.find({
+      where: [
+        {
+          start: Between(from, to),
+          type: TimeSlotType.booked,
+        },
+        {
+          end: Between(from, to),
+          type: TimeSlotType.booked,
+        },
+      ],
+    });
+    const availableTimeSlots = await timeSlotRepository.find({
+      where: [
+        {
+          start: Between(from, to),
+          type: TimeSlotType.available,
+        },
+        {
+          end: Between(from, to),
+          type: TimeSlotType.available,
+        },
+      ],
+    });
+    const unavailableTimeSlots = await timeSlotRepository.find({
+      where: [
+        {
+          start: Between(from, to),
+          type: TimeSlotType.unavailable,
+        },
+        {
+          end: Between(from, to),
+          type: TimeSlotType.unavailable,
+        },
+      ],
+    });
+
+    //find out min and max timeslots in available timespans
+    let minTimeslot = 23;
+    let maxTimeslot = 0;
+    let availableTimespan, timespan, timespanStart, timespanEnd, start, end, hour, day;
+    for (availableTimespan of availableTimeSlots) {
+      if (availableTimespan.start == null || availableTimespan.end == null) {
+        continue;
+      }
+
+      timespanStart = +moment(availableTimespan.start).format("HH");
+      if (timespanStart < minTimeslot) {
+        minTimeslot = timespanStart;
+      }
+
+      timespanEnd = +moment(availableTimespan.end).format("HH");
+      if (timespanEnd > maxTimeslot) {
+        maxTimeslot = timespanEnd;
+      }
+    }
+
+    if (minTimeslot === 23 && maxTimeslot === 0) {
+      res.json({
+        calendar: [],
+        minTimeslot: 0,
+      });
+      return;
+    }
+
+    //initialise array (timeslot, days, parallel bookings)
+    const calendar: object[][][] = [...Array((maxTimeslot - minTimeslot + 1))]
+      .map(() => [...Array(7)]
+        .map(() => Array(room.maxConcurrentBookings)));
+
+    //set unavailable timespans due to different available timeslots
+    //@todo handle case that there are multiple available timeslots per day
+    for (availableTimespan of availableTimeSlots) {
+      if (availableTimespan.start == null || availableTimespan.end == null) {
+        continue;
+      }
+
+      start = moment(availableTimespan.start);
+      timespanStart = +start.format("HH");
+      if (timespanStart > minTimeslot) {
+        hour = +start.format("HH");
+        day = (+start.format("e") + 6) % 7;
+
+        calendar[hour][day][0] = {
+          id: null,
+          room,
+          start: start.subtract(timespanStart - minTimeslot, 'hours'),
+          end: start,
+          type: TimeSlotType.unavailable,
+        };
+      }
+
+      end = moment(availableTimespan.end);
+      timespanEnd = +end.format("HH");
+      if (timespanEnd < maxTimeslot) {
+        hour = +end.format("HH");
+        day = (+end.format("e") + 6) % 7;
+
+        calendar[hour][day][0] = {
+          id: null,
+          room,
+          start: end,
+          end: end.add(maxTimeslot - timespanEnd, 'hours'),
+          type: TimeSlotType.unavailable,
+        };
+      }
+    }
+
+    //add all timespans to the calendar (appointments and unavailable timeslots)
+    let timespans: TimeSlot[] = appointments;
+    timespans = timespans.concat(unavailableTimeSlots);
+    for (timespan of timespans) {
+      if (timespan.start == null || timespan.end == null) {
+        continue;
+      }
+
+      start = moment(timespan.start);
+      hour = +start.format("HH");
+      day = (+start.format("e") + 6) % 7;
+
+      calendar[hour][day].push(timespan);
+    }
+
+    res.json({ calendar, minTimeslot });
   }
 
   /**
