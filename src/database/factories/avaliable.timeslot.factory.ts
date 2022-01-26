@@ -11,8 +11,6 @@ define(AvailableTimeslot, (faker: typeof Faker, context?: { room: Room }) => {
   const end = new Date(Date.parse(start) + 60 * 1000).toISOString();
   const room = context.room;
 
-  console.log(context.room);
-
   return getRepository(AvailableTimeslot).create({
     start,
     end,
