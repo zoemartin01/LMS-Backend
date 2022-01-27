@@ -94,6 +94,7 @@ export class AdminController {
   public static async getWhitelistRetailer(req: Request, res: Response) {
     const retailer = await getRepository(Retailer).findOne({
       where: { id: req.params.id },
+      relations: ['domains'],
     });
 
     if (retailer === undefined) {
@@ -114,7 +115,9 @@ export class AdminController {
    * @param {Response} res backend response with data about all whitelist retailers
    */
   public static async getWhitelistRetailers(req: Request, res: Response) {
-    const retailers: Retailer[] = await getRepository(Retailer).find();
+    const retailers: Retailer[] = await getRepository(Retailer).find({
+      relations: ['domains'],
+    });
 
     res.json(retailers);
   }
@@ -277,12 +280,10 @@ export class AdminController {
     res: Response
   ) {
     const retailerDomainRepository = getRepository(RetailerDomain);
-
     const retailerDomain: RetailerDomain | undefined =
       await retailerDomainRepository.findOne({
-        where: { id: req.params.id },
+        where: { id: req.params.domainId },
       });
-
     if (retailerDomain === undefined) {
       res.status(404).json({
         message: 'Retailer Domain not found.',
@@ -290,7 +291,7 @@ export class AdminController {
       return;
     }
 
-    await retailerDomainRepository.delete(retailerDomain);
+    await retailerDomainRepository.delete(retailerDomain.id);
 
     res.sendStatus(204);
   }
