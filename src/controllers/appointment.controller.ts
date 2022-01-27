@@ -65,7 +65,9 @@ export class AppointmentController {
    * @param {Response} res backend response with data about all appointments for room
    */
   public static async getAppointmentsForRoom(req: Request, res: Response) {
-    const room = await getRepository(Room).findOne(req.params.id);
+    const room = await getRepository(Room).findOne(req.params.id, {
+      relations: ['appointments'],
+    });
 
     if (room === undefined) {
       res.status(404).json({ message: 'Room not found' });
