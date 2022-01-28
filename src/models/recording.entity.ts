@@ -1,4 +1,4 @@
-import { IsDateString, IsNumber, IsOptional, Min } from 'class-validator';
+import { IsNumber, IsOptional, Min } from 'class-validator';
 import { Column, Entity, ManyToOne } from 'typeorm';
 import { VideoResolution } from '../types/enums/video-resolution';
 import { BaseEntity } from './base.entity';
@@ -36,7 +36,6 @@ export class Recording extends BaseEntity {
    * @readonly
    */
   @Column()
-  @IsDateString()
   readonly start: Date;
 
   /**
@@ -46,7 +45,6 @@ export class Recording extends BaseEntity {
    * @readonly
    */
   @Column()
-  @IsDateString()
   readonly end: Date;
 
   /**
