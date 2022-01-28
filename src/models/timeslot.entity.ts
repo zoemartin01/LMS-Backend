@@ -27,7 +27,7 @@ export class TimeSlot extends BaseEntity {
    * @readonly
    */
   @Column()
-  @IsDateString()
+  // @IsDateString()
   start: Date;
 
   /**
@@ -37,7 +37,7 @@ export class TimeSlot extends BaseEntity {
    * @readonly
    */
   @Column()
-  @IsDateString()
+  // @IsDateString()
   end: Date;
 
   /**
