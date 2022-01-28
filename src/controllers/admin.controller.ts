@@ -74,13 +74,6 @@ export class AdminController {
       });
     }
     res.json(await globalSettingsRepository.find());
-    /*  await globalSettingsRepository
-          .update({ key: req.body[i].params.key }, req.body[i].value)
-          .catch((err) => {
-            res.status(400).json(err);
-            return;
-          });
-        res.json(await globalSettingsRepository.find());*/
   }
 
   /**
@@ -412,12 +405,11 @@ export class AdminController {
       return;
     }
 
-    //@TODO Adrian send email
-    // await MessagingController.sendMessage(
-    //   user,
-    //   'Account deletion',
-    //   'Your account has been deleted by an admin. Bye!'
-    //);
+    /*    await MessagingController.sendMessage(
+       user,
+       'Account deletion',
+       'Your account has been deleted by an admin. Bye!'
+    );*/
     await userRepository.softDelete(user.id);
 
     res.sendStatus(204);
