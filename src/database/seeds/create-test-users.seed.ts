@@ -36,8 +36,14 @@ export default class CreateTestUsers implements Seeder {
       notificationChannel: NotificationChannel.emailAndMessageBox,
     });
 
-    const rooms = await connection.getRepository(Room).find();
-    const items = await connection.getRepository(InventoryItem).find();
+    const rooms =
+      (await getRepository(Room).count()) != 0
+        ? await connection.getRepository(Room).find()
+        : await factory(Room)().createMany(3);
+    const items =
+      (await getRepository(InventoryItem).count()) != 0
+        ? await getRepository(InventoryItem).find()
+        : await factory(InventoryItem)().createMany(10);
 
     await factory(Message)({ recipient: admin }).createMany(10);
     await factory(Recording)({ user: admin }).createMany(10);

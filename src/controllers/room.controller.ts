@@ -154,15 +154,32 @@ export class RoomController {
       return;
     }
 
-    const repository = getRepository(TimeSlot);
+    const type = req.body.type;
+
+    if (type === undefined) {
+      res.status(400).json({ message: 'No type specified' });
+      return;
+    }
+
+    if (type === TimeSlotType.booked) {
+      res.status(400).json({ message: 'Type appointment is illegal here' });
+      return;
+    }
+
+    const { start, end, room } = req.body;
+
+    const repository =
+      type === TimeSlotType.available
+        ? getRepository(AvailableTimeslot)
+        : getRepository(UnavailableTimeslot);
     const timeslot = await repository
-      .save(repository.create(req.body))
+      .save(repository.create({ start, end, room }))
       .catch((err) => {
         res.status(400).json(err);
         return;
       });
 
-    res.status(200).json(timeslot);
+    res.status(201).json(timeslot);
   }
 
   /**
