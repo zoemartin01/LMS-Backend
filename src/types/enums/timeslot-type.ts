@@ -8,7 +8,7 @@
  * @enumerators {unavailable} The timeslot is an unavailable timeslot
  */
 export enum TimeSlotType {
-  booked = '1',
-  available = '2',
-  unavailable = '3',
+  booked = 1,
+  available = 2,
+  unavailable = 3,
 }
