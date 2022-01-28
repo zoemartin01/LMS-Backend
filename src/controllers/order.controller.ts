@@ -26,7 +26,7 @@ export class OrderController {
    */
   public static async getAllOrders(req: Request, res: Response) {
     getRepository(Order)
-      .find()
+      .find({ relations: ['user', 'item'] })
       .then((orders) => {
         res.json(orders);
       });
@@ -51,6 +51,7 @@ export class OrderController {
     getRepository(Order)
       .find({
         where: { user: currentUser },
+        relations: ['user', 'item'],
       })
       .then((orders) => {
         res.json(orders);
@@ -70,6 +71,7 @@ export class OrderController {
 
     const order: Order | undefined = await orderRepository.findOne({
       where: { id: req.params.id },
+      relations: ['user', 'item'],
     });
 
     if (order === undefined) {
@@ -154,6 +156,7 @@ export class OrderController {
 
     let order: Order | undefined = await orderRepository.findOne({
       where: { id: req.params.id },
+      relations: ['user', 'item'],
     });
 
     if (order === undefined) {
@@ -197,6 +200,7 @@ export class OrderController {
 
     order = await orderRepository.findOne({
       where: { id: req.params.id },
+      relations: ['user', 'item'],
     });
 
     if (order === undefined) {
@@ -259,6 +263,7 @@ export class OrderController {
 
     const order: Order | undefined = await orderRepository.findOne({
       where: { id: req.params.id },
+      relations: ['user', 'item'],
     });
 
     if (order === undefined) {
