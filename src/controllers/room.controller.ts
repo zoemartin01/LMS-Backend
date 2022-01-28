@@ -1,4 +1,4 @@
-import { getRepository } from 'typeorm';
+import { DeepPartial, getRepository } from 'typeorm';
 import { Room } from '../models/room.entity';
 import { Request, Response } from 'express';
 import { TimeSlot } from '../models/timeslot.entity';
@@ -65,14 +65,16 @@ export class RoomController {
   public static async createRoom(req: Request, res: Response) {
     const repository = getRepository(Room);
 
-    const room = await repository
-      .save(repository.create(req.body))
-      .catch((err) => {
-        res.status(400).json(err);
-        return;
-      });
+    try {
+      const room = await repository.save(
+        repository.create(<DeepPartial<Room>>req.body)
+      );
 
-    res.status(201).json(room);
+      res.status(201).json(room);
+    } catch (err) {
+      res.status(400).json(err);
+      return;
+    }
   }
 
   /**
@@ -96,10 +98,15 @@ export class RoomController {
       return;
     }
 
-    await repository.update({ id: room.id }, req.body).catch((err) => {
+    try {
+      await repository.update(
+        { id: room.id },
+        repository.create(<DeepPartial<Room>>{ ...room, ...req.body })
+      );
+    } catch (err) {
       res.status(400).json(err);
       return;
-    });
+    }
 
     res.json(
       await repository.findOne(room.id, {
@@ -172,14 +179,17 @@ export class RoomController {
       type === TimeSlotType.available
         ? getRepository(AvailableTimeslot)
         : getRepository(UnavailableTimeslot);
-    const timeslot = await repository
-      .save(repository.create({ start, end, room }))
-      .catch((err) => {
-        res.status(400).json(err);
-        return;
-      });
 
-    res.status(201).json(timeslot);
+    try {
+      const timeslot = await repository.save(
+        repository.create({ start, end, room })
+      );
+
+      res.status(201).json(timeslot);
+    } catch (err) {
+      res.status(400).json(err);
+      return;
+    }
   }
 
   /**

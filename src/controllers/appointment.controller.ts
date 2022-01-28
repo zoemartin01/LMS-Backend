@@ -134,29 +134,35 @@ export class AppointmentController {
    * @bodyParam {Date} start - start date and time of the appointment
    * @bodyParam {Date} end - end date and time of the appointment
    * @bodyParam {Room} room - the room associated with the appointment
-   * @bodyParam {User} user - the user associated with the appointment
    * @param {Request} req frontend request to create a new appointment
    * @param {Response} res backend response creation of a new appointment
    */
   public static async createAppointment(req: Request, res: Response) {
     const repository = getRepository(AppointmentTimeslot);
 
-    const appointment = await repository
-      .save(repository.create(req.body))
-      .catch((err) => {
-        res.status(400).json(err);
-        return;
-      });
+    const user = await AuthController.getCurrentUser(req);
 
-    res.status(201).json(appointment);
+    if (user === null) {
+      res.status(401).json({ message: 'Not logged in' });
+      return;
+    }
 
-    const currentUser = await AuthController.getCurrentUser(req);
-    if (currentUser === null) {
+    try {
+      const appointment = await repository.save(
+        repository.create(<DeepPartial<AppointmentTimeslot>>{
+          ...req.body,
+          user,
+        })
+      );
+
+      res.status(201).json(appointment);
+    } catch (err) {
+      res.status(400).json(err);
       return;
     }
 
     await MessagingController.sendMessage(
-      currentUser,
+      user,
       'Appointment Request Confirmation',
       'Your appointment request at ' +
         moment(req.body.start).format('DD.MM.YY') +
@@ -198,7 +204,6 @@ export class AppointmentController {
    * @bodyParam {Date} start - start date and time of the appointment
    * @bodyParam {Date} end - end date and time of the appointment
    * @bodyParam {Room} room - the room associated with the appointment
-   * @bodyParam {User} user - the user associated with the appointment
    * @bodyParam {number} difference -  milliseconds, time difference between the appointments, regularity
    * @bodyParam {number} amount - 2-2048, amount of appointments wanted for the series
    * @bodyParam {ConfirmationStatus [Optional]} confirmationStatus - the confirmation status of the appointment
@@ -208,9 +213,15 @@ export class AppointmentController {
   public static async createAppointmentSeries(req: Request, res: Response) {
     const repository = getRepository(AppointmentTimeslot);
     const appointments: AppointmentTimeslot[] = [];
-    const { start, end, room, user, difference, amount } = req.body;
+    const { start, end, room, difference, amount } = req.body;
     const confirmationStatus: boolean | undefined = req.body.confirmationStatus;
     const seriesId = uuidv4();
+    const user = await AuthController.getCurrentUser(req);
+
+    if (user === null) {
+      res.status(401).json({ message: 'Not logged in' });
+      return;
+    }
 
     for (let i = 0; i < +amount; i++) {
       const appointment: AppointmentTimeslot = repository.create(<
@@ -224,10 +235,12 @@ export class AppointmentController {
         seriesId,
       });
 
-      validateOrReject(appointment).catch((err) => {
+      try {
+        validateOrReject(appointment);
+      } catch (err) {
         res.status(400).json(err);
         return;
-      });
+      }
 
       appointments.push(appointment);
     }
@@ -299,10 +312,18 @@ export class AppointmentController {
       return;
     }
 
-    repository.update(appointment.id, req.body).catch((err) => {
+    try {
+      repository.update(
+        { id: appointment.id },
+        repository.create(<DeepPartial<AppointmentTimeslot>>{
+          ...appointment,
+          ...req.body,
+        })
+      );
+    } catch (err) {
       res.status(400).json(err);
       return;
-    });
+    }
 
     appointment = await repository.findOne(req.params.id);
 
@@ -371,21 +392,25 @@ export class AppointmentController {
         i < (+amount <= appointments.length ? +amount : appointments.length)
       ) {
         //these appointments are safe to update
-        repository
-          .update(appointments[i].id, {
-            start: new Date(start.getTime() + +difference * i),
-            end: new Date(end.getTime() + +difference * i),
-          }) //Todo change!!???
-          .catch((err) => {
-            res.status(400).json(err);
-            return;
-          });
+        try {
+          repository.update(
+            { id: appointments[i].id },
+            repository.create(<DeepPartial<AppointmentTimeslot>>{
+              ...appointments[i],
+              start: new Date(start.getTime() + +difference * i),
+              end: new Date(end.getTime() + +difference * i),
+            })
+          ); //Todo change!!???
+        } catch (err) {
+          res.status(400).json(err);
+          return;
+        }
       } else {
         //appointment series needs to be shortened or lengthened
         if (+amount > appointments.length) {
           //lengthen series by creating more in future
-          repository
-            .save(
+          try {
+            repository.save(
               repository.create(<DeepPartial<AppointmentTimeslot>>{
                 start: new Date(start.getTime() + +difference * i),
                 end: new Date(end.getTime() + +difference * i),
@@ -393,11 +418,11 @@ export class AppointmentController {
                 user,
                 seriesId,
               })
-            )
-            .catch((err) => {
-              res.status(400).json(err);
-              return;
-            });
+            );
+          } catch (err) {
+            res.status(400).json(err);
+            return;
+          }
         } else if (appointments.length > +amount) {
           //shorten series by removing access ones
           await repository.softDelete(appointments[i].id);
