@@ -78,7 +78,6 @@ export class LivecamController {
    */
   public static async updateRecording(req: Request, res: Response) {
     const repository = getRepository(Recording);
-
     const recording = await repository.findOne(req.params.id);
 
     if (recording === undefined) {
@@ -86,12 +85,15 @@ export class LivecamController {
       return;
     }
 
-    await getRepository(Recording)
-      .update(recording.id, req.body)
-      .catch((err) => {
-        res.status(400).json(err);
-        return;
-      });
+    try {
+      await repository.update(
+        { id: recording.id },
+        repository.create(<DeepPartial<Recording>>{ ...recording, ...req.body })
+      );
+    } catch (err) {
+      res.status(400).json(err);
+      return;
+    }
 
     res.json(await repository.findOne(recording.id));
   }
@@ -111,7 +113,7 @@ export class LivecamController {
   public static async scheduleRecording(req: Request, res: Response) {
     const user = await AuthController.getCurrentUser(req);
 
-    if (user === undefined) {
+    if (user === null) {
       res.status(401).json({ message: 'Not logged in' });
       return;
     }
@@ -120,7 +122,7 @@ export class LivecamController {
     let recording: Recording;
     try {
       recording = await repository.save(
-        repository.create(<DeepPartial<Recording>>{ ...req.body, user: user })
+        repository.create(<DeepPartial<Recording>>{ ...req.body, user })
       );
     } catch (err) {
       res.status(400).json(err);

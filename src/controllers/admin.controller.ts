@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { getRepository } from 'typeorm';
+import { DeepPartial, getRepository } from 'typeorm';
 import { GlobalSetting } from '../models/global_settings.entity';
 import { Retailer } from '../models/retailer.entity';
 import { RetailerDomain } from '../models/retailer.domain.entity';
@@ -42,12 +42,11 @@ export class AdminController {
    * @param {Response} res backend response with data change of one global settings
    */
   public static async updateGlobalSettings(req: Request, res: Response) {
-    const globalSettingsRepository = getRepository(GlobalSetting);
+    const repository = getRepository(GlobalSetting);
 
-    const globalSetting: GlobalSetting | undefined =
-      await globalSettingsRepository.findOne({
-        where: { key: req.params.key },
-      });
+    const globalSetting: GlobalSetting | undefined = await repository.findOne({
+      where: { key: req.params.key },
+    });
 
     if (globalSetting === undefined) {
       res.status(404).json({
@@ -56,13 +55,20 @@ export class AdminController {
       return;
     }
 
-    await globalSettingsRepository
-      .update({ key: req.params.key }, req.body)
-      .catch((err) => {
-        res.status(400).json(err);
-        return;
-      });
-    res.json(await globalSettingsRepository.findOne(globalSetting.key));
+    try {
+      await repository.update(
+        { key: globalSetting.key },
+        repository.create(<DeepPartial<GlobalSetting>>{
+          ...globalSetting,
+          ...req.body,
+        })
+      );
+    } catch (err) {
+      res.status(400).json(err);
+      return;
+    }
+
+    res.json(await repository.findOne(globalSetting.key));
   }
 
   /**
@@ -113,14 +119,16 @@ export class AdminController {
   public static async createWhitelistRetailer(req: Request, res: Response) {
     const retailerRepository = getRepository(Retailer);
 
-    const retailer = await retailerRepository
-      .save(retailerRepository.create(req.body))
-      .catch((err) => {
-        res.status(400).json(err);
-        return;
-      });
+    try {
+      const retailer = await retailerRepository.save(
+        retailerRepository.create(<DeepPartial<Retailer>>req.body)
+      );
 
-    res.status(201).json(retailer);
+      res.status(201).json(retailer);
+    } catch (err) {
+      res.status(400).json(err);
+      return;
+    }
   }
 
   /**
@@ -133,9 +141,9 @@ export class AdminController {
    * @param {Response} res backend response with data change of one whitelist retailer
    */
   public static async updateWhitelistRetailer(req: Request, res: Response) {
-    const retailerRepository = getRepository(Retailer);
+    const repository = getRepository(Retailer);
 
-    const retailer: Retailer | undefined = await retailerRepository.findOne({
+    const retailer: Retailer | undefined = await repository.findOne({
       where: { id: req.params.id },
     });
 
@@ -146,14 +154,17 @@ export class AdminController {
       return;
     }
 
-    await retailerRepository
-      .update({ id: req.params.id }, req.body)
-      .catch((err) => {
-        res.status(400).json(err);
-        return;
-      });
+    try {
+      await repository.update(
+        { id: retailer.id },
+        repository.create(<DeepPartial<Retailer>>{ ...retailer, ...req.body })
+      );
+    } catch (err) {
+      res.status(400).json(err);
+      return;
+    }
 
-    res.json(await retailerRepository.findOne(retailer.id));
+    res.json(await repository.findOne(retailer.id));
   }
 
   /**
@@ -196,16 +207,18 @@ export class AdminController {
     req: Request,
     res: Response
   ) {
-    const retailerDomainRepository = getRepository(RetailerDomain);
+    const retailer = getRepository(RetailerDomain);
 
-    const retailerDomain = await retailerDomainRepository
-      .save(retailerDomainRepository.create(req.body))
-      .catch((err) => {
-        res.status(400).json(err);
-        return;
-      });
+    try {
+      const retailerDomain = await retailer.save(
+        retailer.create(<DeepPartial<RetailerDomain>>req.body)
+      );
 
-    res.status(201).json(retailerDomain);
+      res.status(201).json(retailerDomain);
+    } catch (err) {
+      res.status(400).json(err);
+      return;
+    }
   }
 
   /**
@@ -222,12 +235,13 @@ export class AdminController {
     req: Request,
     res: Response
   ) {
-    const retailerDomainRepository = getRepository(RetailerDomain);
+    const repository = getRepository(RetailerDomain);
 
-    const retailerDomain: RetailerDomain | undefined =
-      await retailerDomainRepository.findOne({
+    const retailerDomain: RetailerDomain | undefined = await repository.findOne(
+      {
         where: { id: req.params.id },
-      });
+      }
+    );
 
     if (retailerDomain === undefined) {
       res.status(404).json({
@@ -235,14 +249,21 @@ export class AdminController {
       });
       return;
     }
-    retailerDomainRepository
-      .update({ id: req.params.id }, req.body)
-      .catch((err) => {
-        res.status(400).json(err);
-        return;
-      });
 
-    res.json(await retailerDomainRepository.findOne(retailerDomain.id));
+    try {
+      repository.update(
+        { id: retailerDomain.id },
+        repository.create(<DeepPartial<RetailerDomain>>{
+          ...retailerDomain,
+          ...req.body,
+        })
+      );
+    } catch (err) {
+      res.status(400).json(err);
+      return;
+    }
+
+    res.json(await repository.findOne(retailerDomain.id));
   }
 
   /**
@@ -363,10 +384,18 @@ export class AdminController {
       return;
     }
 
-    await userRepository.update({ id: user.id }, req.body).catch((err) => {
+    try {
+      await userRepository.update(
+        { id: user.id },
+        userRepository.create(<DeepPartial<User>>{
+          ...user,
+          ...req.body,
+        })
+      );
+    } catch (err) {
       res.status(400).json(err);
       return;
-    });
+    }
 
     res.json(await userRepository.findOne(user.id));
   }
