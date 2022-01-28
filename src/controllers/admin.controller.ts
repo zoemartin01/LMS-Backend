@@ -240,7 +240,7 @@ export class AdminController {
 
     const retailerDomain: RetailerDomain | undefined =
       await retailerDomainRepository.findOne({
-        where: { id: req.params.id },
+        where: { id: req.params.domainId },
       });
 
     if (retailerDomain === undefined) {
@@ -250,7 +250,7 @@ export class AdminController {
       return;
     }
     retailerDomainRepository
-      .update({ id: req.params.id }, req.body)
+      .update({ id: req.params.domainId }, req.body)
       .catch((err) => {
         res.status(400).json(err);
         return;
