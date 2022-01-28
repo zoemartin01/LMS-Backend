@@ -12,6 +12,7 @@
     "prepare": "husky install",
     "seed:config": "ts-node ./node_modules/typeorm-seeding/dist/cli.js config",
     "seed:run": "ts-node ./node_modules/typeorm-seeding/dist/cli.js seed",
+    "seed:globals": "ts-node ./node_modules/typeorm-seeding/dist/cli.js seed -s 'CreateGlobalSettings'",
     "schema:drop": "ts-node ./node_modules/typeorm/cli.js schema:drop",
     "schema:sync": "ts-node ./node_modules/typeorm/cli.js schema:sync",
     "reseed": "npm run schema:drop && npm run seed:run",
