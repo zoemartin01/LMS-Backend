@@ -133,7 +133,28 @@ export class AdminController {
         retailerRepository.create(<DeepPartial<Retailer>>req.body)
       );
 
-      res.status(201).json(retailer);
+      const domains = req.body.domains;
+
+      if (domains !== undefined) {
+        const domainRepository = getRepository(RetailerDomain);
+
+        const domainEntities: RetailerDomain[] = domains.map((domain: string) =>
+          domainRepository.create({
+            domain,
+            retailer: retailer,
+          })
+        );
+
+        await domainRepository.save(domainEntities);
+      }
+
+      res
+        .status(201)
+        .json(
+          await retailerRepository.findOne(retailer.id, {
+            relations: ['domains'],
+          })
+        );
     } catch (err) {
       res.status(400).json(err);
       return;
