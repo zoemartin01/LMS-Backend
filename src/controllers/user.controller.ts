@@ -101,7 +101,7 @@ export class UserController {
       return;
     }
 
-    res.sendStatus(204).json(await repository.findOne(user.id));
+    res.json(await repository.findOne(user.id));
   }
 
   /**
@@ -122,10 +122,6 @@ export class UserController {
     }
     const userRepository = getRepository(User);
 
-    await userRepository.delete(user.id);
-
-    res.sendStatus(204);
-
     await MessagingController.sendMessageToAllAdmins(
       'User deleted',
       'User' + user.firstName + user.lastName + 'deleted their account'
@@ -136,6 +132,9 @@ export class UserController {
       'Account deleted',
       'Your account has been deleted. Bye!'
     );
+    await userRepository.softDelete(user.id);
+
+    res.sendStatus(204);
   }
 
   /**
