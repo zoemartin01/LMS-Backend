@@ -94,7 +94,7 @@ export class UserController {
     try {
       await repository.update(
         { id: user.id },
-        repository.create(<DeepPartial<User>>req.body)
+        repository.create(<DeepPartial<User>>{ ...user, ...req.body })
       );
     } catch (err) {
       res.status(400).json(err);
