@@ -1,4 +1,4 @@
-import { IsNotEmpty } from 'class-validator';
+import { IsNotEmpty, IsString } from 'class-validator';
 import { Column, Entity, ManyToOne } from 'typeorm';
 import { BaseEntity } from './base.entity';
 import { Retailer } from './retailer.entity';
@@ -33,6 +33,7 @@ export class RetailerDomain extends BaseEntity {
    * @readonly
    */
   @Column()
+  @IsString()
   @IsNotEmpty()
   readonly domain: string;
 }
