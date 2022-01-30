@@ -148,13 +148,11 @@ export class AdminController {
         await domainRepository.save(domainEntities);
       }
 
-      res
-        .status(201)
-        .json(
-          await retailerRepository.findOne(retailer.id, {
-            relations: ['domains'],
-          })
-        );
+      res.status(201).json(
+        await retailerRepository.findOne(retailer.id, {
+          relations: ['domains'],
+        })
+      );
     } catch (err) {
       res.status(400).json(err);
       return;
@@ -227,8 +225,8 @@ export class AdminController {
   /**
    * Adds domain to whitelist retailer
    *
-   * @route {POST} /global-settings/whitelist-retailers/:retailerId/domains
-   * @routeParam {string} retailerId - a retailer id
+   * @route {POST} /global-settings/whitelist-retailers/:id/domains
+   * @routeParam {string} id - a retailer id
    * @bodyParam {string} domain - an additional domain of the retailer
    * @param {Request} req frontend request to add a new domain to the retailer
    * @param {Response} res backend response addition of a new domain to the retailer
@@ -237,11 +235,26 @@ export class AdminController {
     req: Request,
     res: Response
   ) {
-    const retailer = getRepository(RetailerDomain);
+    const repository = getRepository(RetailerDomain);
+    const retailer: Retailer | undefined = await getRepository(
+      Retailer
+    ).findOne({
+      where: { id: req.params.id },
+    });
+
+    if (retailer === undefined) {
+      res.status(404).json({
+        message: 'Retailer not found.',
+      });
+      return;
+    }
 
     try {
-      const retailerDomain = await retailer.save(
-        retailer.create(<DeepPartial<RetailerDomain>>req.body)
+      const retailerDomain = await repository.save(
+        repository.create(<DeepPartial<RetailerDomain>>{
+          ...req.body,
+          retailer,
+        })
       );
 
       res.status(201).json(retailerDomain);
