@@ -217,8 +217,6 @@ export class MessagingController {
     linkText: string | null = null,
     linkUrl: string | null = null
   ): Promise<void> {
-    const transporter = nodemailer.createTransport(environment.smtpConfig);
-
     const message =
       linkText === null || linkUrl === null
         ? {
@@ -235,7 +233,12 @@ export class MessagingController {
           html: `<p>${content}</p><br><a href="${environment.frontendUrl}${linkUrl}">${linkText}</a>`,
         };
 
-    await transporter.sendMail(message);
+    try {
+      const transporter = nodemailer.createTransport(environment.smtpConfig);
+      await transporter.sendMail(message);
+    }catch (e) {
+      console.log(e);
+    }
   }
 
   /**
