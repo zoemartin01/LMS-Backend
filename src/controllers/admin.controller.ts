@@ -102,7 +102,16 @@ export class AdminController {
    * @param {Response} res backend response with data about all whitelist retailers
    */
   public static async getWhitelistRetailers(req: Request, res: Response) {
-    const retailers: Retailer[] = await getRepository(Retailer).find();
+    const { offset, limit } = req.query;
+
+    const retailers: Retailer[] = await getRepository(Retailer).find({
+      relations: ['domains'],
+      order: {
+        name: 'ASC',
+      },
+      skip: offset ? +offset : 0,
+      take: limit ? +limit : 0,
+    });
 
     res.json(retailers);
   }
@@ -328,7 +337,16 @@ export class AdminController {
    * @param {Response} res backend response with data about all user
    */
   public static async getUsers(req: Request, res: Response) {
-    const users: User[] = await getRepository(User).find();
+    const { offset, limit } = req.query;
+
+    const users: User[] = await getRepository(User).find({
+      order: {
+        firstName: 'ASC',
+        lastName: 'ASC',
+      },
+      skip: offset ? +offset : 0,
+      take: limit ? +limit : 0,
+    });
 
     res.json(users);
   }

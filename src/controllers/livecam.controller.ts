@@ -22,10 +22,17 @@ export class LivecamController {
    * @param {Response} res backend response with data of all finished recordings
    */
   public static async getRecordings(req: Request, res: Response) {
+    const { offset, limit } = req.query;
+
     await getRepository(Recording)
       .find({
         where: { end: LessThan(new Date()), size: MoreThan(0) },
         relations: ['user'],
+        order: {
+          start: 'ASC',
+        },
+        skip: offset ? +offset : 0,
+        take: limit ? +limit : 0,
       })
       .then((recordings) => {
         res.status(200).json(recordings);
@@ -40,8 +47,18 @@ export class LivecamController {
    * @param res backend response with data of all scheduled recordings
    */
   public static async getScheduledRecordings(req: Request, res: Response) {
+    const { offset, limit } = req.query;
+
     await getRepository(Recording)
-      .find({ where: { end: MoreThan(new Date()) }, relations: ['user'] })
+      .find({
+        where: { end: MoreThan(new Date()) },
+        relations: ['user'],
+        order: {
+          start: 'ASC',
+        },
+        skip: offset ? +offset : 0,
+        take: limit ? +limit : 0,
+      })
       .then((recordings) => {
         res.status(200).json(recordings);
       });
