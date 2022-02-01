@@ -9,8 +9,8 @@ const environment = {
   },
   //@todo add SMTP credentials & sender email
   smtpConfig: {
-    host: 'smtp.example.com',
-    port: 587,
+    host: 'mail.teco.edu',
+    port: 25,
     secure: true,
     auth: {
       user: 'username',
