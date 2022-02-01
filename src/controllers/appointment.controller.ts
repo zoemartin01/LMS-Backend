@@ -26,7 +26,16 @@ export class AppointmentController {
    * @param {Response} res backend response with data about all appointments
    */
   public static async getAllAppointments(req: Request, res: Response) {
-    const appointments = await getRepository(AppointmentTimeslot).find();
+    const { offset, limit } = req.query;
+
+    const appointments = await getRepository(AppointmentTimeslot).find({
+      order: {
+        start: 'ASC',
+      },
+      skip: offset ? +offset : 0,
+      take: limit ? +limit : 0,
+    });
+
     res.json(appointments);
   }
 
@@ -50,9 +59,17 @@ export class AppointmentController {
       return;
     }
 
+    const { offset, limit } = req.query;
+
     const appointments = await getRepository(AppointmentTimeslot).find({
       where: { user: currentUser },
+      order: {
+        start: 'ASC',
+      },
+      skip: offset ? +offset : 0,
+      take: limit ? +limit : 0,
     });
+
     res.json(appointments);
   }
 
@@ -65,16 +82,25 @@ export class AppointmentController {
    * @param {Response} res backend response with data about all appointments for room
    */
   public static async getAppointmentsForRoom(req: Request, res: Response) {
-    const room = await getRepository(Room).findOne(req.params.id, {
-      relations: ['appointments'],
-    });
+    const { offset, limit } = req.query;
+
+    const room = await getRepository(Room).findOne(req.params.id);
 
     if (room === undefined) {
       res.status(404).json({ message: 'Room not found' });
       return;
     }
 
-    res.json(room.appointments);
+    const appointments = await getRepository(AppointmentTimeslot).find({
+      where: { room },
+      order: {
+        start: 'ASC',
+      },
+      skip: offset ? +offset : 0,
+      take: limit ? +limit : 0,
+    });
+
+    res.json(appointments);
   }
 
   /**
@@ -86,8 +112,15 @@ export class AppointmentController {
    * @param {Response} res backend response with data about all appointments for a series
    */
   public static async getAppointmentsForSeries(req: Request, res: Response) {
+    const { offset, limit } = req.query;
+
     const appointments = await getRepository(AppointmentTimeslot).find({
       where: { seriesId: req.params.id },
+      order: {
+        start: 'ASC',
+      },
+      skip: offset ? +offset : 0,
+      take: limit ? +limit : 0,
     });
 
     if (appointments.length === 0) {
@@ -432,7 +465,12 @@ export class AppointmentController {
 
     res
       .status(200)
-      .json(await repository.find({ where: { seriesId: req.params.id } }));
+      .json(
+        await repository.find({
+          where: { seriesId: req.params.id },
+          order: { start: 'ASC' },
+        })
+      );
 
     await MessagingController.sendMessage(
       user,
