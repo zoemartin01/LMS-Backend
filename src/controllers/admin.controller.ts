@@ -425,6 +425,18 @@ export class AdminController {
       return;
     }
 
+    if (user.role == 3) {
+      const users: User[] = await userRepository.find({ where: { role: 3 } });
+      if (
+        users.length == 1 &&
+        (+req.params.role == 1 || +req.params.role == 2)
+      ) {
+        res.status(403).json({
+          message: 'Not allowed to degrade last admin',
+        });
+        return;
+      }
+    }
     try {
       await userRepository.update(
         { id: user.id },
@@ -461,6 +473,16 @@ export class AdminController {
         message: 'User not found.',
       });
       return;
+    }
+
+    if (user.role == 3) {
+      const users: User[] = await userRepository.find({ where: { role: 3 } });
+      if (users.length == 1) {
+        res.status(403).json({
+          message: 'Not allowed to delete last admin',
+        });
+        return;
+      }
     }
 
     /*    await MessagingController.sendMessage(
