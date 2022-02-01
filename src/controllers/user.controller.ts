@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { getRepository } from 'typeorm';
+import { DeepPartial, getRepository } from 'typeorm';
 import bcrypt from 'bcrypt';
 import environment from '../environment';
 import { MessagingController } from './messaging.controller';
@@ -46,7 +46,7 @@ export class UserController {
    */
   public static async updateUser(req: Request, res: Response) {
     const user = await AuthController.getCurrentUser(req);
-    const userRepository = getRepository(User);
+    const repository = getRepository(User);
 
     if (user === null) {
       res.status(404).json({
@@ -91,12 +91,17 @@ export class UserController {
       return;
     }
 
-    await userRepository.update({ id: user.id }, req.body).catch((err) => {
+    try {
+      await repository.update(
+        { id: user.id },
+        repository.create(<DeepPartial<User>>req.body)
+      );
+    } catch (err) {
       res.status(400).json(err);
       return;
-    });
+    }
 
-    res.sendStatus(204).json(await userRepository.findOne(user.id));
+    res.sendStatus(204).json(await repository.findOne(user.id));
   }
 
   /**

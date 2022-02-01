@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { getRepository } from 'typeorm';
+import { DeepPartial, getRepository } from 'typeorm';
 import { Order } from '../models/order.entity';
 import { AuthController } from './auth.controller';
 import { OrderStatus } from '../types/enums/order-status';
@@ -25,8 +25,15 @@ export class OrderController {
    * @param {Response} res backend response with data of all orders
    */
   public static async getAllOrders(req: Request, res: Response) {
+    const { offset, limit } = req.query;
+
     getRepository(Order)
-      .find()
+      .find({
+        relations: ['user', 'item'],
+        order: { updatedAt: 'DESC' },
+        skip: offset ? +offset : 0,
+        take: limit ? +limit : 0,
+      })
       .then((orders) => {
         res.json(orders);
       });
@@ -48,9 +55,17 @@ export class OrderController {
       });
     }
 
+    const { offset, limit } = req.query;
+
     getRepository(Order)
       .find({
         where: { user: currentUser },
+        relations: ['user', 'item'],
+        order: {
+          updatedAt: 'DESC',
+        },
+        skip: offset ? +offset : 0,
+        take: limit ? +limit : 0,
       })
       .then((orders) => {
         res.json(orders);
@@ -70,6 +85,7 @@ export class OrderController {
 
     const order: Order | undefined = await orderRepository.findOne({
       where: { id: req.params.id },
+      relations: ['user', 'item'],
     });
 
     if (order === undefined) {
@@ -103,11 +119,17 @@ export class OrderController {
    * @param {Response} res backend response creation of a new order
    */
   public static async createOrder(req: Request, res: Response) {
-    const orderRepository = getRepository(Order);
+    const repository = getRepository(Order);
+    const user = await AuthController.getCurrentUser(req);
+    if (user === null) {
+      return;
+    }
 
     let order: Order;
     try {
-      order = await orderRepository.save(req.body);
+      order = await repository.save(
+        repository.create(<DeepPartial<Order>>{ ...req.body, user })
+      );
     } catch (err) {
       res.status(400).json(err);
       return;
@@ -115,13 +137,8 @@ export class OrderController {
 
     res.status(201).json(order);
 
-    const currentUser = await AuthController.getCurrentUser(req);
-    if (currentUser === null) {
-      return;
-    }
-
     await MessagingController.sendMessage(
-      currentUser,
+      user,
       'Order Request Confirmation',
       'Your order request has been sent.',
       'Your Orders',
@@ -150,10 +167,11 @@ export class OrderController {
    * @param {Response} res backend response with changed data of the order
    */
   public static async updateOrder(req: Request, res: Response) {
-    const orderRepository = getRepository(Order);
+    const repository = getRepository(Order);
 
-    let order: Order | undefined = await orderRepository.findOne({
+    let order: Order | undefined = await repository.findOne({
       where: { id: req.params.id },
+      relations: ['user', 'item'],
     });
 
     if (order === undefined) {
@@ -190,13 +208,22 @@ export class OrderController {
       return;
     }
 
-    await orderRepository.update(order.id, req.body).catch((err) => {
+    try {
+      await repository.update(
+        { id: order.id },
+        repository.create(<DeepPartial<Order>>{
+          ...order,
+          ...req.body,
+        })
+      );
+    } catch (err) {
       res.status(400).json(err);
       return;
-    });
+    }
 
-    order = await orderRepository.findOne({
+    order = await repository.findOne({
       where: { id: req.params.id },
+      relations: ['user', 'item'],
     });
 
     if (order === undefined) {
@@ -259,6 +286,7 @@ export class OrderController {
 
     const order: Order | undefined = await orderRepository.findOne({
       where: { id: req.params.id },
+      relations: ['user', 'item'],
     });
 
     if (order === undefined) {

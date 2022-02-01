@@ -9,19 +9,19 @@ const environment = {
   },
   //@todo add SMTP credentials & sender email
   smtpConfig: {
-    host: "smtp.example.com",
+    host: 'smtp.example.com',
     port: 587,
     secure: true,
     auth: {
-      user: "username",
-      pass: "password",
+      user: 'username',
+      pass: 'password',
     },
   },
   smtpSender: '',
   livecam_server: {
     host: 'localhost',
     port: 7000,
-    apiPath: '',
+    apiPath: '/api',
     endpoints: {
       list: '/recordings',
       download: '/recordings/:id',

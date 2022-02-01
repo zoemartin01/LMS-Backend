@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
-import { getRepository } from 'typeorm';
+import { DeepPartial, getRepository } from 'typeorm';
 import { InventoryItem } from '../models/inventory-item.entity';
-import environment from "../environment";
+import environment from '../environment';
 
 /**
  * Controller for inventory management
@@ -18,8 +18,16 @@ export class InventoryController {
    * @param {Response} res backend response with data of all inventory items
    */
   public static async getAllInventoryItems(req: Request, res: Response) {
+    const { offset, limit } = req.query;
+
     getRepository(InventoryItem)
-      .find()
+      .find({
+        order: {
+          name: 'ASC',
+        },
+        skip: offset ? +offset : 0,
+        take: limit ? +limit : 0,
+      })
       .then((inventoryItems) => {
         res.json(inventoryItems);
       });
@@ -61,21 +69,34 @@ export class InventoryController {
    * @param {Response} res backend response with data of newly created inventory item
    */
   public static async createInventoryItem(req: Request, res: Response) {
-    const inventoryRepository = getRepository(InventoryItem);
+    const repository = getRepository(InventoryItem);
 
     const existingInventoryItem: InventoryItem | undefined =
-      await inventoryRepository.findOne({
+      await repository.findOne({
         where: { name: req.body.name },
       });
 
     if (existingInventoryItem === undefined) {
-      const inventoryItem = await inventoryRepository.save(req.body);
-      res.status(201).json(inventoryItem);
-      return;
+      try {
+        const inventoryItem = await repository.save(
+          repository.create(<DeepPartial<InventoryItem>>req.body)
+        );
+        res.status(201).json(inventoryItem);
+        return;
+      } catch (err) {
+        res.status(400).json(err);
+        return;
+      }
     }
 
-    res.status(303).send(environment.apiRoutes.inventory_item.getSingleItem
-      .replace(':id', existingInventoryItem.id));
+    res
+      .status(303)
+      .send(
+        environment.apiRoutes.inventory_item.getSingleItem.replace(
+          ':id',
+          existingInventoryItem.id
+        )
+      );
   }
 
   /**
@@ -90,12 +111,11 @@ export class InventoryController {
    * @param {Response} res backend response with (changed) data of inventory item
    */
   public static async updateInventoryItem(req: Request, res: Response) {
-    const inventoryRepository = getRepository(InventoryItem);
+    const repository = getRepository(InventoryItem);
 
-    let inventoryItem: InventoryItem | undefined =
-      await inventoryRepository.findOne({
-        where: { id: req.params.id },
-      });
+    let inventoryItem: InventoryItem | undefined = await repository.findOne({
+      where: { id: req.params.id },
+    });
 
     if (inventoryItem === undefined) {
       res.status(404).json({
@@ -104,12 +124,20 @@ export class InventoryController {
       return;
     }
 
-    inventoryRepository.update(inventoryItem, req.body).catch((err) => {
+    try {
+      repository.update(
+        { id: inventoryItem.id },
+        repository.create(<DeepPartial<InventoryItem>>{
+          ...inventoryItem,
+          ...req.body,
+        })
+      );
+    } catch (err) {
       res.status(400).json(err);
       return;
-    });
+    }
 
-    inventoryItem = await inventoryRepository.findOne({
+    inventoryItem = await repository.findOne({
       where: { id: req.params.id },
     });
 
