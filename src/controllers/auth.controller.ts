@@ -2,7 +2,7 @@ import { NextFunction, Request, Response } from 'express';
 import { getRepository, MoreThan, createQueryBuilder } from 'typeorm';
 import jsonwebtoken, { VerifyErrors } from 'jsonwebtoken';
 // eslint-disable-next-line @typescript-eslint/no-var-requires
-const activedirectory = require('activedirectory');
+const ActiveDirectory = require('activedirectory');
 import bcrypt from 'bcrypt';
 import moment from 'moment';
 import environment from '../environment';
@@ -50,14 +50,8 @@ export class AuthController {
     password: string,
     res: Response
   ): Promise<void> {
-    //@todo Adrian: test AD authentication
     try {
-      const ad = activedirectory.ActiveDirectory(
-        environment.activeDirectoryConfig.url,
-        environment.activeDirectoryConfig.baseDN,
-        environment.activeDirectoryConfig.username,
-        environment.activeDirectoryConfig.password
-      );
+      const ad = new ActiveDirectory(environment.activeDirectoryConfig);
 
       ad.authenticate(email, password, async (err: object, auth: boolean) => {
         if (err) {
@@ -105,9 +99,7 @@ export class AuthController {
    * @private
    */
   private static async createActiveDirectoryUser(email: string): Promise<User> {
-    const ad = new activedirectory.ActiveDirectory(
-      environment.activeDirectoryConfig
-    );
+    const ad = new ActiveDirectory(environment.activeDirectoryConfig);
     const userRepository = getRepository(User);
 
     return ad.findUser(
@@ -475,8 +467,6 @@ export class AuthController {
     res: Response,
     next: NextFunction
   ) {
-    await AuthController.checkAdmin(req)
-      ? next()
-      : res.sendStatus(403);
+    (await AuthController.checkAdmin(req)) ? next() : res.sendStatus(403);
   }
 }

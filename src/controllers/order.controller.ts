@@ -25,8 +25,15 @@ export class OrderController {
    * @param {Response} res backend response with data of all orders
    */
   public static async getAllOrders(req: Request, res: Response) {
+    const { offset, limit } = req.query;
+
     getRepository(Order)
-      .find({ relations: ['user', 'item'] })
+      .find({
+        relations: ['user', 'item'],
+        order: { updatedAt: 'DESC' },
+        skip: offset ? +offset : 0,
+        take: limit ? +limit : 0,
+      })
       .then((orders) => {
         res.json(orders);
       });
@@ -48,10 +55,17 @@ export class OrderController {
       });
     }
 
+    const { offset, limit } = req.query;
+
     getRepository(Order)
       .find({
         where: { user: currentUser },
         relations: ['user', 'item'],
+        order: {
+          updatedAt: 'DESC',
+        },
+        skip: offset ? +offset : 0,
+        take: limit ? +limit : 0,
       })
       .then((orders) => {
         res.json(orders);
