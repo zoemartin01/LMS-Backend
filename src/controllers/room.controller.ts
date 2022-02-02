@@ -26,8 +26,15 @@ export class RoomController {
    * @param {Response} res backend response with data about all rooms
    */
   public static async getAllRooms(req: Request, res: Response) {
+    const { offset, limit } = req.query;
+
     const rooms = await getRepository(Room).find({
       relations: ['appointments', 'availableTimeSlots', 'unavailableTimeSlots'],
+      order: {
+        name: 'ASC',
+      },
+      skip: offset ? +offset : 0,
+      take: limit ? +limit : 0,
     });
     res.json(rooms);
   }
@@ -65,8 +72,6 @@ export class RoomController {
   public static async getRoomCalendar(req: Request, res: Response) {
     const date: moment.Moment = req.query.date === undefined ? moment() : moment(+req.query.date*1000);
 
-    console.log(date);
-
     const from: string = date.day(1).format("YYYY-MM-DD");
     const to: string = date.day(1).add(7, 'days').format("YYYY-MM-DD");
 
@@ -78,7 +83,8 @@ export class RoomController {
     }
 
     const timeSlotRepository = getRepository(TimeSlot);
-    const appointments = await timeSlotRepository.find({
+    const appointmentRepository = getRepository(AppointmentTimeslot);
+    const appointments = await appointmentRepository.find({
       where: [
         {
           start: Between(from, to),

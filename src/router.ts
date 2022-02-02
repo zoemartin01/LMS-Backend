@@ -205,6 +205,11 @@ router.get(
   AuthController.checkAuthenticationMiddleware,
   RoomController.getRoomById
 );
+router.get(
+  addUUIDRegexToRoute(environment.apiRoutes.rooms.getRoomCalendar),
+  AuthController.checkAuthenticationMiddleware,
+  RoomController.getRoomCalendar
+);
 router.post(
   environment.apiRoutes.rooms.createRoom,
   AuthController.checkAuthenticationMiddleware,
