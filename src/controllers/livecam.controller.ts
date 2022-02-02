@@ -215,5 +215,9 @@ export class LivecamController {
    * @param {Request} req frontend request to get the live camera feed
    * @param {Response} res backend response with the live camera feed
    */
-  public static async getLiveCameraFeed(req: Request, res: Response) {}
+  public static async getLiveCameraFeed(req: Request, res: Response) {
+    res.json({
+      url: `ws://${environment.host}:${environment.livecam_server.ws_port}`,
+    });
+  }
 }

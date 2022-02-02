@@ -1,4 +1,5 @@
 const environment = {
+  host: process.env.HOSTNAME || 'localhost',
   frontendUrl: process.env.HOSTNAME || 'http://localhost:4200',
   pwHashSaltRound: 10,
   accessTokenSecret: 'V50jPXQVocPUSPHl0yzPJhXZzh32bp',
@@ -21,6 +22,7 @@ const environment = {
   livecam_server: {
     host: process.env.LIVECAM_HOST || 'localhost',
     port: process.env.LIVECAM_PORT || 7000,
+    ws_port: process.env.LIVECAM_WS_PORT || 9999,
     apiPath: process.env.LIVECAM_PATH || '/api',
     endpoints: {
       list: '/recordings',
