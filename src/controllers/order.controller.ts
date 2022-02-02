@@ -235,8 +235,10 @@ export class OrderController {
 
     res.status(200).json(order);
 
+    const orderItem = await order.item;
+
     const itemName: string =
-      order.item === undefined ? order.itemName : order.item.name;
+      orderItem === null ? order.itemName : orderItem.name;
 
     const currentUser = await AuthController.getCurrentUser(req);
     if (currentUser === null) {
@@ -304,12 +306,14 @@ export class OrderController {
       return;
     }
 
+    const orderItem = await order.item;
+
+    const itemName: string =
+      orderItem === null ? order.itemName : orderItem.name;
+
     await orderRepository.delete(order.id).then(() => {
       res.sendStatus(204);
     });
-
-    const itemName: string =
-      order.item === undefined ? order.itemName : order.item.name;
 
     const currentUser = await AuthController.getCurrentUser(req);
     if (currentUser === null) {
