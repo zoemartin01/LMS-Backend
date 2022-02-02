@@ -370,7 +370,7 @@ export class AuthController {
     const authHeader = req.headers['authorization'];
 
     if (!authHeader) {
-      res.sendStatus(401).json({
+      res.status(401).json({
         message: 'Missing authorization header.',
       });
       return;
