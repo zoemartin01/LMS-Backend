@@ -20,7 +20,6 @@ COPY package*.json /app/
 RUN npm ci --only=production
 
 COPY ormconfig.js /app/
-COPY init_db.js /app/
 COPY --from=build /app/dist /app
 
 EXPOSE 3000
