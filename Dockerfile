@@ -19,7 +19,7 @@ WORKDIR /app
 COPY package*.json /app/
 RUN npm ci --only=production
 
-COPY ormconfig.js /app/
+COPY ormconfig.prod.js /app/ormconfig.js
 COPY --from=build /app/dist /app
 
 EXPOSE 3000
