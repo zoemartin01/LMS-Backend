@@ -279,7 +279,7 @@ export class MessagingController {
     const userRepository = getRepository(User);
 
     const admins: User[] = await userRepository.find({
-      where: { type: UserRole.admin },
+      where: { role: UserRole.admin },
     });
 
     for (const recipient of admins) {
