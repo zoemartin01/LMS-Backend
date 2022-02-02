@@ -10,8 +10,8 @@ const environment = {
   //@todo add SMTP credentials & sender email
   smtpConfig: {
     host: process.env.SMTP_HOST || 'mail.teco.edu',
-    port: process.env.SMTP_POST || 25,
-    secure: process.env.SMTP_SSL || true,
+    port: process.env.SMTP_POST ? +process.env.SMTP_POST : 25,
+    secure: process.env.SMTP_SSL === 'true' || true,
     auth: {
       user: process.env.SMTP_USERNAME || 'username',
       pass: process.env.SMTP_PASSWORD || 'password',
