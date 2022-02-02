@@ -4,6 +4,7 @@ import { Room } from './room.entity';
 import { TimeSlot } from './timeslot.entity';
 import { User } from './user.entity';
 import { TimeSlotType } from '../types/enums/timeslot-type';
+import { TimeSlotRecurrence } from '../types/enums/timeslot-recurrence';
 
 /**
  * Appointment Timeslot
@@ -16,6 +17,7 @@ import { TimeSlotType } from '../types/enums/timeslot-type';
  * @property {User} user - The user who booked the appointment.
  * @property {ConfirmationStatus} confirmationStatus - The confirmation status of the time slot.
  * @property {string} seriesId - The id of the series the time slot belongs to.
+ * @property {TimeSlotRecurrence} - The recurrence of an appointment in a series.
  */
 @ChildEntity(TimeSlotType.booked)
 export class AppointmentTimeslot extends TimeSlot {
@@ -57,4 +59,17 @@ export class AppointmentTimeslot extends TimeSlot {
    */
   @Column()
   seriesId: string;
+
+  /**
+   * The recurrence of an appointment.
+   *
+   * @type {TimeSlotRecurrence}
+   * @default TimeSlotRecurrence.single
+   */
+  @Column({
+    type: 'enum',
+    enum: TimeSlotRecurrence,
+    default: TimeSlotRecurrence.single,
+  })
+  timeSlotRecurrence: TimeSlotRecurrence;
 }
