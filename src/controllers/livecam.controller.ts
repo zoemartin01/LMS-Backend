@@ -217,7 +217,7 @@ export class LivecamController {
    */
   public static async getLiveCameraFeed(req: Request, res: Response) {
     res.json({
-      url: `ws://${environment.host}:${environment.livecam_server.ws_port}`,
+      url: `ws://${environment.host}:${environment.livecam_server.ws_port}${environment.livecam_server.ws_path}`,
     });
   }
 }

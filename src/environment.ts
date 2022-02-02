@@ -23,6 +23,7 @@ const environment = {
     host: process.env.LIVECAM_HOST || 'localhost',
     port: process.env.LIVECAM_PORT || 7000,
     ws_port: process.env.LIVECAM_WS_PORT || 9999,
+    ws_path: process.env.LIVECAM_WS_PATH || '/api/stream',
     apiPath: process.env.LIVECAM_PATH || '/api',
     endpoints: {
       list: '/recordings',
