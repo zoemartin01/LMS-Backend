@@ -55,14 +55,14 @@ export class MessagingController {
     const unreadMessagesSum = await messageRepository
       .createQueryBuilder('message')
       .select('COUNT(*)', 'sum')
-      .where('readStatus = :b', { b: false })
+      .where('message.readStatus = :b', { b: false })
       .getRawOne();
 
     const unreadMessages = await messageRepository
       .createQueryBuilder('message')
       .select('message.correspondingUrl')
       .addSelect('COUNT(*)', 'sum')
-      .where('readStatus = :b', { b: false })
+      .where('message.readStatus = :b', { b: false })
       .groupBy('message.correspondingUrl')
       .getRawMany();
 
