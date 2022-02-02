@@ -132,6 +132,18 @@ export class UserController {
       'Account deleted',
       'Your account has been deleted. Bye!'
     );
+    try {
+      await userRepository.update(
+        { id: user.id },
+        userRepository.create(<DeepPartial<User>>{
+          ...user,
+          ...{ firstName: undefined, lastName: undefined, email: undefined },
+        })
+      );
+    } catch (err) {
+      res.status(400).json(err);
+      return;
+    }
     await userRepository.softDelete(user.id);
 
     res.sendStatus(204);

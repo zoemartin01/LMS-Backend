@@ -490,6 +490,18 @@ export class AdminController {
        'Account deletion',
        'Your account has been deleted by an admin. Bye!'
     );*/
+    try {
+      await userRepository.update(
+        { id: user.id },
+        userRepository.create(<DeepPartial<User>>{
+          ...user,
+          ...{ firstName: undefined, lastName: undefined, email: undefined },
+        })
+      );
+    } catch (err) {
+      res.status(400).json(err);
+      return;
+    }
     await userRepository.softDelete(user.id);
 
     res.sendStatus(204);
