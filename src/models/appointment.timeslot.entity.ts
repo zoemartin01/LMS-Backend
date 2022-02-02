@@ -17,7 +17,7 @@ import { TimeSlotRecurrence } from '../types/enums/timeslot-recurrence';
  * @property {User} user - The user who booked the appointment.
  * @property {ConfirmationStatus} confirmationStatus - The confirmation status of the time slot.
  * @property {string} seriesId - The id of the series the time slot belongs to.
- * @property {TimeSlotRecurrence} - The recurrence of an appointment in a series.
+ * @property {TimeSlotRecurrence} timeSlotRecurrence - The recurrence of an appointment in a series.
  */
 @ChildEntity(TimeSlotType.booked)
 export class AppointmentTimeslot extends TimeSlot {
