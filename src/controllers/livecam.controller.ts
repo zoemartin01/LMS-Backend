@@ -4,12 +4,13 @@ import { Recording } from '../models/recording.entity';
 import environment from '../environment';
 import { promisify } from 'util';
 import { pipeline } from 'stream';
-import axios from 'axios';
+import axios, { AxiosResponse } from 'axios';
 import { AuthController } from './auth.controller';
 import { WebSocket } from 'ws';
 import jsonwebtoken from 'jsonwebtoken';
 import { Token } from '../models/token.entity';
 import { TokenType } from '../types/enums/token-type';
+import { GlobalSetting } from '../models/global_settings.entity';
 
 /**
  * Controller for the LiveCam System
@@ -25,7 +26,7 @@ export class LivecamController {
    * @param {Request} req frontend request to get data of all finished recordings
    * @param {Response} res backend response with data of all finished recordings
    */
-  public static async getRecordings(req: Request, res: Response) {
+  public static async getFinishedRecordings(req: Request, res: Response) {
     const { offset, limit } = req.query;
 
     await getRepository(Recording)
@@ -55,7 +56,7 @@ export class LivecamController {
 
     await getRepository(Recording)
       .find({
-        where: { end: MoreThan(new Date()) },
+        where: { size: 0 },
         relations: ['user'],
         order: {
           start: 'ASC',
@@ -139,6 +140,15 @@ export class LivecamController {
       return;
     }
 
+    const limit = await getRepository(GlobalSetting).findOne({
+      where: { key: 'user.max_recordings' },
+    });
+
+    if (limit !== undefined && user.recordings.length >= +limit.value) {
+      res.status(400).json({ message: 'Max recording limit reached' });
+      return;
+    }
+
     const repository = getRepository(Recording);
     let recording: Recording;
     try {
@@ -150,14 +160,19 @@ export class LivecamController {
       return;
     }
 
-    const response = await axios.post(
-      `http://${environment.livecam_server.host}:${environment.livecam_server.port}` +
-        `${environment.livecam_server.apiPath}` +
-        `${environment.livecam_server.endpoints.schedule}`,
-      { ...recording }
-    );
+    try {
+      const response = await axios.post(
+        `http://${environment.livecam_server.host}:${environment.livecam_server.port}` +
+          `${environment.livecam_server.apiPath}` +
+          `${environment.livecam_server.endpoints.schedule}`,
+        { ...recording }
+      );
 
-    res.status(response.status).json(recording);
+      res.status(response.status).json(recording);
+    } catch (error) {
+      await repository.remove(recording);
+      res.sendStatus(503);
+    }
   }
 
   /**
@@ -169,15 +184,21 @@ export class LivecamController {
    * @param {Response} res backend response with stream
    */
   public static async streamRecording(req: Request, res: Response) {
-    const response = await axios.get(
-      `http://${environment.livecam_server.host}:${environment.livecam_server.port}` +
-        `${environment.livecam_server.apiPath}` +
-        `${environment.livecam_server.endpoints.download}`.replace(
-          ':id',
-          req.params.id
-        ),
-      { responseType: 'stream' }
-    );
+    let response: AxiosResponse;
+    try {
+      response = await axios.get(
+        `http://${environment.livecam_server.host}:${environment.livecam_server.port}` +
+          `${environment.livecam_server.apiPath}` +
+          `${environment.livecam_server.endpoints.download}`.replace(
+            ':id',
+            req.params.id
+          ),
+        { responseType: 'stream' }
+      );
+    } catch (error) {
+      res.sendStatus(503);
+      return;
+    }
 
     if (response.status != 200) {
       res.sendStatus(response.status);
@@ -204,6 +225,20 @@ export class LivecamController {
 
     if (recording === undefined) {
       res.status(404).json({ message: 'Recording not found' });
+      return;
+    }
+
+    try {
+      await axios.delete(
+        `http://${environment.livecam_server.host}:${environment.livecam_server.port}` +
+          `${environment.livecam_server.apiPath}` +
+          `${environment.livecam_server.endpoints.delete}`.replace(
+            ':id',
+            req.params.id
+          )
+      );
+    } catch (error) {
+      res.status(503).json(error);
       return;
     }
 
@@ -260,19 +295,7 @@ export class LivecamController {
         LivecamController.wss.push(ws);
 
         if (LivecamController.ws === undefined) {
-          LivecamController.ws = new WebSocket(
-            `${environment.livecam_server.ws_protocol}://${environment.host}:${environment.livecam_server.ws_port}${environment.livecam_server.ws_path}`
-          );
-
-          LivecamController.ws.onmessage = async (event) => {
-            LivecamController.wss.forEach(function each(client) {
-              client.send(event.data);
-            });
-          };
-
-          LivecamController.ws.onclose = () => {
-            LivecamController.ws = undefined;
-          };
+          await LivecamController.initBackendConnection();
         }
       }
     );
@@ -280,5 +303,30 @@ export class LivecamController {
     ws.on('close', () => {
       delete LivecamController.wss[LivecamController.wss.indexOf(ws)];
     });
+  }
+
+  private static async initBackendConnection() {
+    LivecamController.ws = new WebSocket(
+      `${environment.livecam_server.ws_protocol}://${environment.host}:${environment.livecam_server.ws_port}${environment.livecam_server.ws_path}`
+    );
+
+    LivecamController.ws.onmessage = async (event) => {
+      LivecamController.wss.forEach(function each(client) {
+        client.send(event.data);
+      });
+    };
+
+    LivecamController.ws.onclose = () => {
+      LivecamController.ws = undefined;
+    };
+
+    LivecamController.ws.onerror = async (error) => {
+      console.error('Error connecting to livecam websocket');
+      await new Promise((resolve) => {
+        setTimeout(resolve, 10000);
+      });
+
+      this.initBackendConnection();
+    };
   }
 }

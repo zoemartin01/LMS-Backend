@@ -4,6 +4,7 @@ const environment = {
   pwHashSaltRound: 10,
   accessTokenSecret: 'V50jPXQVocPUSPHl0yzPJhXZzh32bp',
   refreshTokenSecret: '3pqOHs7R1TrCgsRKksPp4J3Kfs0l0X',
+  apiKey: 'ZjVlOTk1YjEtNjIwOS00MDM4LWFiNTctZTI1Y2Q3MWIwNjZm',
   activeDirectoryConfig: {
     url: process.env.LDAP_URL || 'ldaps://ldap.teco.edu:636',
     //baseDN: 'dc=',
@@ -30,6 +31,7 @@ const environment = {
       list: '/recordings',
       download: '/recordings/:id',
       schedule: '/recordings',
+      delete: '/recordings/:id',
     },
   },
   apiRoutes: {

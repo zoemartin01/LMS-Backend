@@ -381,7 +381,7 @@ class AppRouter {
       environment.apiRoutes.livecam.getAllRecordings,
       AuthController.checkAuthenticationMiddleware,
       AuthController.checkAdminMiddleware,
-      LivecamController.getRecordings
+      LivecamController.getFinishedRecordings
     );
     this.router.get(
       environment.apiRoutes.livecam.getAllScheduled,
@@ -403,8 +403,8 @@ class AppRouter {
     );
     this.router.patch(
       addUUIDRegexToRoute(environment.apiRoutes.livecam.updateRecording),
-      // AuthController.checkAuthenticationMiddleware,
-      // AuthController.checkAdminMiddleware,
+      AuthController.checkAuthenticationMiddleware,
+      AuthController.checkAdminMiddleware,
       LivecamController.updateRecording
     );
     this.router.get(
