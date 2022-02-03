@@ -6,6 +6,10 @@ import { promisify } from 'util';
 import { pipeline } from 'stream';
 import axios from 'axios';
 import { AuthController } from './auth.controller';
+import { WebSocket } from 'ws';
+import jsonwebtoken from 'jsonwebtoken';
+import { Token } from '../models/token.entity';
+import { TokenType } from '../types/enums/token-type';
 
 /**
  * Controller for the LiveCam System
@@ -22,10 +26,17 @@ export class LivecamController {
    * @param {Response} res backend response with data of all finished recordings
    */
   public static async getRecordings(req: Request, res: Response) {
+    const { offset, limit } = req.query;
+
     await getRepository(Recording)
       .find({
         where: { end: LessThan(new Date()), size: MoreThan(0) },
         relations: ['user'],
+        order: {
+          start: 'ASC',
+        },
+        skip: offset ? +offset : 0,
+        take: limit ? +limit : 0,
       })
       .then((recordings) => {
         res.status(200).json(recordings);
@@ -40,8 +51,18 @@ export class LivecamController {
    * @param res backend response with data of all scheduled recordings
    */
   public static async getScheduledRecordings(req: Request, res: Response) {
+    const { offset, limit } = req.query;
+
     await getRepository(Recording)
-      .find({ where: { end: MoreThan(new Date()) }, relations: ['user'] })
+      .find({
+        where: { end: MoreThan(new Date()) },
+        relations: ['user'],
+        order: {
+          start: 'ASC',
+        },
+        skip: offset ? +offset : 0,
+        take: limit ? +limit : 0,
+      })
       .then((recordings) => {
         res.status(200).json(recordings);
       });
@@ -191,12 +212,73 @@ export class LivecamController {
     });
   }
 
+  static wss: WebSocket[] = [];
+  static ws: WebSocket | undefined;
+
   /**
    * Returns the live camera feed
    *
-   * @route {GET} /livecam/stream
+   * @route {WebSocket} /livecam/stream
    * @param {Request} req frontend request to get the live camera feed
-   * @param {Response} res backend response with the live camera feed
+   * @param {WebSocket} ws the websocket connection
    */
-  public static async getLiveCameraFeed(req: Request, res: Response) {}
+  public static getLiveCameraFeed(ws: WebSocket, req: Request) {
+    const token = req.query.token;
+
+    if (token === undefined) {
+      ws.send('Invalid token');
+      ws.close();
+    }
+
+    jsonwebtoken.verify(
+      token as string,
+      environment.accessTokenSecret,
+      async (err) => {
+        if (err) {
+          ws.send('Invalid token');
+          ws.close();
+          return;
+        }
+
+        const tokenObject: Token | undefined = await getRepository(
+          Token
+        ).findOne({
+          where: {
+            token,
+            type: TokenType.authenticationToken,
+            expiresAt: MoreThan(new Date()),
+          },
+        });
+
+        if (tokenObject === undefined) {
+          ws.send('Invalid token');
+          ws.close();
+          return;
+        }
+
+        ws.send('ok');
+        LivecamController.wss.push(ws);
+
+        if (LivecamController.ws === undefined) {
+          LivecamController.ws = new WebSocket(
+            `${environment.livecam_server.ws_protocol}://${environment.host}:${environment.livecam_server.ws_port}${environment.livecam_server.ws_path}`
+          );
+
+          LivecamController.ws.onmessage = async (event) => {
+            LivecamController.wss.forEach(function each(client) {
+              client.send(event.data);
+            });
+          };
+
+          LivecamController.ws.onclose = () => {
+            LivecamController.ws = undefined;
+          };
+        }
+      }
+    );
+
+    ws.on('close', () => {
+      delete LivecamController.wss[LivecamController.wss.indexOf(ws)];
+    });
+  }
 }

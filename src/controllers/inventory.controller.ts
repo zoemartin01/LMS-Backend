@@ -18,8 +18,16 @@ export class InventoryController {
    * @param {Response} res backend response with data of all inventory items
    */
   public static async getAllInventoryItems(req: Request, res: Response) {
+    const { offset, limit } = req.query;
+
     getRepository(InventoryItem)
-      .find()
+      .find({
+        order: {
+          name: 'ASC',
+        },
+        skip: offset ? +offset : 0,
+        take: limit ? +limit : 0,
+      })
       .then((inventoryItems) => {
         res.json(inventoryItems);
       });

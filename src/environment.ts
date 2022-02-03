@@ -1,27 +1,31 @@
 const environment = {
-  frontendUrl: ' http://localhost:4200',
+  host: process.env.HOSTNAME || 'localhost',
+  frontendUrl: process.env.HOSTNAME || 'http://localhost:4200',
   pwHashSaltRound: 10,
   accessTokenSecret: 'V50jPXQVocPUSPHl0yzPJhXZzh32bp',
   refreshTokenSecret: '3pqOHs7R1TrCgsRKksPp4J3Kfs0l0X',
   activeDirectoryConfig: {
-    url: 'ldaps://ldap.teco.edu:636',
+    url: process.env.LDAP_URL || 'ldaps://ldap.teco.edu:636',
     //baseDN: 'dc=',
   },
   //@todo add SMTP credentials & sender email
   smtpConfig: {
-    host: 'smtp.example.com',
-    port: 587,
-    secure: true,
+    host: process.env.SMTP_HOST || 'mail.teco.edu',
+    port: process.env.SMTP_POST ? +process.env.SMTP_POST : 25,
+    secure: process.env.SMTP_SSL === 'true' || true,
     auth: {
-      user: 'username',
-      pass: 'password',
+      user: process.env.SMTP_USERNAME || 'username',
+      pass: process.env.SMTP_PASSWORD || 'password',
     },
   },
-  smtpSender: '',
+  smtpSender: process.env.SMTP_SENDER || '',
   livecam_server: {
-    host: 'localhost',
-    port: 7000,
-    apiPath: '/api',
+    host: process.env.LIVECAM_HOST || 'localhost',
+    port: process.env.LIVECAM_PORT || 7000,
+    ws_port: process.env.LIVECAM_WS_PORT || 9999,
+    ws_path: process.env.LIVECAM_WS_PATH || '',
+    ws_protocol: process.env.LIVECAM_WS_PROTOCOL || 'ws',
+    apiPath: process.env.LIVECAM_PATH || '/api',
     endpoints: {
       list: '/recordings',
       download: '/recordings/:id',
@@ -134,6 +138,8 @@ const environment = {
 
       downloadRecording: '/livecam/recordings/:id/download',
       streamFeed: '/livecam/stream',
+
+      registerWebSocket: '/livecam/register',
     },
   },
 };

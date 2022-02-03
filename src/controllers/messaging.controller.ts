@@ -5,8 +5,8 @@ import { AuthController } from './auth.controller';
 import { Message } from '../models/message.entity';
 import { User } from '../models/user.entity';
 import { UserRole } from '../types/enums/user-role';
-import { NotificationChannel } from "../types/enums/notification-channel";
-import environment from "../environment";
+import { NotificationChannel } from '../types/enums/notification-channel';
+import environment from '../environment';
 
 /**
  * Controller for messaging
@@ -23,10 +23,17 @@ export class MessagingController {
    * @param {Response} res backend response with data of one inventory item
    */
   public static async getMessages(req: Request, res: Response): Promise<void> {
+    const { offset, limit } = req.query;
+
     const messageRepository = getRepository(Message);
 
     const messages = await messageRepository.find({
       where: { recipient: AuthController.getCurrentUser(req) },
+      order: {
+        createdAt: 'DESC',
+      },
+      skip: offset ? +offset : 0,
+      take: limit ? +limit : 0,
     });
 
     res.json(messages);
@@ -48,12 +55,14 @@ export class MessagingController {
     const unreadMessagesSum = await messageRepository
       .createQueryBuilder('message')
       .select('COUNT(*)', 'sum')
+      .where('message.readStatus = :b', { b: false })
       .getRawOne();
 
     const unreadMessages = await messageRepository
       .createQueryBuilder('message')
       .select('message.correspondingUrl')
       .addSelect('COUNT(*)', 'sum')
+      .where('message.readStatus = :b', { b: false })
       .groupBy('message.correspondingUrl')
       .getRawMany();
 
@@ -156,11 +165,23 @@ export class MessagingController {
     linkText: string | null = null,
     linkUrl: string | null = null
   ): Promise<void> {
-    if (NotificationChannel.emailAndMessageBox ||  NotificationChannel.messageBoxOnly) {
-      this.sendMessageViaMessageBox(recipient, title, content, linkText, linkUrl);
+    if (
+      NotificationChannel.emailAndMessageBox ||
+      NotificationChannel.messageBoxOnly
+    ) {
+      this.sendMessageViaMessageBox(
+        recipient,
+        title,
+        content,
+        linkText,
+        linkUrl
+      );
     }
 
-    if (NotificationChannel.emailAndMessageBox ||  NotificationChannel.emailOnly) {
+    if (
+      NotificationChannel.emailAndMessageBox ||
+      NotificationChannel.emailOnly
+    ) {
       this.sendMessageViaEmail(recipient, title, content, linkText, linkUrl);
     }
   }
@@ -186,17 +207,17 @@ export class MessagingController {
     const message =
       linkText === null || linkUrl === null
         ? messageRepository.create({
-          recipient,
-          title,
-          content,
-        })
+            recipient,
+            title,
+            content,
+          })
         : messageRepository.create({
-          recipient,
-          title,
-          content,
-          correspondingUrlText: linkText,
-          correspondingUrl: linkUrl,
-        });
+            recipient,
+            title,
+            content,
+            correspondingUrlText: linkText,
+            correspondingUrl: linkUrl,
+          });
 
     await messageRepository.save(message);
   }
@@ -220,23 +241,23 @@ export class MessagingController {
     const message =
       linkText === null || linkUrl === null
         ? {
-          from: `"TECO HWLab System" <${environment.smtpSender}>`,
-          to: recipient.email,
-          subject: title,
-          text: `${content}`,
-        }
+            from: `"TECO HWLab System" <${environment.smtpSender}>`,
+            to: recipient.email,
+            subject: title,
+            text: `${content}`,
+          }
         : {
-          from: `"TECO HWLab System" <${environment.smtpSender}>`,
-          to: recipient.email,
-          subject: title,
-          text: `${content}\n${linkText}: ${environment.frontendUrl}${linkUrl}`,
-          html: `<p>${content}</p><br><a href="${environment.frontendUrl}${linkUrl}">${linkText}</a>`,
-        };
+            from: `"TECO HWLab System" <${environment.smtpSender}>`,
+            to: recipient.email,
+            subject: title,
+            text: `${content}\n${linkText}: ${environment.frontendUrl}${linkUrl}`,
+            html: `<p>${content}</p><br><a href="${environment.frontendUrl}${linkUrl}">${linkText}</a>`,
+          };
 
     try {
       const transporter = nodemailer.createTransport(environment.smtpConfig);
       await transporter.sendMail(message);
-    }catch (e) {
+    } catch (e) {
       console.log(e);
     }
   }
@@ -258,11 +279,11 @@ export class MessagingController {
     const userRepository = getRepository(User);
 
     const admins: User[] = await userRepository.find({
-      where: { type: UserRole.admin },
+      where: { role: UserRole.admin },
     });
 
     for (const recipient of admins) {
-      await this.sendMessage(recipient, title, content, linkText, linkUrl)
+      await this.sendMessage(recipient, title, content, linkText, linkUrl);
     }
   }
 }
