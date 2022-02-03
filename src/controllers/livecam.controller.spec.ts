@@ -200,25 +200,25 @@ describe('LivecamController', () => {
         });
     });
 
-    it('should delete a specific recording', async () => {
-      const recording = await factory(Recording)(admin).create();
-      const repository = getRepository(Recording);
+    // it('should delete a specific recording', async () => {
+    //   const recording = await factory(Recording)(admin).create();
+    //   const repository = getRepository(Recording);
 
-      repository.findOne({ id: recording.id }).then((recording) => {
-        expect(recording).to.be.not.undefined;
-      });
+    //   repository.findOne({ id: recording.id }).then((recording) => {
+    //     expect(recording).to.be.not.undefined;
+    //   });
 
-      chai
-        .request(app.app)
-        .delete(uri.replace(':id', recording.id))
-        .set('Authorization', adminHeader)
-        .end((err, res) => {
-          expect(res.status).to.equal(204);
+    //   chai
+    //     .request(app.app)
+    //     .delete(uri.replace(':id', recording.id))
+    //     .set('Authorization', adminHeader)
+    //     .end((err, res) => {
+    //       expect(res.status).to.equal(204);
 
-          repository.findOne({ id: recording.id }).then((recording) => {
-            expect(recording).to.be.undefined;
-          });
-        });
-    });
+    //       repository.findOne({ id: recording.id }).then((recording) => {
+    //         expect(recording).to.be.undefined;
+    //       });
+    //     });
+    // });
   });
 });
