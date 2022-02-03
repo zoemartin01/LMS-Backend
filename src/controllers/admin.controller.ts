@@ -192,7 +192,7 @@ export class AdminController {
       return;
     }
 
-    res.json(await repository.findOne(retailer.id));
+    res.json(await repository.findOne(retailer.id, { relations: ['domains'] }));
   }
 
   /**
