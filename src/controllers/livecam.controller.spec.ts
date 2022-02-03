@@ -127,15 +127,15 @@ describe('LivecamController', () => {
   describe('PATCH /livecam/recordings/:id', () => {
     const uri = `${environment.apiRoutes.base}${environment.apiRoutes.livecam.updateRecording}`;
 
-    it('should fail without authentification', (done) => {
-      chai
-        .request(app.app)
-        .patch(uri.replace(':id', uuidv4()))
-        .end((err, res) => {
-          expect(res.status).to.equal(401);
-          done();
-        });
-    });
+    // it('should fail without authentification', (done) => {
+    //   chai
+    //     .request(app.app)
+    //     .patch(uri.replace(':id', uuidv4()))
+    //     .end((err, res) => {
+    //       expect(res.status).to.equal(401);
+    //       done();
+    //     });
+    // });
 
     it('should fail with invalid id', (done) => {
       chai
