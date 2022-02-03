@@ -2,12 +2,15 @@ import bodyParser from 'body-parser';
 import cookieParser from 'cookie-parser';
 import express from 'express';
 import expressWs from 'express-ws';
+import { Job } from './jobs/job';
+import { RecordingAutoDeleteJob } from './jobs/recording_delete.job';
 import AppRouter from './router';
 
 class App {
   public app: expressWs.Application;
   public port: number;
   public router: AppRouter = new AppRouter();
+  public jobs: Job[] = [];
 
   constructor(port: number) {
     const _expressWs = expressWs(express());
@@ -17,6 +20,7 @@ class App {
 
     this.initializeMiddlewares();
     this.initializeRoutes();
+    this.initializeJobs();
   }
 
   private initializeMiddlewares() {
@@ -47,6 +51,10 @@ class App {
 
   private initializeRoutes() {
     this.app.use('/api/v1', this.router.router);
+  }
+
+  private initializeJobs() {
+    this.jobs.push(new RecordingAutoDeleteJob());
   }
 
   public listen() {
