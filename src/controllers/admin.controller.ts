@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { DeepPartial, getRepository } from 'typeorm';
+import { DeepPartial, getRepository, Not } from 'typeorm';
 import { GlobalSetting } from '../models/global_settings.entity';
 import { Retailer } from '../models/retailer.entity';
 import { RetailerDomain } from '../models/retailer.domain.entity';
@@ -340,6 +340,9 @@ export class AdminController {
     const { offset, limit } = req.query;
 
     const users: User[] = await getRepository(User).find({
+      where: {
+        email: Not('SYSTEM'),
+      },
       order: {
         firstName: 'ASC',
         lastName: 'ASC',
