@@ -25,7 +25,7 @@ const environment = {
     ws_port: process.env.LIVECAM_WS_PORT || 9999,
     ws_path: process.env.LIVECAM_WS_PATH || '',
     ws_protocol: process.env.LIVECAM_WS_PROTOCOL || 'ws',
-    apiPath: process.env.LIVECAM_PATH || '/api',
+    apiPath: process.env.LIVECAM_PATH || '/api/livecam/v1',
     endpoints: {
       list: '/recordings',
       download: '/recordings/:id',

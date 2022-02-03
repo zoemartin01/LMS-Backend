@@ -403,8 +403,8 @@ class AppRouter {
     );
     this.router.patch(
       addUUIDRegexToRoute(environment.apiRoutes.livecam.updateRecording),
-      AuthController.checkAuthenticationMiddleware,
-      AuthController.checkAdminMiddleware,
+      // AuthController.checkAuthenticationMiddleware,
+      // AuthController.checkAdminMiddleware,
       LivecamController.updateRecording
     );
     this.router.get(
@@ -423,13 +423,6 @@ class AppRouter {
       environment.apiRoutes.livecam.streamFeed,
       LivecamController.getLiveCameraFeed
     );
-    // this.router.post(environment.apiRoutes.livecam.registerWebSocket, LivecamController.registerWebSocket);
-    // this.router.get(
-    //   environment.apiRoutes.livecam.streamFeed,
-    //   AuthController.checkAuthenticationMiddleware,
-    //   AuthController.checkAdminMiddleware,
-    //   LivecamController.getLiveCameraFeed
-    // );
   }
 }
 
