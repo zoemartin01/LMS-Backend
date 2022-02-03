@@ -25,8 +25,11 @@ export class RoomController {
    */
   public static async getAllRooms(req: Request, res: Response) {
     const { offset, limit } = req.query;
+    const repository = getRepository(Room);
 
-    const rooms = await getRepository(Room).find({
+    const total = await repository.count();
+
+    const rooms = await repository.find({
       relations: ['appointments', 'availableTimeSlots', 'unavailableTimeSlots'],
       order: {
         name: 'ASC',
@@ -34,7 +37,7 @@ export class RoomController {
       skip: offset ? +offset : 0,
       take: limit ? +limit : 0,
     });
-    res.json(rooms);
+    res.json({ total, data: rooms });
   }
 
   /**

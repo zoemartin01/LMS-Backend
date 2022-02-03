@@ -27,8 +27,11 @@ export class AppointmentController {
    */
   public static async getAllAppointments(req: Request, res: Response) {
     const { offset, limit } = req.query;
+    const repository = getRepository(AppointmentTimeslot);
 
-    const appointments = await getRepository(AppointmentTimeslot).find({
+    const total = repository.count();
+
+    const appointments = await repository.find({
       order: {
         start: 'ASC',
       },
@@ -36,7 +39,7 @@ export class AppointmentController {
       take: limit ? +limit : 0,
     });
 
-    res.json(appointments);
+    res.json({ total, data: appointments });
   }
 
   /**
@@ -60,8 +63,13 @@ export class AppointmentController {
     }
 
     const { offset, limit } = req.query;
+    const repository = getRepository(AppointmentTimeslot);
 
-    const appointments = await getRepository(AppointmentTimeslot).find({
+    const total = repository.count({
+      where: { user: currentUser },
+    });
+
+    const appointments = await repository.find({
       where: { user: currentUser },
       order: {
         start: 'ASC',
@@ -70,7 +78,7 @@ export class AppointmentController {
       take: limit ? +limit : 0,
     });
 
-    res.json(appointments);
+    res.json({ total, data: appointments });
   }
 
   /**
@@ -91,7 +99,11 @@ export class AppointmentController {
       return;
     }
 
-    const appointments = await getRepository(AppointmentTimeslot).find({
+    const repository = getRepository(AppointmentTimeslot);
+
+    const total = repository.count({ where: { room } });
+
+    const appointments = await repository.find({
       where: { room },
       order: {
         start: 'ASC',
@@ -100,7 +112,7 @@ export class AppointmentController {
       take: limit ? +limit : 0,
     });
 
-    res.json(appointments);
+    res.json({ total, data: appointments });
   }
 
   /**
@@ -113,8 +125,11 @@ export class AppointmentController {
    */
   public static async getAppointmentsForSeries(req: Request, res: Response) {
     const { offset, limit } = req.query;
+    const repository = getRepository(AppointmentTimeslot);
 
-    const appointments = await getRepository(AppointmentTimeslot).find({
+    const total = repository.count({ where: { series: req.params.id } });
+
+    const appointments = await repository.find({
       where: { seriesId: req.params.id },
       order: {
         start: 'ASC',
@@ -128,7 +143,7 @@ export class AppointmentController {
       return;
     }
 
-    res.json(appointments);
+    res.json({ total, data: appointments });
   }
 
   /**
@@ -463,14 +478,12 @@ export class AppointmentController {
       }
     }
 
-    res
-      .status(200)
-      .json(
-        await repository.find({
-          where: { seriesId: req.params.id },
-          order: { start: 'ASC' },
-        })
-      );
+    res.status(200).json(
+      await repository.find({
+        where: { seriesId: req.params.id },
+        order: { start: 'ASC' },
+      })
+    );
 
     await MessagingController.sendMessage(
       user,
