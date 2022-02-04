@@ -22,16 +22,22 @@ export class AppointmentController {
    * Returns all appointments
    *
    * @route {GET} /appointments
+   * @queryParam {number} offset - offset for pagination
+   * @queryParam {number} limit - limit for pagination
+   * @queryParam {ConfirmationStatus} confirmationStatus - filter for confirmation status
    * @param {Request} req frontend request to get data about all appointments
    * @param {Response} res backend response with data about all appointments
    */
   public static async getAllAppointments(req: Request, res: Response) {
-    const { offset, limit } = req.query;
+    const { offset, limit, confirmationStatus } = req.query;
     const repository = getRepository(AppointmentTimeslot);
 
-    const total = repository.count();
+    const where =
+      confirmationStatus !== undefined ? { confirmationStatus } : undefined;
+    const total = await repository.count(where ? { where } : undefined);
 
     const appointments = await repository.find({
+      where,
       order: {
         start: 'ASC',
       },
