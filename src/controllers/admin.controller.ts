@@ -4,6 +4,7 @@ import { GlobalSetting } from '../models/global_settings.entity';
 import { Retailer } from '../models/retailer.entity';
 import { RetailerDomain } from '../models/retailer.domain.entity';
 import { User } from '../models/user.entity';
+import { UserRole } from '../types/enums/user-role';
 
 /**
  * Controller for Admin Management
@@ -453,11 +454,14 @@ export class AdminController {
       return;
     }
 
-    if (user.role == 3) {
-      const users: User[] = await userRepository.find({ where: { role: 3 } });
+    if (user.role === UserRole.admin) {
+      const userCount = await userRepository.count({
+        where: { role: UserRole.admin },
+      });
       if (
-        users.length == 1 &&
-        (+req.params.role == 1 || +req.params.role == 2)
+        userCount === 1 &&
+        (+req.params.role === UserRole.pending ||
+          +req.params.role === UserRole.visitor)
       ) {
         res.status(403).json({
           message: 'Not allowed to degrade last admin',
