@@ -59,7 +59,7 @@ export class Token extends BaseEntity {
 
   /**
    * The id of the refresh token linked to this token.
-   * Is null for a refresh token.
+   * Is null for a refresh token and api key.
    *
    * @type {string}
    * @readonly
@@ -71,7 +71,7 @@ export class Token extends BaseEntity {
 
   /**
    * The refresh token linked to this token.
-   * Is null for a refresh token.
+   * Is null for a refresh token and api key.
    *
    * @type {Token}
    * @readonly
@@ -83,7 +83,7 @@ export class Token extends BaseEntity {
 
   /**
    * The date the token will expire.
-   * Is null for a refresh token.
+   * Is null for a refresh token and api key.
    *
    * @type {Date}
    * @readonly

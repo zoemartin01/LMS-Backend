@@ -47,6 +47,10 @@ describe('RoomController', () => {
     room = await factory(Room)().create();
   });
 
+  afterEach(async () => {
+    app.shutdownJobs();
+  });
+
   describe('GET /appointments', () => {
     const uri = `${environment.apiRoutes.base}${environment.apiRoutes.appointments.getAllAppointments}`;
 

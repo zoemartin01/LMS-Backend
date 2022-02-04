@@ -47,6 +47,10 @@ describe('RoomController', () => {
     visitor = await Helpers.getCurrentUser(visitorHeader);
   });
 
+  afterEach(async () => {
+    app.shutdownJobs();
+  });
+
   describe('GET /rooms', () => {
     const uri = `${environment.apiRoutes.base}${environment.apiRoutes.rooms.getAllRooms}`;
 

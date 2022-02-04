@@ -32,6 +32,10 @@ export class AuthController {
   public static async login(req: Request, res: Response): Promise<void> {
     const { email, password, isActiveDirectory } = req.body;
 
+    if (email === 'SYSTEM') {
+      res.sendStatus(401);
+    }
+
     isActiveDirectory
       ? await AuthController.loginWithActiveDirectory(email, password, res)
       : await AuthController.loginWithCredentials(email, password, res);
@@ -388,11 +392,17 @@ export class AuthController {
 
       const tokenObject: Token | undefined = await getRepository(Token).findOne(
         {
-          where: {
-            token,
-            type: TokenType.authenticationToken,
-            expiresAt: MoreThan(new Date()),
-          },
+          where: [
+            {
+              token,
+              type: TokenType.authenticationToken,
+              expiresAt: MoreThan(new Date()),
+            },
+            {
+              token,
+              type: TokenType.apiKey,
+            },
+          ],
         }
       );
 
@@ -420,7 +430,10 @@ export class AuthController {
 
       return getRepository(Token)
         .findOne({
-          where: { token, type: TokenType.authenticationToken },
+          where: [
+            { token, type: TokenType.authenticationToken },
+            { token, type: TokenType.apiKey },
+          ],
         })
         .then(
           async (tokenObject: Token | undefined) => {
