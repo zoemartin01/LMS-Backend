@@ -54,42 +54,46 @@ export class AuthController {
     password: string,
     res: Response
   ): Promise<void> {
-    const ad = new ActiveDirectory(environment.activeDirectoryConfig);
+    try {
+      const ad = new ActiveDirectory(environment.activeDirectoryConfig);
 
-    //@todo Adrian: test AD autentication
-    ad.authenticate(email, password, async (err: object, auth: boolean) => {
-      if (err) {
-        res.status(500).json(err);
-        return;
-      }
+      ad.authenticate(email, password, async (err: object, auth: boolean) => {
+        if (err) {
+          res.status(500).json(err);
+          return;
+        }
 
-      if (!auth) {
-        await AuthController.loginCallback(undefined, res);
-        return;
-      }
+        if (!auth) {
+          await AuthController.loginCallback(undefined, res);
+          return;
+        }
 
-      const userRepository = getRepository(User);
-      userRepository
-        .findOne({
-          where: { email },
-        })
-        .then(async (user: User | undefined) => {
-          if (user === undefined) {
-            await AuthController.loginCallback(
-              await AuthController.createActiveDirectoryUser(email),
-              res
-            );
-          } else if (!user.isActiveDirectory) {
-            res.status(400).json({
-              message:
-                'Your account ist not linked to active directory, use regular login.',
-            });
-            return;
-          }
+        const userRepository = getRepository(User);
+        userRepository
+          .findOne({
+            where: { email },
+          })
+          .then(async (user: User | undefined) => {
+            if (user === undefined) {
+              await AuthController.loginCallback(
+                await AuthController.createActiveDirectoryUser(email),
+                res
+              );
+            } else if (!user.isActiveDirectory) {
+              res.status(400).json({
+                message:
+                  'Your account ist not linked to active directory, use regular login.',
+              });
+              return;
+            }
 
-          await AuthController.loginCallback(user, res);
-        });
-    });
+            await AuthController.loginCallback(user, res);
+          });
+      });
+    } catch (e) {
+      console.log(e);
+      res.sendStatus(500);
+    }
   }
 
   /**
