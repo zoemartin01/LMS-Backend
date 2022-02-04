@@ -3,9 +3,10 @@ import { DeepPartial, getRepository } from 'typeorm';
 import { Order } from '../models/order.entity';
 import { AuthController } from './auth.controller';
 import { OrderStatus } from '../types/enums/order-status';
-import { MessagingController } from './messaging.controller';
-import environment from '../environment';
 import { User } from '../models/user.entity';
+import { InventoryItem } from '../models/inventory-item.entity';
+import environment from '../environment';
+import { MessagingController } from './messaging.controller';
 
 /**
  * Controller for order management
@@ -110,29 +111,51 @@ export class OrderController {
    * Creates a new order
    *
    * @route {POST} /orders
-   * @bodyParam {string} item - name of the order item
-   * @bodyParam {Item [Optional]} item - an item (alternative to itemName)
-   * @bodyParam {string [Optional]} itemName - name of the item (alternative to item)
+   * @bodyParam {string} itemName - name of the order item
    * @bodyParam {number} quantity - quantity of the order
    * @bodyParam {string} purchaseURL - the purchase url
    * @param {Request} req frontend request to create a new order
    * @param {Response} res backend response creation of a new order
    */
   public static async createOrder(req: Request, res: Response) {
-    const repository = getRepository(Order);
+    const orderRepository = getRepository(Order);
+    const inventoryRepository = getRepository(InventoryItem);
     const user = await AuthController.getCurrentUser(req);
     if (user === null) {
       return;
     }
 
+    const inventoryItem: InventoryItem | undefined =
+      await inventoryRepository.findOne({
+        where: { name: req.params.itemName },
+      });
+
     let order: Order;
-    try {
-      order = await repository.save(
-        repository.create(<DeepPartial<Order>>{ ...req.body, user })
-      );
-    } catch (err) {
-      res.status(400).json(err);
-      return;
+
+    if (inventoryItem === undefined) {
+      try {
+        order = await orderRepository.save(
+          orderRepository.create(<DeepPartial<Order>>{ ...req.body, user })
+        );
+      } catch (err) {
+        res.status(400).json(err);
+        return;
+      }
+    } else {
+      try {
+        order = await orderRepository.save(
+          orderRepository.create(<DeepPartial<Order>>{
+            item: inventoryItem,
+            itemName: undefined,
+            user: user,
+            quantity: +req.params.quantity,
+            url: req.params.url,
+          })
+        );
+      } catch (err) {
+        res.status(400).json(err);
+        return;
+      }
     }
 
     res.status(201).json(order);
@@ -189,7 +212,7 @@ export class OrderController {
         // check if order status is still pending, visitors aren't allowed to change order after that
         order.status !== OrderStatus.pending ||
         // check if no admin user tried to change order status
-        'orderStatus' in req.body
+        'status' in req.body
       ) {
         res.status(403);
         return;
@@ -204,6 +227,14 @@ export class OrderController {
     if ('item' in req.body && 'itemName' in req.body) {
       res.status(400).json({
         message: 'Item and itemName cannot both be set',
+      });
+      return;
+    }
+
+    //check if (admin) user tried to change the order status to pending
+    if (req.body.status === OrderStatus.pending) {
+      res.status(400).json({
+        message: 'Order status cannot be set back to pending',
       });
       return;
     }
@@ -237,7 +268,7 @@ export class OrderController {
 
     const orderItem = await order.item;
 
-    const itemName: string =
+    const itemName: string | null =
       orderItem === null ? order.itemName : orderItem.name;
 
     const currentUser = await AuthController.getCurrentUser(req);
@@ -308,7 +339,7 @@ export class OrderController {
 
     const orderItem = await order.item;
 
-    const itemName: string =
+    const itemName: string | null =
       orderItem === null ? order.itemName : orderItem.name;
 
     await orderRepository.delete(order.id).then(() => {
