@@ -62,6 +62,12 @@ class App {
       console.log(`App listening on the port ${this.port}`);
     });
   }
+
+  public shutdownJobs() {
+    this.jobs.forEach((job) => {
+      job.shutdown();
+    });
+  }
 }
 
 export default App;

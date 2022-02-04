@@ -8,11 +8,16 @@ import { Recording } from '../models/recording.entity';
 import { Job } from './job';
 
 export class RecordingAutoDeleteJob implements Job {
+  private job;
   /**
    * Creates a new instance of the RecordingAutoDeleteJob job to be run daily at 2am
    */
   constructor() {
-    cron.schedule('0 2 */1 * *', async () => await this.execute());
+    this.job = cron.schedule('0 2 */1 * *', async () => await this.execute());
+  }
+
+  shutdown(): void {
+    this.job.stop();
   }
 
   async execute() {
