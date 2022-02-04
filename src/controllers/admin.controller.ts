@@ -507,9 +507,11 @@ export class AdminController {
       return;
     }
 
-    if (user.role == 3) {
-      const users: User[] = await userRepository.find({ where: { role: 3 } });
-      if (users.length == 1) {
+    if (user.role === UserRole.admin) {
+      const userCount = await userRepository.count({
+        where: { role: UserRole.admin },
+      });
+      if (userCount == 1) {
         res.status(403).json({
           message: 'Not allowed to delete last admin',
         });
