@@ -51,11 +51,6 @@ class AppRouter {
       AuthController.checkAuthenticationMiddleware,
       MessagingController.getMessages
     );
-    // this.router.get(
-    //   environment.apiRoutes.messages.getCurrentUserUnreadMessagesAmounts,
-    //   AuthController.checkAuthenticationMiddleware,
-    //   MessagingController.getUnreadMessagesAmounts
-    // );
     this.router.ws(
       environment.apiRoutes.messages.getCurrentUserUnreadMessagesAmounts,
       AuthController.checkWebSocketAuthenticationMiddleware,
