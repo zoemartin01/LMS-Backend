@@ -2,7 +2,7 @@ import { NextFunction, Request, Response } from 'express';
 import { getRepository, MoreThan, createQueryBuilder } from 'typeorm';
 import jsonwebtoken, { VerifyErrors } from 'jsonwebtoken';
 // eslint-disable-next-line @typescript-eslint/no-var-requires
-const activedirectory = require('activedirectory');
+const ActiveDirectory = require('activedirectory');
 import bcrypt from 'bcrypt';
 import moment from 'moment';
 import environment from '../environment';
@@ -32,6 +32,10 @@ export class AuthController {
   public static async login(req: Request, res: Response): Promise<void> {
     const { email, password, isActiveDirectory } = req.body;
 
+    if (email === 'SYSTEM') {
+      res.sendStatus(401);
+    }
+
     isActiveDirectory
       ? await AuthController.loginWithActiveDirectory(email, password, res)
       : await AuthController.loginWithCredentials(email, password, res);
@@ -50,9 +54,7 @@ export class AuthController {
     password: string,
     res: Response
   ): Promise<void> {
-    const ad = new activedirectory.ActiveDirectory(
-      environment.activeDirectoryConfig
-    );
+    const ad = new ActiveDirectory(environment.activeDirectoryConfig);
 
     //@todo Adrian: test AD autentication
     ad.authenticate(email, password, async (err: object, auth: boolean) => {
@@ -97,9 +99,7 @@ export class AuthController {
    * @private
    */
   private static async createActiveDirectoryUser(email: string): Promise<User> {
-    const ad = new activedirectory.ActiveDirectory(
-      environment.activeDirectoryConfig
-    );
+    const ad = new ActiveDirectory(environment.activeDirectoryConfig);
     const userRepository = getRepository(User);
 
     return ad.findUser(
@@ -392,11 +392,17 @@ export class AuthController {
 
       const tokenObject: Token | undefined = await getRepository(Token).findOne(
         {
-          where: {
-            token,
-            type: TokenType.authenticationToken,
-            expiresAt: MoreThan(new Date()),
-          },
+          where: [
+            {
+              token,
+              type: TokenType.authenticationToken,
+              expiresAt: MoreThan(new Date()),
+            },
+            {
+              token,
+              type: TokenType.apiKey,
+            },
+          ],
         }
       );
 
@@ -416,7 +422,10 @@ export class AuthController {
    *
    * @param {Request} req current http-request
    */
-  public static async getCurrentUser(req: Request): Promise<User | null> {
+  public static async getCurrentUser(
+    req: Request,
+    relations: string[] = []
+  ): Promise<User | null> {
     const authHeader = req.headers['authorization'];
 
     if (authHeader) {
@@ -424,7 +433,10 @@ export class AuthController {
 
       return getRepository(Token)
         .findOne({
-          where: { token, type: TokenType.authenticationToken },
+          where: [
+            { token, type: TokenType.authenticationToken },
+            { token, type: TokenType.apiKey },
+          ],
         })
         .then(
           async (tokenObject: Token | undefined) => {
@@ -432,7 +444,9 @@ export class AuthController {
               return null;
             }
             return (
-              (await getRepository(User).findOne(tokenObject.userId)) || null
+              (await getRepository(User).findOne(tokenObject.userId, {
+                relations,
+              })) || null
             );
           },
           () => {

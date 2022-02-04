@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { DeepPartial, getRepository } from 'typeorm';
+import { DeepPartial, getRepository, Not } from 'typeorm';
 import { GlobalSetting } from '../models/global_settings.entity';
 import { Retailer } from '../models/retailer.entity';
 import { RetailerDomain } from '../models/retailer.domain.entity';
@@ -110,11 +110,21 @@ export class AdminController {
    * @param {Response} res backend response with data about all whitelist retailers
    */
   public static async getWhitelistRetailers(req: Request, res: Response) {
-    const retailers: Retailer[] = await getRepository(Retailer).find({
+    const { offset, limit } = req.query;
+    const repository = getRepository(Retailer);
+
+    const total = await repository.count();
+
+    const retailers: Retailer[] = await repository.find({
       relations: ['domains'],
+      order: {
+        name: 'ASC',
+      },
+      skip: offset ? +offset : 0,
+      take: limit ? +limit : 0,
     });
 
-    res.json(retailers);
+    res.json({ total, data: retailers });
   }
 
   /**
@@ -398,9 +408,27 @@ export class AdminController {
    * @param {Response} res backend response with data about all user
    */
   public static async getUsers(req: Request, res: Response) {
-    const users: User[] = await getRepository(User).find();
+    const { offset, limit } = req.query;
 
-    res.json(users);
+    const total = await getRepository(User).count({
+      where: {
+        email: Not('SYSTEM'),
+      },
+    });
+
+    const users: User[] = await getRepository(User).find({
+      where: {
+        email: Not('SYSTEM'),
+      },
+      order: {
+        firstName: 'ASC',
+        lastName: 'ASC',
+      },
+      skip: offset ? +offset : 0,
+      take: limit ? +limit : 0,
+    });
+
+    res.json({ count: total, data: users });
   }
 
   /**

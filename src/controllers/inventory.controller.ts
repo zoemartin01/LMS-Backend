@@ -18,10 +18,21 @@ export class InventoryController {
    * @param {Response} res backend response with data of all inventory items
    */
   public static async getAllInventoryItems(req: Request, res: Response) {
-    getRepository(InventoryItem)
-      .find()
+    const { offset, limit } = req.query;
+    const repository = getRepository(InventoryItem);
+
+    const total = await repository.count();
+
+    repository
+      .find({
+        order: {
+          name: 'ASC',
+        },
+        skip: offset ? +offset : 0,
+        take: limit ? +limit : 0,
+      })
       .then((inventoryItems) => {
-        res.json(inventoryItems);
+        res.json({ total, data: inventoryItems });
       });
   }
 
