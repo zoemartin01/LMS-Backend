@@ -157,11 +157,11 @@ export class UserController {
     const tokenRepository = getRepository(Token);
 
     await userRepository
-      .findAndCount({
+      .count({
         where: { email },
       })
       .then((result) => {
-        if (result[1] !== 0) {
+        if (result !== 0) {
           res.status(409).json({
             message: 'User with this email already exists.',
           });
