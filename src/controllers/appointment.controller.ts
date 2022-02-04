@@ -71,7 +71,7 @@ export class AppointmentController {
     const { offset, limit } = req.query;
     const repository = getRepository(AppointmentTimeslot);
 
-    const total = repository.count({
+    const total = await repository.count({
       where: { user: currentUser },
     });
 
@@ -107,7 +107,7 @@ export class AppointmentController {
 
     const repository = getRepository(AppointmentTimeslot);
 
-    const total = repository.count({ where: { room } });
+    const total = await repository.count({ where: { room } });
 
     const appointments = await repository.find({
       where: { room },
@@ -133,7 +133,7 @@ export class AppointmentController {
     const { offset, limit } = req.query;
     const repository = getRepository(AppointmentTimeslot);
 
-    const total = repository.count({ where: { series: req.params.id } });
+    const total = await repository.count({ where: { series: req.params.id } });
 
     const appointments = await repository.find({
       where: { seriesId: req.params.id },
