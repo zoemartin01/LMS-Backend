@@ -301,7 +301,6 @@ class AppRouter {
     this.router.delete(
       addUUIDRegexToRoute(environment.apiRoutes.appointments.deleteAppointment),
       AuthController.checkAuthenticationMiddleware,
-      AuthController.checkAdminMiddleware,
       AppointmentController.deleteAppointment
     );
     this.router.delete(
