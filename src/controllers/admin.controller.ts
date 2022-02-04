@@ -4,7 +4,7 @@ import { GlobalSetting } from '../models/global_settings.entity';
 import { Retailer } from '../models/retailer.entity';
 import { RetailerDomain } from '../models/retailer.domain.entity';
 import { User } from '../models/user.entity';
-import { MessagingController } from './messaging.controller';
+import { UserRole } from '../types/enums/user-role';
 
 /**
  * Controller for Admin Management
@@ -27,48 +27,55 @@ export class AdminController {
     const globalSettings: GlobalSetting[] = await getRepository(
       GlobalSetting
     ).find();
-
     res.json(globalSettings);
   }
 
   /**
    * Updates global settings
    *
-   * @route {PATCH} /global-settings/:key
-   * @routeParam {string} key - a global setting key
-   * @bodyParam {string [Optional]} value - a new value
-   * @bodyParam {string [Optional]} description - a new description
+   * @route {PATCH} /global-settings
+   * @bodyParam {GlobalSetting[]} globalSettings new values for global settings
    * @param {Request} req frontend request to change data about global settings
    * @param {Response} res backend response with data change of one global settings
    */
   public static async updateGlobalSettings(req: Request, res: Response) {
     const repository = getRepository(GlobalSetting);
+    const globalSettings: GlobalSetting[] | undefined = req.body;
 
-    const globalSetting: GlobalSetting | undefined = await repository.findOne({
-      where: { key: req.params.key },
-    });
-
-    if (globalSetting === undefined) {
+    if (globalSettings === undefined) {
       res.status(404).json({
-        message: `Global setting '${req.params.key}' not found.`,
+        message: `Global setting not found.`,
       });
       return;
     }
 
-    try {
-      await repository.update(
-        { key: globalSetting.key },
-        repository.create(<DeepPartial<GlobalSetting>>{
-          ...globalSetting,
-          ...req.body,
-        })
-      );
-    } catch (err) {
-      res.status(400).json(err);
-      return;
+    for (const globalSetting in globalSettings) {
+      if (globalSettings[globalSetting].value === undefined) {
+        res.status(404).json({
+          message: `Global setting not found.`,
+        });
+        return;
+      }
+      if (globalSettings[globalSetting].key === undefined) {
+        res.status(404).json({
+          message: `Global setting not found.`,
+        });
+        return;
+      }
     }
 
-    res.json(await repository.findOne(globalSetting.key));
+    for (const globalSetting in globalSettings) {
+      const value = globalSettings[globalSetting].value;
+      const key = globalSettings[globalSetting].key;
+
+      try {
+        await repository.update({ key }, repository.create({ key, value }));
+      } catch (err) {
+        res.status(400).json(err);
+        return;
+      }
+    }
+    res.json(await repository.find());
   }
 
   /**
@@ -82,6 +89,7 @@ export class AdminController {
   public static async getWhitelistRetailer(req: Request, res: Response) {
     const retailer = await getRepository(Retailer).findOne({
       where: { id: req.params.id },
+      relations: ['domains'],
     });
 
     if (retailer === undefined) {
@@ -136,7 +144,26 @@ export class AdminController {
         retailerRepository.create(<DeepPartial<Retailer>>req.body)
       );
 
-      res.status(201).json(retailer);
+      const domains = req.body.domains;
+
+      if (domains !== undefined) {
+        const domainRepository = getRepository(RetailerDomain);
+
+        const domainEntities: RetailerDomain[] = domains.map((domain: string) =>
+          domainRepository.create({
+            domain,
+            retailer: retailer,
+          })
+        );
+
+        await domainRepository.save(domainEntities);
+      }
+
+      res.status(201).json(
+        await retailerRepository.findOne(retailer.id, {
+          relations: ['domains'],
+        })
+      );
     } catch (err) {
       res.status(400).json(err);
       return;
@@ -176,7 +203,7 @@ export class AdminController {
       return;
     }
 
-    res.json(await repository.findOne(retailer.id));
+    res.json(await repository.findOne(retailer.id, { relations: ['domains'] }));
   }
 
   /**
@@ -209,8 +236,8 @@ export class AdminController {
   /**
    * Adds domain to whitelist retailer
    *
-   * @route {POST} /global-settings/whitelist-retailers/:retailerId/domains
-   * @routeParam {string} retailerId - a retailer id
+   * @route {POST} /global-settings/whitelist-retailers/:id/domains
+   * @routeParam {string} id - a retailer id
    * @bodyParam {string} domain - an additional domain of the retailer
    * @param {Request} req frontend request to add a new domain to the retailer
    * @param {Response} res backend response addition of a new domain to the retailer
@@ -219,11 +246,26 @@ export class AdminController {
     req: Request,
     res: Response
   ) {
-    const retailer = getRepository(RetailerDomain);
+    const repository = getRepository(RetailerDomain);
+    const retailer: Retailer | undefined = await getRepository(
+      Retailer
+    ).findOne({
+      where: { id: req.params.id },
+    });
+
+    if (retailer === undefined) {
+      res.status(404).json({
+        message: 'Retailer not found.',
+      });
+      return;
+    }
 
     try {
-      const retailerDomain = await retailer.save(
-        retailer.create(<DeepPartial<RetailerDomain>>req.body)
+      const retailerDomain = await repository.save(
+        repository.create(<DeepPartial<RetailerDomain>>{
+          ...req.body,
+          retailer,
+        })
       );
 
       res.status(201).json(retailerDomain);
@@ -247,11 +289,25 @@ export class AdminController {
     req: Request,
     res: Response
   ) {
+    const retailer = await getRepository(Retailer).findOne({
+      where: { id: req.params.retailerId },
+    });
+
+    if (retailer === undefined) {
+      res.status(404).json({
+        message: 'Retailer not found.',
+      });
+      return;
+    }
+
     const repository = getRepository(RetailerDomain);
 
     const retailerDomain: RetailerDomain | undefined = await repository.findOne(
       {
-        where: { id: req.params.id },
+        where: {
+          id: req.params.domainId,
+          retailer: { id: retailer.id },
+        },
       }
     );
 
@@ -291,13 +347,25 @@ export class AdminController {
     req: Request,
     res: Response
   ) {
-    const retailerDomainRepository = getRepository(RetailerDomain);
+    const retailer = await getRepository(Retailer).findOne({
+      where: { id: req.params.retailerId },
+    });
 
+    if (retailer === undefined) {
+      res.status(404).json({
+        message: 'Retailer not found.',
+      });
+      return;
+    }
+
+    const retailerDomainRepository = getRepository(RetailerDomain);
     const retailerDomain: RetailerDomain | undefined =
       await retailerDomainRepository.findOne({
-        where: { id: req.params.id },
+        where: {
+          id: req.params.domainId,
+          retailer: { id: retailer.id },
+        },
       });
-
     if (retailerDomain === undefined) {
       res.status(404).json({
         message: 'Retailer Domain not found.',
@@ -305,7 +373,7 @@ export class AdminController {
       return;
     }
 
-    await retailerDomainRepository.delete(retailerDomain);
+    await retailerDomainRepository.delete(retailerDomain.id);
 
     res.sendStatus(204);
   }
@@ -414,6 +482,21 @@ export class AdminController {
       return;
     }
 
+    if (user.role === UserRole.admin) {
+      const userCount = await userRepository.count({
+        where: { role: UserRole.admin },
+      });
+      if (
+        userCount === 1 &&
+        (+req.params.role === UserRole.pending ||
+          +req.params.role === UserRole.visitor)
+      ) {
+        res.status(403).json({
+          message: 'Not allowed to degrade last admin',
+        });
+        return;
+      }
+    }
     try {
       await userRepository.update(
         { id: user.id },
@@ -452,14 +535,37 @@ export class AdminController {
       return;
     }
 
-    await userRepository.delete(user.id);
+    if (user.role === UserRole.admin) {
+      const userCount = await userRepository.count({
+        where: { role: UserRole.admin },
+      });
+      if (userCount == 1) {
+        res.status(403).json({
+          message: 'Not allowed to delete last admin',
+        });
+        return;
+      }
+    }
+
+    /*    await MessagingController.sendMessage(
+       user,
+       'Account deletion',
+       'Your account has been deleted by an admin. Bye!'
+    );*/
+    try {
+      await userRepository.update(
+        { id: user.id },
+        userRepository.create(<DeepPartial<User>>{
+          ...user,
+          ...{ firstName: undefined, lastName: undefined, email: undefined },
+        })
+      );
+    } catch (err) {
+      res.status(400).json(err);
+      return;
+    }
+    await userRepository.softDelete(user.id);
 
     res.sendStatus(204);
-
-    await MessagingController.sendMessage(
-      user,
-      'Account deletion',
-      'Your account has been deleted by an admin. Bye!'
-    );
   }
 }

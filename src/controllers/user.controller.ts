@@ -94,14 +94,14 @@ export class UserController {
     try {
       await repository.update(
         { id: user.id },
-        repository.create(<DeepPartial<User>>req.body)
+        repository.create(<DeepPartial<User>>{ ...user, ...req.body })
       );
     } catch (err) {
       res.status(400).json(err);
       return;
     }
 
-    res.sendStatus(204).json(await repository.findOne(user.id));
+    res.json(await repository.findOne(user.id));
   }
 
   /**
@@ -122,10 +122,6 @@ export class UserController {
     }
     const userRepository = getRepository(User);
 
-    await userRepository.delete(user.id);
-
-    res.sendStatus(204);
-
     await MessagingController.sendMessageToAllAdmins(
       'User deleted',
       'User' + user.firstName + user.lastName + 'deleted their account'
@@ -136,6 +132,21 @@ export class UserController {
       'Account deleted',
       'Your account has been deleted. Bye!'
     );
+    try {
+      await userRepository.update(
+        { id: user.id },
+        userRepository.create(<DeepPartial<User>>{
+          ...user,
+          ...{ firstName: undefined, lastName: undefined, email: undefined },
+        })
+      );
+    } catch (err) {
+      res.status(400).json(err);
+      return;
+    }
+    await userRepository.softDelete(user.id);
+
+    res.sendStatus(204);
   }
 
   /**
