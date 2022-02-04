@@ -139,14 +139,16 @@ export class RoomController {
    */
   public static async deleteRoom(req: Request, res: Response) {
     const repository = getRepository(Room);
-    const room = await repository.findOne(req.params.id);
+    const room = await repository.findOne(req.params.id, {
+      relations: ['appointments', 'availableTimeSlots', 'unavailableTimeSlots'],
+    });
 
     if (room === undefined) {
       res.status(404).json({ message: 'Room not found' });
       return;
     }
 
-    await repository.delete(room.id).then(() => {
+    await repository.remove(room).then(() => {
       res.sendStatus(204);
     });
   }
