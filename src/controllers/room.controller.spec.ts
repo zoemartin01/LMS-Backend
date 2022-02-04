@@ -68,8 +68,8 @@ describe('RoomController', () => {
         .set('Authorization', adminHeader)
         .end((err, res) => {
           expect(res.status).to.equal(200);
-          expect(res.body).to.be.an('array');
-          expect(res.body.length).to.be.equal(3);
+          expect(res.body.data).to.be.an('array');
+          expect(res.body.data.length).to.be.equal(3);
           done();
         });
     });
@@ -81,8 +81,8 @@ describe('RoomController', () => {
         .get(uri)
         .set('Authorization', adminHeader);
       expect(res.status).to.equal(200);
-      expect(res.body).to.be.an('array');
-      expect(res.body.length).to.be.equal(6);
+      expect(res.body.data).to.be.an('array');
+      expect(res.body.data.length).to.be.equal(6);
     });
   });
 

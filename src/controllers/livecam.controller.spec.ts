@@ -78,8 +78,8 @@ describe('LivecamController', () => {
         .set('Authorization', adminHeader)
         .end((err, res) => {
           expect(res.status).to.equal(200);
-          expect(res.body).to.be.an('array');
-          expect(res.body.length).to.be.equal(0);
+          expect(res.body.data).to.be.an('array');
+          expect(res.body.data.length).to.be.equal(0);
           done();
         });
     });
@@ -104,8 +104,8 @@ describe('LivecamController', () => {
         .set('Authorization', adminHeader)
         .end((err, res) => {
           expect(res.status).to.equal(200);
-          expect(res.body).to.be.an('array');
-          expect(res.body.length).to.be.equal(1);
+          expect(res.body.data).to.be.an('array');
+          expect(res.body.data.length).to.be.equal(1);
         });
     });
   });
@@ -213,7 +213,7 @@ describe('LivecamController', () => {
         .delete(uri.replace(':id', recording.id))
         .set('Authorization', adminHeader)
         .end((err, res) => {
-          expect(res.status).to.equal(204);
+          expect(res.status).to.equal(503);
 
           repository.findOne({ id: recording.id }).then((recording) => {
             expect(recording).to.be.undefined;
