@@ -26,8 +26,11 @@ export class OrderController {
    */
   public static async getAllOrders(req: Request, res: Response) {
     const { offset, limit } = req.query;
+    const repository = getRepository(Order);
 
-    getRepository(Order)
+    const total = await repository.count();
+
+    repository
       .find({
         relations: ['user', 'item'],
         order: { updatedAt: 'DESC' },
@@ -35,7 +38,7 @@ export class OrderController {
         take: limit ? +limit : 0,
       })
       .then((orders) => {
-        res.json(orders);
+        res.json({ total, data: orders });
       });
   }
 
@@ -56,8 +59,13 @@ export class OrderController {
     }
 
     const { offset, limit } = req.query;
+    const repository = getRepository(Order);
 
-    getRepository(Order)
+    const total = await repository.count({
+      where: { user: currentUser },
+    });
+
+    repository
       .find({
         where: { user: currentUser },
         relations: ['user', 'item'],
@@ -68,7 +76,7 @@ export class OrderController {
         take: limit ? +limit : 0,
       })
       .then((orders) => {
-        res.json(orders);
+        res.json({ total, data: orders });
       });
   }
 

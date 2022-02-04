@@ -422,7 +422,10 @@ export class AuthController {
    *
    * @param {Request} req current http-request
    */
-  public static async getCurrentUser(req: Request): Promise<User | null> {
+  public static async getCurrentUser(
+    req: Request,
+    relations: string[] = []
+  ): Promise<User | null> {
     const authHeader = req.headers['authorization'];
 
     if (authHeader) {
@@ -441,7 +444,9 @@ export class AuthController {
               return null;
             }
             return (
-              (await getRepository(User).findOne(tokenObject.userId)) || null
+              (await getRepository(User).findOne(tokenObject.userId, {
+                relations,
+              })) || null
             );
           },
           () => {

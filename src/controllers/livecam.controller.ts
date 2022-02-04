@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { DeepPartial, getRepository, LessThan, MoreThan } from 'typeorm';
+import { DeepPartial, getRepository, MoreThan } from 'typeorm';
 import { Recording } from '../models/recording.entity';
 import environment from '../environment';
 import { promisify } from 'util';
@@ -28,10 +28,13 @@ export class LivecamController {
    */
   public static async getFinishedRecordings(req: Request, res: Response) {
     const { offset, limit } = req.query;
+    const repository = getRepository(Recording);
 
-    await getRepository(Recording)
+    const total = await repository.count({ where: { size: MoreThan(0) } });
+
+    await repository
       .find({
-        where: { end: LessThan(new Date()), size: MoreThan(0) },
+        where: { size: MoreThan(0) },
         relations: ['user'],
         order: {
           start: 'ASC',
@@ -40,7 +43,7 @@ export class LivecamController {
         take: limit ? +limit : 0,
       })
       .then((recordings) => {
-        res.status(200).json(recordings);
+        res.status(200).json({ total, data: recordings });
       });
   }
 
@@ -53,8 +56,17 @@ export class LivecamController {
    */
   public static async getScheduledRecordings(req: Request, res: Response) {
     const { offset, limit } = req.query;
+    const repository = getRepository(Recording);
 
-    await getRepository(Recording)
+    const total = await repository.count({
+      where: { size: 0 },
+      relations: ['user'],
+      order: {
+        start: 'ASC',
+      },
+    });
+
+    repository
       .find({
         where: { size: 0 },
         relations: ['user'],
@@ -65,7 +77,7 @@ export class LivecamController {
         take: limit ? +limit : 0,
       })
       .then((recordings) => {
-        res.status(200).json(recordings);
+        res.status(200).json({ total, data: recordings });
       });
   }
 
@@ -133,7 +145,7 @@ export class LivecamController {
    * @param {Response} res backend response
    */
   public static async scheduleRecording(req: Request, res: Response) {
-    const user = await AuthController.getCurrentUser(req);
+    const user = await AuthController.getCurrentUser(req, ['recordings']);
 
     if (user === null) {
       res.status(401).json({ message: 'Not logged in' });
