@@ -11,4 +11,5 @@ export enum TokenType {
   authenticationToken = 1,
   refreshToken = 2,
   emailVerificationToken = 3,
+  apiKey = 4,
 }
