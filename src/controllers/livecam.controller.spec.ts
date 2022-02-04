@@ -46,6 +46,10 @@ describe('LivecamController', () => {
     visitor = await Helpers.getCurrentUser(visitorHeader);
   });
 
+  afterEach(async () => {
+    app.shutdownJobs();
+  });
+
   describe('GET /livecam/recordings', () => {
     const uri = `${environment.apiRoutes.base}${environment.apiRoutes.livecam.getAllRecordings}`;
 
