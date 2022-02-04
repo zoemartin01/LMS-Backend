@@ -72,8 +72,8 @@ describe('RoomController', () => {
         .set('Authorization', adminHeader)
         .end((err, res) => {
           expect(res.status).to.equal(200);
-          expect(res.body).to.be.an('array');
-          expect(res.body.length).to.be.equal(20);
+          expect(res.body.data).to.be.an('array');
+          expect(res.body.data.length).to.be.equal(20);
           done();
         });
     });
@@ -102,8 +102,8 @@ describe('RoomController', () => {
         .set('Authorization', adminHeader);
 
       expect(res.status).to.equal(200);
-      expect(res.body).to.be.an('array');
-      expect(res.body.length).to.be.equal(23);
+      expect(res.body.data).to.be.an('array');
+      expect(res.body.data.length).to.be.equal(23);
     });
   });
 
@@ -179,7 +179,7 @@ describe('RoomController', () => {
         .set('Authorization', visitorHeader)
         .end((err, res) => {
           expect(res.status).to.equal(200);
-          expect(res.body.length).to.be.equal(0);
+          expect(res.body.data.length).to.be.equal(0);
           done();
         });
     });
@@ -196,7 +196,7 @@ describe('RoomController', () => {
         .set('Authorization', adminHeader);
 
       expect(res.status).to.equal(200);
-      expect(res.body.length).to.be.equal(3);
+      expect(res.body.data.length).to.be.equal(3);
     });
   });
 
@@ -237,7 +237,7 @@ describe('RoomController', () => {
         .get(uri.replace(':id', room.id))
         .set('Authorization', visitorHeader);
       expect(res.status).to.equal(200);
-      expect(res.body.length).to.be.equal(3);
+      expect(res.body.data.length).to.be.equal(3);
     });
   });
 
@@ -262,8 +262,8 @@ describe('RoomController', () => {
         .set('Authorization', adminHeader)
         .end((err, res) => {
           expect(res.status).to.equal(200);
-          expect(res.body).to.be.an('array');
-          expect(res.body.length).to.be.equal(10);
+          expect(res.body.data).to.be.an('array');
+          expect(res.body.data.length).to.be.equal(10);
           done();
         });
     });
@@ -280,7 +280,7 @@ describe('RoomController', () => {
         .set('Authorization', visitorHeader);
 
       expect(res.status).to.equal(200);
-      expect(res.body.length).to.be.equal(13);
+      expect(res.body.data.length).to.be.equal(13);
     });
   });
 });
