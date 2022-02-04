@@ -278,11 +278,25 @@ export class AdminController {
     req: Request,
     res: Response
   ) {
+    const retailer = await getRepository(Retailer).findOne({
+      where: { id: req.params.retailerId },
+    });
+
+    if (retailer === undefined) {
+      res.status(404).json({
+        message: 'Retailer not found.',
+      });
+      return;
+    }
+
     const repository = getRepository(RetailerDomain);
 
     const retailerDomain: RetailerDomain | undefined = await repository.findOne(
       {
-        where: { id: req.params.domainId },
+        where: {
+          id: req.params.domainId,
+          retailer: { id: retailer.id },
+        },
       }
     );
 
