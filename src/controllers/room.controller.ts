@@ -25,8 +25,11 @@ export class RoomController {
    */
   public static async getAllRooms(req: Request, res: Response) {
     const { offset, limit } = req.query;
+    const repository = getRepository(Room);
 
-    const rooms = await getRepository(Room).find({
+    const total = await repository.count();
+
+    const rooms = await repository.find({
       relations: ['appointments', 'availableTimeSlots', 'unavailableTimeSlots'],
       order: {
         name: 'ASC',
@@ -34,7 +37,7 @@ export class RoomController {
       skip: offset ? +offset : 0,
       take: limit ? +limit : 0,
     });
-    res.json(rooms);
+    res.json({ total, data: rooms });
   }
 
   /**
@@ -136,14 +139,16 @@ export class RoomController {
    */
   public static async deleteRoom(req: Request, res: Response) {
     const repository = getRepository(Room);
-    const room = await repository.findOne(req.params.id);
+    const room = await repository.findOne(req.params.id, {
+      relations: ['appointments', 'availableTimeSlots', 'unavailableTimeSlots'],
+    });
 
     if (room === undefined) {
       res.status(404).json({ message: 'Room not found' });
       return;
     }
 
-    await repository.delete(room.id).then(() => {
+    await repository.remove(room).then(() => {
       res.sendStatus(204);
     });
   }

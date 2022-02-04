@@ -167,6 +167,19 @@ export class UserController {
     const userRepository = getRepository(User);
     const tokenRepository = getRepository(Token);
 
+    await userRepository
+      .count({
+        where: { email },
+      })
+      .then((result) => {
+        if (result !== 0) {
+          res.status(409).json({
+            message: 'User with this email already exists.',
+          });
+          return;
+        }
+      });
+
     //create user with specified personal information an hashed password
     bcrypt.hash(
       password,
@@ -220,9 +233,18 @@ export class UserController {
     const userRepository = getRepository(User);
     const tokenRepository = getRepository(Token);
 
-    const user: User | undefined = await userRepository.findOne({
-      where: { id: userId },
-    });
+    let user: User | undefined;
+
+    try {
+      user = await userRepository.findOne({
+        where: { id: userId },
+      });
+    } catch (e) {
+      res.status(404).json({
+        message: 'User not found.',
+      });
+      return;
+    }
 
     if (user === undefined) {
       res.status(404).json({

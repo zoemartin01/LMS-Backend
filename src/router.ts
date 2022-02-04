@@ -67,6 +67,20 @@ class AppRouter {
       MessagingController.updateMessage
     );
 
+    // Admin (General Settings & User Management)
+    this.router.get(
+      environment.apiRoutes.admin_settings.getGlobalSettings,
+      AuthController.checkAuthenticationMiddleware,
+      AuthController.checkAdminMiddleware,
+      AdminController.getGlobalSettings
+    );
+    this.router.patch(
+      environment.apiRoutes.admin_settings.updateGlobalSettings,
+      AuthController.checkAuthenticationMiddleware,
+      AuthController.checkAdminMiddleware,
+      AdminController.updateGlobalSettings
+    );
+
     // Personal User Settings
     this.router.get(
       environment.apiRoutes.user_settings.getCurrentUser,
@@ -301,7 +315,6 @@ class AppRouter {
     this.router.delete(
       addUUIDRegexToRoute(environment.apiRoutes.appointments.deleteAppointment),
       AuthController.checkAuthenticationMiddleware,
-      AuthController.checkAdminMiddleware,
       AppointmentController.deleteAppointment
     );
     this.router.delete(
@@ -381,7 +394,7 @@ class AppRouter {
       environment.apiRoutes.livecam.getAllRecordings,
       AuthController.checkAuthenticationMiddleware,
       AuthController.checkAdminMiddleware,
-      LivecamController.getRecordings
+      LivecamController.getFinishedRecordings
     );
     this.router.get(
       environment.apiRoutes.livecam.getAllScheduled,
@@ -423,13 +436,6 @@ class AppRouter {
       environment.apiRoutes.livecam.streamFeed,
       LivecamController.getLiveCameraFeed
     );
-    // this.router.post(environment.apiRoutes.livecam.registerWebSocket, LivecamController.registerWebSocket);
-    // this.router.get(
-    //   environment.apiRoutes.livecam.streamFeed,
-    //   AuthController.checkAuthenticationMiddleware,
-    //   AuthController.checkAdminMiddleware,
-    //   LivecamController.getLiveCameraFeed
-    // );
   }
 }
 

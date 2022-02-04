@@ -24,11 +24,14 @@ export class MessagingController {
    */
   public static async getMessages(req: Request, res: Response): Promise<void> {
     const { offset, limit } = req.query;
-
     const messageRepository = getRepository(Message);
 
+    const user = await AuthController.getCurrentUser(req);
+
+    const total = await messageRepository.count({ where: { recipient: user } });
+
     const messages = await messageRepository.find({
-      where: { recipient: AuthController.getCurrentUser(req) },
+      where: { recipient: user },
       order: {
         createdAt: 'DESC',
       },
@@ -36,7 +39,7 @@ export class MessagingController {
       take: limit ? +limit : 0,
     });
 
-    res.json(messages);
+    res.json({ total, data: messages });
   }
 
   /**

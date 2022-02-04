@@ -80,7 +80,8 @@ export class Room extends BaseEntity {
    */
   @OneToMany(
     () => AvailableTimeslot,
-    (availableTimeslot) => availableTimeslot.room
+    (availableTimeslot) => availableTimeslot.room,
+    { cascade: true }
   )
   availableTimeSlots: AvailableTimeslot[];
 
@@ -91,7 +92,8 @@ export class Room extends BaseEntity {
    */
   @OneToMany(
     () => UnavailableTimeslot,
-    (unavailableTimeslot) => unavailableTimeslot.room
+    (unavailableTimeslot) => unavailableTimeslot.room,
+    { cascade: true }
   )
   unavailableTimeSlots: UnavailableTimeslot[];
 
@@ -100,6 +102,8 @@ export class Room extends BaseEntity {
    *
    * @type {AppointmentTimeslot[]}
    */
-  @OneToMany(() => AppointmentTimeslot, (timeslot) => timeslot.room)
+  @OneToMany(() => AppointmentTimeslot, (timeslot) => timeslot.room, {
+    cascade: true,
+  })
   appointments: AppointmentTimeslot[];
 }

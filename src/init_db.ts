@@ -7,6 +7,7 @@ import { User } from './models/user.entity';
 import bcrypt from 'bcrypt';
 import { UserRole } from './types/enums/user-role';
 import { NotificationChannel } from './types/enums/notification-channel';
+import CreateSystemUser from './database/seeds/create-system-user.seed';
 
 const initDB = async () => {
   const connection = await createConnection();
@@ -33,6 +34,7 @@ const initDB = async () => {
   console.log('===========================================================');
 
   await runSeeder(CreateGlobalSettings);
+  await runSeeder(CreateSystemUser);
   console.log('Done initializing database');
 };
 
