@@ -86,7 +86,7 @@ export class AuthController {
             await AuthController.loginCallback(user, res);
           });
       });
-    }catch (e) {
+    } catch (e) {
       console.log(e);
       res.sendStatus(500);
     }
