@@ -8,6 +8,8 @@ import { v4 as uuidv4 } from 'uuid';
 import { MessagingController } from './messaging.controller';
 import environment from '../environment';
 import moment from 'moment';
+import app from '../app';
+import { User } from '../models/user.entity';
 
 /**
  * Controller for appointment management
@@ -36,14 +38,35 @@ export class AppointmentController {
       confirmationStatus !== undefined ? { confirmationStatus } : undefined;
     const total = await repository.count(where ? { where } : undefined);
 
-    const appointments = await repository.find({
-      where,
-      order: {
-        start: 'ASC',
-      },
-      skip: offset ? +offset : 0,
-      take: limit ? +limit : 0,
-    });
+    const appointments = await repository
+      .createQueryBuilder('appointment')
+      .select('*')
+      .leftJoin(
+        (qb) =>
+          qb
+            .subQuery()
+            .select('"seriesId", MAX(start) as "maxStart"')
+            .from(AppointmentTimeslot, 'a')
+            .groupBy('"seriesId"'),
+        'last',
+        'appointment."seriesId" = last."seriesId"'
+      )
+      .limit(limit ? +limit : 0)
+      .offset(offset ? +offset : 0)
+      .orderBy('appointment.start', 'ASC')
+      .getRawMany();
+
+    await Promise.all(
+      appointments.map(async (appointment) => {
+        appointment.room = await getRepository(Room).findOne({
+          id: appointment.roomId,
+        });
+        appointment.user = await getRepository(User).findOne({
+          id: appointment.userId,
+        });
+        return appointment;
+      })
+    );
 
     res.json({ total, data: appointments });
   }
@@ -75,14 +98,34 @@ export class AppointmentController {
       where: { user: currentUser },
     });
 
-    const appointments = await repository.find({
-      where: { user: currentUser },
-      order: {
-        start: 'ASC',
-      },
-      skip: offset ? +offset : 0,
-      take: limit ? +limit : 0,
-    });
+    const appointments = await repository
+      .createQueryBuilder('appointment')
+      .select('*')
+      .leftJoin(
+        (qb) =>
+          qb
+            .subQuery()
+            .select('"seriesId", MAX(start) as "maxStart"')
+            .from(AppointmentTimeslot, 'a')
+            .groupBy('"seriesId"'),
+        'last',
+        'appointment."seriesId" = last."seriesId"'
+      )
+      .limit(limit ? +limit : 0)
+      .offset(offset ? +offset : 0)
+      .orderBy('appointment.start', 'ASC')
+      .where('"userId" = :id', { id: currentUser.id })
+      .getRawMany();
+
+    await Promise.all(
+      appointments.map(async (appointment) => {
+        appointment.room = await getRepository(Room).findOne({
+          id: appointment.roomId,
+        });
+        appointment.user = currentUser;
+        return appointment;
+      })
+    );
 
     res.json({ total, data: appointments });
   }
@@ -109,14 +152,34 @@ export class AppointmentController {
 
     const total = await repository.count({ where: { room } });
 
-    const appointments = await repository.find({
-      where: { room },
-      order: {
-        start: 'ASC',
-      },
-      skip: offset ? +offset : 0,
-      take: limit ? +limit : 0,
-    });
+    const appointments = await repository
+      .createQueryBuilder('appointment')
+      .select('*')
+      .leftJoin(
+        (qb) =>
+          qb
+            .subQuery()
+            .select('"seriesId", MAX(start) as "maxStart"')
+            .from(AppointmentTimeslot, 'a')
+            .groupBy('"seriesId"'),
+        'last',
+        'appointment."seriesId" = last."seriesId"'
+      )
+      .limit(limit ? +limit : 0)
+      .offset(offset ? +offset : 0)
+      .orderBy('appointment.start', 'ASC')
+      .where('"roomId" = :id', { id: room.id })
+      .getRawMany();
+
+    await Promise.all(
+      appointments.map(async (appointment) => {
+        appointment.room = room;
+        appointment.user = await getRepository(User).findOne({
+          id: appointment.userId,
+        });
+        return appointment;
+      })
+    );
 
     res.json({ total, data: appointments });
   }
@@ -133,16 +196,41 @@ export class AppointmentController {
     const { offset, limit } = req.query;
     const repository = getRepository(AppointmentTimeslot);
 
-    const total = await repository.count({ where: { series: req.params.id } });
-
-    const appointments = await repository.find({
+    const total = await repository.count({
       where: { seriesId: req.params.id },
-      order: {
-        start: 'ASC',
-      },
-      skip: offset ? +offset : 0,
-      take: limit ? +limit : 0,
     });
+
+    const appointments = await repository
+      .createQueryBuilder('appointment')
+      .select('*')
+      .leftJoinAndSelect('appointment.room', 'room')
+      .leftJoin(
+        (qb) =>
+          qb
+            .subQuery()
+            .select('"seriesId", MAX(start) as "maxStart"')
+            .from(AppointmentTimeslot, 'a')
+            .groupBy('"seriesId"'),
+        'last',
+        'appointment."seriesId" = last."seriesId"'
+      )
+      .limit(limit ? +limit : 0)
+      .offset(offset ? +offset : 0)
+      .orderBy('appointment.start', 'ASC')
+      .where('"seriesId" = :id', { id: req.params.id })
+      .getRawMany();
+
+    await Promise.all(
+      appointments.map(async (appointment) => {
+        appointment.room = await getRepository(Room).findOne({
+          id: appointment.roomId,
+        });
+        appointment.user = await getRepository(User).findOne({
+          id: appointment.userId,
+        });
+        return appointment;
+      })
+    );
 
     if (appointments.length === 0) {
       res.status(404).json({ message: 'No appointments for series found' });

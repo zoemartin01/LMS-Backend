@@ -12,7 +12,8 @@ import { Recording } from '../../models/recording.entity';
 import { Room } from '../../models/room.entity';
 import { User } from '../../models/user.entity';
 import { UserRole } from '../../types/enums/user-role';
-import { NotificationChannel } from "../../types/enums/notification-channel";
+import { NotificationChannel } from '../../types/enums/notification-channel';
+import { v4 } from 'uuid';
 
 export default class CreateTestUsers implements Seeder {
   public async run(factory: Factory, connection: Connection): Promise<void> {
@@ -83,8 +84,20 @@ export default class CreateTestUsers implements Seeder {
     }).createMany(10);
 
     await factory(AppointmentTimeslot)({
+      user: admin,
+      room: faker.random.arrayElement(rooms),
+      seriesId: v4(),
+    }).createMany(10);
+
+    await factory(AppointmentTimeslot)({
       user: visitor,
       room: faker.random.arrayElement(rooms),
+    }).createMany(10);
+
+    await factory(AppointmentTimeslot)({
+      user: visitor,
+      room: faker.random.arrayElement(rooms),
+      seriesId: v4(),
     }).createMany(10);
   }
 
