@@ -265,7 +265,14 @@ export class AppointmentController {
       return;
     }
 
-    res.json(appointment);
+    const maxStart = await getRepository(AppointmentTimeslot).findOne({
+      where: { seriesId: appointment.seriesId },
+      order: {
+        start: 'DESC',
+      },
+    });
+
+    res.json({ ...appointment, maxStart });
   }
 
   /**
