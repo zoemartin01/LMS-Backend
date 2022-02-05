@@ -4,7 +4,6 @@ import { Order } from '../models/order.entity';
 import { AuthController } from './auth.controller';
 import { OrderStatus } from '../types/enums/order-status';
 import { MessagingController } from './messaging.controller';
-import environment from '../environment';
 import { User } from '../models/user.entity';
 
 /**
