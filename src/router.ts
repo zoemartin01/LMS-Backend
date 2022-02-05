@@ -314,7 +314,7 @@ class AppRouter {
       AuthController.checkAdminMiddleware,
       AppointmentController.updateAppointment
     );
-    this.router.put(
+    this.router.patch(
       addUUIDRegexToRoute(
         environment.apiRoutes.appointments.updateAppointmentSeries
       ),

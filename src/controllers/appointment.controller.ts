@@ -37,7 +37,7 @@ export class AppointmentController {
       confirmationStatus !== undefined ? { confirmationStatus } : undefined;
     const total = await repository.count(where ? { where } : undefined);
 
-    const appointments = await repository
+    const query = repository
       .createQueryBuilder('appointment')
       .select('*')
       .leftJoin(
@@ -52,8 +52,15 @@ export class AppointmentController {
       )
       .limit(limit ? +limit : 0)
       .offset(offset ? +offset : 0)
-      .orderBy('appointment.start', 'ASC')
-      .getRawMany();
+      .orderBy('appointment.start', 'ASC');
+
+    if (confirmationStatus !== undefined) {
+      query.where('appointment."confirmationStatus" = :status', {
+        status: confirmationStatus,
+      });
+    }
+
+    const appointments = await query.getRawMany();
 
     await Promise.all(
       appointments.map(async (appointment) => {
@@ -202,7 +209,6 @@ export class AppointmentController {
     const appointments = await repository
       .createQueryBuilder('appointment')
       .select('*')
-      .leftJoinAndSelect('appointment.room', 'room')
       .leftJoin(
         (qb) =>
           qb
@@ -216,7 +222,7 @@ export class AppointmentController {
       .limit(limit ? +limit : 0)
       .offset(offset ? +offset : 0)
       .orderBy('appointment.start', 'ASC')
-      .where('"seriesId" = :id', { id: req.params.id })
+      .where('appointment."seriesId" = :id', { id: req.params.id })
       .getRawMany();
 
     await Promise.all(
@@ -265,14 +271,16 @@ export class AppointmentController {
       return;
     }
 
-    const maxStart = await getRepository(AppointmentTimeslot).findOne({
-      where: { seriesId: appointment.seriesId },
-      order: {
-        start: 'DESC',
-      },
-    });
+    const maxStart = appointment.seriesId
+      ? await getRepository(AppointmentTimeslot).findOne({
+          where: { seriesId: appointment.seriesId },
+          order: {
+            start: 'DESC',
+          },
+        })
+      : undefined;
 
-    res.json({ ...appointment, maxStart });
+    res.json({ ...appointment, maxStart: maxStart?.start ?? undefined });
   }
 
   /**
