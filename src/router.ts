@@ -188,10 +188,16 @@ class AppRouter {
     );
 
     this.router.get(
-      environment.apiRoutes.user_management.getAllUsers,
+      environment.apiRoutes.user_management.getAllPendingUsers,
       AuthController.checkAuthenticationMiddleware,
       AuthController.checkAdminMiddleware,
-      AdminController.getUsers
+      AdminController.getPendingUsers
+    );
+    this.router.get(
+      environment.apiRoutes.user_management.getAllAcceptedUsers,
+      AuthController.checkAuthenticationMiddleware,
+      AuthController.checkAdminMiddleware,
+      AdminController.getAcceptedUsers
     );
     this.router.get(
       addUUIDRegexToRoute(environment.apiRoutes.user_management.getSingleUser),

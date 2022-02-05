@@ -3,9 +3,9 @@ import { DeepPartial, getRepository } from 'typeorm';
 import { Order } from '../models/order.entity';
 import { AuthController } from './auth.controller';
 import { OrderStatus } from '../types/enums/order-status';
-import { MessagingController } from './messaging.controller';
-import environment from '../environment';
 import { User } from '../models/user.entity';
+import { InventoryItem } from '../models/inventory-item.entity';
+import { MessagingController } from './messaging.controller';
 
 /**
  * Controller for order management
@@ -118,29 +118,51 @@ export class OrderController {
    * Creates a new order
    *
    * @route {POST} /orders
-   * @bodyParam {string} item - name of the order item
-   * @bodyParam {Item [Optional]} item - an item (alternative to itemName)
-   * @bodyParam {string [Optional]} itemName - name of the item (alternative to item)
+   * @bodyParam {string} itemName - name of the order item
    * @bodyParam {number} quantity - quantity of the order
    * @bodyParam {string} purchaseURL - the purchase url
    * @param {Request} req frontend request to create a new order
    * @param {Response} res backend response creation of a new order
    */
   public static async createOrder(req: Request, res: Response) {
-    const repository = getRepository(Order);
+    const orderRepository = getRepository(Order);
+    const inventoryRepository = getRepository(InventoryItem);
     const user = await AuthController.getCurrentUser(req);
     if (user === null) {
       return;
     }
 
+    const inventoryItem: InventoryItem | undefined =
+      await inventoryRepository.findOne({
+        where: { name: req.params.itemName },
+      });
+
     let order: Order;
-    try {
-      order = await repository.save(
-        repository.create(<DeepPartial<Order>>{ ...req.body, user })
-      );
-    } catch (err) {
-      res.status(400).json(err);
-      return;
+
+    if (inventoryItem === undefined) {
+      try {
+        order = await orderRepository.save(
+          orderRepository.create(<DeepPartial<Order>>{ ...req.body, user })
+        );
+      } catch (err) {
+        res.status(400).json(err);
+        return;
+      }
+    } else {
+      try {
+        order = await orderRepository.save(
+          orderRepository.create(<DeepPartial<Order>>{
+            item: inventoryItem,
+            itemName: undefined,
+            user: user,
+            quantity: +req.params.quantity,
+            url: req.params.url,
+          })
+        );
+      } catch (err) {
+        res.status(400).json(err);
+        return;
+      }
     }
 
     res.status(201).json(order);
@@ -150,14 +172,14 @@ export class OrderController {
       'Order Request Confirmation',
       'Your order request has been sent.',
       'Your Orders',
-      `${environment.frontendUrl}/user/orders`
+      '/orders'
     );
 
     await MessagingController.sendMessageToAllAdmins(
       'Accept Order Request',
       'You have an open order request.',
       'Order Requests',
-      `${environment.frontendUrl}/orders`
+      '/orders/all'
     );
   }
 
@@ -197,7 +219,7 @@ export class OrderController {
         // check if order status is still pending, visitors aren't allowed to change order after that
         order.status !== OrderStatus.pending ||
         // check if no admin user tried to change order status
-        'orderStatus' in req.body
+        'status' in req.body
       ) {
         res.status(403);
         return;
@@ -212,6 +234,14 @@ export class OrderController {
     if ('item' in req.body && 'itemName' in req.body) {
       res.status(400).json({
         message: 'Item and itemName cannot both be set',
+      });
+      return;
+    }
+
+    //check if (admin) user tried to change the order status to pending
+    if (req.body.status === OrderStatus.pending) {
+      res.status(400).json({
+        message: 'Order status cannot be set back to pending',
       });
       return;
     }
@@ -243,8 +273,10 @@ export class OrderController {
 
     res.status(200).json(order);
 
-    const itemName: string =
-      order.item === undefined ? order.itemName : order.item.name;
+    const orderItem = await order.item;
+
+    const itemName: string | null =
+      orderItem === null ? order.itemName : orderItem.name;
 
     const currentUser = await AuthController.getCurrentUser(req);
     if (currentUser === null) {
@@ -257,7 +289,7 @@ export class OrderController {
         'Updated Order',
         'Your order request of ' + itemName + ' has been updated by an admin',
         'Your Orders',
-        `${environment.frontendUrl}/user/orders`
+        '/orders'
       );
     } else {
       await MessagingController.sendMessage(
@@ -265,7 +297,7 @@ export class OrderController {
         'Updated Order Request Confirmation',
         'Your order request of ' + itemName + ' has been updated.',
         'Your Orders',
-        `${environment.frontendUrl}/user/orders`
+        '/orders'
       );
     }
     await MessagingController.sendMessageToAllAdmins(
@@ -277,7 +309,7 @@ export class OrderController {
         order.user.lastName +
         'has been updated',
       'Updated Order',
-      `${environment.frontendUrl}/orders`
+      '/orders/all'
     );
   }
 
@@ -312,12 +344,14 @@ export class OrderController {
       return;
     }
 
+    const orderItem = await order.item;
+
+    const itemName: string | null =
+      orderItem === null ? order.itemName : orderItem.name;
+
     await orderRepository.delete(order.id).then(() => {
       res.sendStatus(204);
     });
-
-    const itemName: string =
-      order.item === undefined ? order.itemName : order.item.name;
 
     const currentUser = await AuthController.getCurrentUser(req);
     if (currentUser === null) {

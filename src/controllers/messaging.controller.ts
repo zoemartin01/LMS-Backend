@@ -146,13 +146,17 @@ export class MessagingController {
 
     const ws = MessagingController.messageSockets[message.recipient.id];
 
-    ws.forEach(async (ws) => {
-      ws.send(
-        JSON.stringify(
-          await MessagingController.getUnreadMessagesAmounts(message.recipient)
-        )
-      );
-    });
+    if (ws !== undefined) {
+      ws.forEach(async (ws) => {
+        ws.send(
+          JSON.stringify(
+            await MessagingController.getUnreadMessagesAmounts(
+              message.recipient
+            )
+          )
+        );
+      });
+    }
   }
 
   /**
@@ -199,13 +203,17 @@ export class MessagingController {
 
     const ws = MessagingController.messageSockets[message.recipient.id];
 
-    ws.forEach(async (ws) => {
-      ws.send(
-        JSON.stringify(
-          await MessagingController.getUnreadMessagesAmounts(message.recipient)
-        )
-      );
-    });
+    if (ws !== undefined) {
+      ws.forEach(async (ws) => {
+        ws.send(
+          JSON.stringify(
+            await MessagingController.getUnreadMessagesAmounts(
+              message.recipient
+            )
+          )
+        );
+      });
+    }
   }
 
   /**
@@ -252,13 +260,15 @@ export class MessagingController {
 
     const ws = MessagingController.messageSockets[recipient.id];
 
-    ws.forEach(async (ws) => {
-      ws.send(
-        JSON.stringify(
-          await MessagingController.getUnreadMessagesAmounts(recipient)
-        )
-      );
-    });
+    if (ws !== undefined) {
+      ws.forEach(async (ws) => {
+        ws.send(
+          JSON.stringify(
+            await MessagingController.getUnreadMessagesAmounts(recipient)
+          )
+        );
+      });
+    }
   }
 
   /**
