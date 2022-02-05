@@ -61,6 +61,14 @@ export class AppointmentTimeslot extends TimeSlot {
   seriesId: string;
 
   /**
+   * The amount of the appointments of the series.
+   * @type {number}
+   * @readonly
+   */
+  @Column({ default: 1 })
+  amount: number;
+
+  /**
    * The recurrence of an appointment.
    *
    * @type {TimeSlotRecurrence}
