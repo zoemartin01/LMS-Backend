@@ -174,4 +174,23 @@ export class InventoryController {
       res.sendStatus(204);
     });
   }
+
+  /**
+   * Returns an existing inventory item or null
+   *
+   * @param {Request} req frontend request to delete one inventory item
+   * @param {Response} res backend response deletion
+   */
+  public static async getByName(req: Request, res: Response) {
+    getRepository(InventoryItem)
+      .findOne({
+        where: { name: req.params.name },
+      })
+      .then((inventoryItem) => {
+        if (inventoryItem === undefined) {
+          res.json(null);
+        }
+        res.json(inventoryItem);
+      });
+  }
 }
