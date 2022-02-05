@@ -10,6 +10,7 @@ import { User } from '../models/user.entity';
 import { Token } from '../models/token.entity';
 import { TokenType } from '../types/enums/token-type';
 import { UserRole } from '../types/enums/user-role';
+import { WebSocket } from 'ws';
 
 /**
  * Controller for Authentication
@@ -419,6 +420,53 @@ export class AuthController {
 
       next();
     });
+  }
+
+  public static async checkWebSocketAuthenticationMiddleware(
+    ws: WebSocket,
+    req: Request,
+    next: NextFunction
+  ) {
+    const token = req.query.token;
+
+    if (token === undefined) {
+      ws.send('Invalid token');
+      ws.close();
+    }
+
+    jsonwebtoken.verify(
+      token as string,
+      environment.accessTokenSecret,
+      async (err) => {
+        if (err) {
+          ws.send('Invalid token');
+          ws.close();
+          return;
+        }
+
+        const tokenObject: Token | undefined = await getRepository(
+          Token
+        ).findOne({
+          where: {
+            token,
+            type: TokenType.authenticationToken,
+            expiresAt: MoreThan(new Date()),
+          },
+          relations: ['user'],
+        });
+
+        if (tokenObject === undefined) {
+          ws.send('Invalid token');
+          ws.close();
+          return;
+        }
+
+        req.body.user = tokenObject.user;
+
+        ws.send('Authorization successful');
+        next();
+      }
+    );
   }
 
   /**
