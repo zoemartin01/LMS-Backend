@@ -198,9 +198,10 @@ export class OrderController {
    * @param {Response} res backend response with changed data of the order
    */
   public static async updateOrder(req: Request, res: Response) {
-    const repository = getRepository(Order);
+    const orderRepository = getRepository(Order);
+    const inventoryRepository = getRepository(InventoryItem);
 
-    let order: Order | undefined = await repository.findOne({
+    let order: Order | undefined = await orderRepository.findOne({
       where: { id: req.params.id },
       relations: ['user', 'item'],
     });
@@ -231,40 +232,67 @@ export class OrderController {
       res.status(403);
       return;
     }
-    // check if item and itemName have been sent
-    if ('item' in req.body && 'itemName' in req.body) {
-      res.status(400).json({
-        message: 'Item and itemName cannot both be set',
-      });
-      return;
+
+    // case: item name should not be updated
+    if (!('itemName' in req.body)) {
+      try {
+        await orderRepository.update(
+          { id: order.id },
+          orderRepository.create(<DeepPartial<Order>>{
+            ...order,
+            ...req.body,
+          })
+        );
+      } catch (err) {
+        res.status(400).json(err);
+        return;
+      }
+    } //case: itemName should be updated
+    else {
+      const inventoryItem: InventoryItem | undefined =
+        await inventoryRepository.findOne({
+          where: { name: req.params.itemName },
+        });
+      // case: existing inventory item for updated order item
+      if (inventoryItem === undefined) {
+        try {
+          await orderRepository.update(
+            { id: order.id },
+            orderRepository.create(<DeepPartial<Order>>{
+              ...order,
+              ...req.body,
+            })
+          );
+        } catch (err) {
+          res.status(400).json(err);
+          return;
+        }
+      } // case: no existing inventory item for updated order item
+      else {
+        try {
+          await orderRepository.update(
+            { id: order.id },
+            orderRepository.create(<DeepPartial<Order>>{
+              ...order,
+              ...req.body,
+              item: inventoryItem,
+              itemName: undefined,
+            })
+          );
+        } catch (err) {
+          res.status(400).json(err);
+          return;
+        }
+      }
     }
 
-    //check if (admin) user tried to change the order status to pending
-    if (req.body.status === OrderStatus.pending) {
-      res.status(400).json({
-        message: 'Order status cannot be set back to pending',
-      });
-      return;
-    }
-
-    try {
-      await repository.update(
-        { id: order.id },
-        repository.create(<DeepPartial<Order>>{
-          ...order,
-          ...req.body,
-        })
-      );
-    } catch (err) {
-      res.status(400).json(err);
-      return;
-    }
-
-    order = await repository.findOne({
+    // find order to return for order view page
+    order = await orderRepository.findOne({
       where: { id: req.params.id },
       relations: ['user', 'item'],
     });
 
+    // should not happen
     if (order === undefined) {
       res.status(404).json({
         message: 'Order not found.',
