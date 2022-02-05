@@ -19,8 +19,11 @@ export class InventoryController {
    */
   public static async getAllInventoryItems(req: Request, res: Response) {
     const { offset, limit } = req.query;
+    const repository = getRepository(InventoryItem);
 
-    getRepository(InventoryItem)
+    const total = await repository.count();
+
+    repository
       .find({
         order: {
           name: 'ASC',
@@ -29,7 +32,7 @@ export class InventoryController {
         take: limit ? +limit : 0,
       })
       .then((inventoryItems) => {
-        res.json(inventoryItems);
+        res.json({ total, data: inventoryItems });
       });
   }
 

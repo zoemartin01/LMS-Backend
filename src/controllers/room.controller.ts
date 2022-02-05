@@ -6,8 +6,8 @@ import { TimeSlotType } from '../types/enums/timeslot-type';
 import { AppointmentTimeslot } from '../models/appointment.timeslot.entity';
 import { AvailableTimeslot } from '../models/available.timeslot.entity';
 import { UnavailableTimeslot } from '../models/unavaliable.timeslot.entity';
-import { ConfirmationStatus } from "../types/enums/confirmation-status";
-import moment from "moment/moment";
+import { ConfirmationStatus } from '../types/enums/confirmation-status';
+import moment from 'moment/moment';
 
 /**
  * Controller for room management
@@ -27,8 +27,11 @@ export class RoomController {
    */
   public static async getAllRooms(req: Request, res: Response) {
     const { offset, limit } = req.query;
+    const repository = getRepository(Room);
 
-    const rooms = await getRepository(Room).find({
+    const total = await repository.count();
+
+    const rooms = await repository.find({
       relations: ['appointments', 'availableTimeSlots', 'unavailableTimeSlots'],
       order: {
         name: 'ASC',
@@ -36,7 +39,7 @@ export class RoomController {
       skip: offset ? +offset : 0,
       take: limit ? +limit : 0,
     });
-    res.json(rooms);
+    res.json({ total, data: rooms });
   }
 
   /**
@@ -70,15 +73,16 @@ export class RoomController {
    * @param {Response} res backend response with data about one room
    */
   public static async getRoomCalendar(req: Request, res: Response) {
-    const date: moment.Moment = req.query.date === undefined ? moment() : moment(+req.query.date*1000);
+    const date: moment.Moment =
+      req.query.date === undefined ? moment() : moment(+req.query.date * 1000);
 
-    const from: string = date.day(1).format("YYYY-MM-DD");
-    const to: string = date.day(1).add(7, 'days').format("YYYY-MM-DD");
+    const from: string = date.day(1).format('YYYY-MM-DD');
+    const to: string = date.day(1).add(7, 'days').format('YYYY-MM-DD');
 
     const room = await getRepository(Room).findOne(req.params.id);
 
     if (room === undefined) {
-      res.status(404).json({message: 'Room not found'});
+      res.status(404).json({ message: 'Room not found' });
       return;
     }
 
@@ -100,7 +104,7 @@ export class RoomController {
         },
       ],
       order: {
-        start: "ASC"
+        start: 'ASC',
       },
     });
     const availableTimeSlots = await timeSlotRepository.find({
@@ -135,18 +139,26 @@ export class RoomController {
     //find out min and max timeslots in available timespans
     let minTimeslot = 23;
     let maxTimeslot = 0;
-    let availableTimespan, unavailableTimeSlot, appointment, timespanStart, timespanEnd, start, hour, day, index;
+    let availableTimespan,
+      unavailableTimeSlot,
+      appointment,
+      timespanStart,
+      timespanEnd,
+      start,
+      hour,
+      day,
+      index;
     for (availableTimespan of availableTimeSlots) {
       if (availableTimespan.start == null || availableTimespan.end == null) {
         continue;
       }
 
-      timespanStart = +moment(availableTimespan.start).format("HH");
+      timespanStart = +moment(availableTimespan.start).format('HH');
       if (timespanStart < minTimeslot) {
         minTimeslot = timespanStart;
       }
 
-      timespanEnd = +moment(availableTimespan.end).format("HH");
+      timespanEnd = +moment(availableTimespan.end).format('HH');
       if (timespanEnd > maxTimeslot) {
         maxTimeslot = timespanEnd - 1;
       }
@@ -161,13 +173,13 @@ export class RoomController {
     }
 
     //initialise array (timeslot, days, parallel bookings)
-    const calendar: (object|string|null)[][][] = [...Array(maxTimeslot - minTimeslot + 1)]
-      .map(() => [...Array(7)]
-        .map(() => Array(room.maxConcurrentBookings)));
+    const calendar: (object | string | null)[][][] = [
+      ...Array(maxTimeslot - minTimeslot + 1),
+    ].map(() => [...Array(7)].map(() => Array(room.maxConcurrentBookings)));
 
     for (hour of Array.from(Array(maxTimeslot - minTimeslot + 1).keys())) {
       for (day of Array.from(Array(7).keys())) {
-        calendar[hour][day][0] = "unavailable";
+        calendar[hour][day][0] = 'unavailable';
       }
     }
 
@@ -178,24 +190,33 @@ export class RoomController {
       }
 
       for (
-        let i = +moment(availableTimespan.start).format("HH");
-        i < +moment(availableTimespan.end).format("HH");
-        i++) {
-        calendar[i-minTimeslot][(+moment(availableTimespan.start).format("e") + 6) % 7][0] = "available";
+        let i = +moment(availableTimespan.start).format('HH');
+        i < +moment(availableTimespan.end).format('HH');
+        i++
+      ) {
+        calendar[i - minTimeslot][
+          (+moment(availableTimespan.start).format('e') + 6) % 7
+        ][0] = 'available';
       }
     }
 
     //set unavailable timeslots
     for (unavailableTimeSlot of unavailableTimeSlots) {
-      if (unavailableTimeSlot.start == null || unavailableTimeSlot.end == null) {
+      if (
+        unavailableTimeSlot.start == null ||
+        unavailableTimeSlot.end == null
+      ) {
         continue;
       }
 
       for (
-        let i = +moment(unavailableTimeSlot.start).format("HH");
-        i < +moment(unavailableTimeSlot.end).format("HH");
-        i++) {
-        calendar[i-minTimeslot][(+moment(unavailableTimeSlot.start).format("e") + 6) % 7][0] = "unavailable";
+        let i = +moment(unavailableTimeSlot.start).format('HH');
+        i < +moment(unavailableTimeSlot.end).format('HH');
+        i++
+      ) {
+        calendar[i - minTimeslot][
+          (+moment(unavailableTimeSlot.start).format('e') + 6) % 7
+        ][0] = 'unavailable';
       }
     }
 
@@ -206,8 +227,8 @@ export class RoomController {
       }
 
       start = moment(appointment.start);
-      hour = +start.format("HH") - minTimeslot;
-      day = (+start.format("e") + 6) % 7;
+      hour = +start.format('HH') - minTimeslot;
+      day = (+start.format('e') + 6) % 7;
 
       for (index = 0; calendar[hour][day][index] === null; index++) {
         //
@@ -215,7 +236,11 @@ export class RoomController {
 
       calendar[hour][day][index] = appointment;
 
-      for (let i = hour + 1; i <= +moment(appointment.end).format("HH") - minTimeslot; i++) {
+      for (
+        let i = hour + 1;
+        i <= +moment(appointment.end).format('HH') - minTimeslot;
+        i++
+      ) {
         calendar[i][day][index] = null;
       }
     }
@@ -301,14 +326,16 @@ export class RoomController {
    */
   public static async deleteRoom(req: Request, res: Response) {
     const repository = getRepository(Room);
-    const room = await repository.findOne(req.params.id);
+    const room = await repository.findOne(req.params.id, {
+      relations: ['appointments', 'availableTimeSlots', 'unavailableTimeSlots'],
+    });
 
     if (room === undefined) {
       res.status(404).json({ message: 'Room not found' });
       return;
     }
 
-    await repository.delete(room.id).then(() => {
+    await repository.remove(room).then(() => {
       res.sendStatus(204);
     });
   }

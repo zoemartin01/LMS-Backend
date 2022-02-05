@@ -1,18 +1,20 @@
-version: "3.9" 
+version: "3.9"
 services:
   backend:
     build: .
     environment:
-      - DB_HOST="db"
-      - DB_PORT="5432"
+      - DB_HOST=db
+      - DB_PORT=5432
     ports:
       - "3000:3000"
+    depends_on:
+      - db
     networks:
       - frontend
       - backend
 
   db:
-    image: postgres
+    image: postgres:13.5-alpine
     ports:
       - "5432:5432"
     networks:
@@ -31,4 +33,4 @@ networks:
     driver: bridge
 
 volumes:
-  db_data: 
+  db_data:

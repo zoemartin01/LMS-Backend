@@ -1,8 +1,26 @@
 FROM node:lts-alpine as build
 
-COPY ./ /usr/local/backend
-WORKDIR /usr/local/backend
+RUN mkdir -p /app
+WORKDIR /app
+COPY package*.json /app/
 
+RUN npm install -g typescript
 RUN npm ci
+
+COPY . /app
+
+RUN tsc
+
+FROM node:lts-alpine
+
+RUN mkdir -p /app
+WORKDIR /app
+
+COPY package*.json /app/
+RUN npm ci --only=production
+
+COPY ormconfig.prod.js /app/ormconfig.js
+COPY --from=build /app/dist /app
+
 EXPOSE 3000
-ENTRYPOINT [ "npx", "ts-node", "src/server.ts" ]
+ENTRYPOINT [ "node", "server.js" ]

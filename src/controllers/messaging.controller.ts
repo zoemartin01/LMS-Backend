@@ -24,11 +24,14 @@ export class MessagingController {
    */
   public static async getMessages(req: Request, res: Response): Promise<void> {
     const { offset, limit } = req.query;
-
     const messageRepository = getRepository(Message);
 
+    const user = await AuthController.getCurrentUser(req);
+
+    const total = await messageRepository.count({ where: { recipient: user } });
+
     const messages = await messageRepository.find({
-      where: { recipient: AuthController.getCurrentUser(req) },
+      where: { recipient: user },
       order: {
         createdAt: 'DESC',
       },
@@ -36,7 +39,7 @@ export class MessagingController {
       take: limit ? +limit : 0,
     });
 
-    res.json(messages);
+    res.json({ total, data: messages });
   }
 
   /**
@@ -55,12 +58,14 @@ export class MessagingController {
     const unreadMessagesSum = await messageRepository
       .createQueryBuilder('message')
       .select('COUNT(*)', 'sum')
+      .where('message.readStatus = :b', { b: false })
       .getRawOne();
 
     const unreadMessages = await messageRepository
       .createQueryBuilder('message')
       .select('message.correspondingUrl')
       .addSelect('COUNT(*)', 'sum')
+      .where('message.readStatus = :b', { b: false })
       .groupBy('message.correspondingUrl')
       .getRawMany();
 
@@ -277,7 +282,7 @@ export class MessagingController {
     const userRepository = getRepository(User);
 
     const admins: User[] = await userRepository.find({
-      where: { type: UserRole.admin },
+      where: { role: UserRole.admin },
     });
 
     for (const recipient of admins) {
