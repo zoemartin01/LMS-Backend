@@ -401,24 +401,28 @@ export class AdminController {
   }
 
   /**
-   * Returns users
+   * Returns pending users
    *
-   * @route {GET} /users
-   * @param {Request} req frontend request to get data about all users
-   * @param {Response} res backend response with data about all user
+   * @route {GET} /users/pending
+   * @param {Request} req frontend request to get data about all pending users
+   * @param {Response} res backend response with data about all pending users
    */
-  public static async getUsers(req: Request, res: Response) {
+  public static async getPendingUsers(req: Request, res: Response) {
     const { offset, limit } = req.query;
 
     const total = await getRepository(User).count({
       where: {
         email: Not('SYSTEM'),
+        role: UserRole.pending,
+        emailVerification: true,
       },
     });
 
     const users: User[] = await getRepository(User).find({
       where: {
         email: Not('SYSTEM'),
+        role: UserRole.pending,
+        emailVerification: true,
       },
       order: {
         firstName: 'ASC',
@@ -428,7 +432,42 @@ export class AdminController {
       take: limit ? +limit : 0,
     });
 
-    res.json({ count: total, data: users });
+    res.json({ total, data: users });
+  }
+
+  /**
+   * Returns accepted users
+   *
+   * @route {GET} /users/accepted
+   * @param {Request} req frontend request to get data about all accepted users
+   * @param {Response} res backend response with data about all accepted users
+   */
+  public static async getAcceptedUsers(req: Request, res: Response) {
+    const { offset, limit } = req.query;
+
+    const total = await getRepository(User).count({
+      where: {
+        email: Not('SYSTEM'),
+        role: Not(UserRole.pending),
+        emailVerification: true,
+      },
+    });
+
+    const users: User[] = await getRepository(User).find({
+      where: {
+        email: Not('SYSTEM'),
+        role: Not(UserRole.pending),
+        emailVerification: true,
+      },
+      order: {
+        firstName: 'ASC',
+        lastName: 'ASC',
+      },
+      skip: offset ? +offset : 0,
+      take: limit ? +limit : 0,
+    });
+
+    res.json({ total, data: users });
   }
 
   /**

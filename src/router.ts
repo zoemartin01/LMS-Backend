@@ -51,10 +51,10 @@ class AppRouter {
       AuthController.checkAuthenticationMiddleware,
       MessagingController.getMessages
     );
-    this.router.get(
+    this.router.ws(
       environment.apiRoutes.messages.getCurrentUserUnreadMessagesAmounts,
-      AuthController.checkAuthenticationMiddleware,
-      MessagingController.getUnreadMessagesAmounts
+      AuthController.checkWebSocketAuthenticationMiddleware,
+      MessagingController.registerUnreadMessagesSocket
     );
     this.router.delete(
       addUUIDRegexToRoute(environment.apiRoutes.messages.deleteMessage),
@@ -188,10 +188,16 @@ class AppRouter {
     );
 
     this.router.get(
-      environment.apiRoutes.user_management.getAllUsers,
+      environment.apiRoutes.user_management.getAllPendingUsers,
       AuthController.checkAuthenticationMiddleware,
       AuthController.checkAdminMiddleware,
-      AdminController.getUsers
+      AdminController.getPendingUsers
+    );
+    this.router.get(
+      environment.apiRoutes.user_management.getAllAcceptedUsers,
+      AuthController.checkAuthenticationMiddleware,
+      AuthController.checkAdminMiddleware,
+      AdminController.getAcceptedUsers
     );
     this.router.get(
       addUUIDRegexToRoute(environment.apiRoutes.user_management.getSingleUser),

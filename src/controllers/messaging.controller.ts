@@ -7,6 +7,7 @@ import { User } from '../models/user.entity';
 import { UserRole } from '../types/enums/user-role';
 import { NotificationChannel } from '../types/enums/notification-channel';
 import environment from '../environment';
+import { WebSocket } from 'ws';
 
 /**
  * Controller for messaging
@@ -49,16 +50,19 @@ export class MessagingController {
    * @param {Request} req frontend request to get data of one inventory item
    * @param {Response} res backend response with data of one inventory item
    */
-  public static async getUnreadMessagesAmounts(
-    req: Request,
-    res: Response
-  ): Promise<void> {
+  private static async getUnreadMessagesAmounts(user: User): Promise<{
+    sum: number;
+    appointments: number;
+    orders: number;
+    users: number;
+  }> {
     const messageRepository = getRepository(Message);
 
     const unreadMessagesSum = await messageRepository
       .createQueryBuilder('message')
       .select('COUNT(*)', 'sum')
       .where('message.readStatus = :b', { b: false })
+      .andWhere('message.recipient = :user', { user: user.id })
       .getRawOne();
 
     const unreadMessages = await messageRepository
@@ -66,17 +70,49 @@ export class MessagingController {
       .select('message.correspondingUrl')
       .addSelect('COUNT(*)', 'sum')
       .where('message.readStatus = :b', { b: false })
+      .andWhere('message.recipient = :user', { user: user.id })
       .groupBy('message.correspondingUrl')
       .getRawMany();
 
     //@todo categorize unreadMessages
 
-    res.json({
-      sum: unreadMessagesSum.sum,
+    return {
+      sum: +unreadMessagesSum.sum,
       appointments: 0,
       orders: 0,
       users: 0,
-    });
+    };
+  }
+
+  /**
+   * { userId: WebSocket }
+   */
+  static messageSockets: { [key: string]: WebSocket[] } = {};
+
+  public static async registerUnreadMessagesSocket(
+    ws: WebSocket,
+    req: Request
+  ) {
+    const array = MessagingController.messageSockets[req.body.user.id];
+    if (array === undefined) {
+      MessagingController.messageSockets[req.body.user.id] = [];
+    }
+    MessagingController.messageSockets[req.body.user.id].push(ws);
+
+    ws.send(
+      JSON.stringify(
+        await MessagingController.getUnreadMessagesAmounts(req.body.user)
+      )
+    );
+
+    ws.onclose = () => {
+      const array = MessagingController.messageSockets[req.body.user.id];
+
+      const index = array.indexOf(ws, 0);
+      if (index > -1) {
+        array.splice(index, 1);
+      }
+    };
   }
 
   /**
@@ -107,6 +143,16 @@ export class MessagingController {
     await messageRepository.delete(message.id);
 
     res.sendStatus(204);
+
+    const ws = MessagingController.messageSockets[message.recipient.id];
+
+    ws.forEach(async (ws) => {
+      ws.send(
+        JSON.stringify(
+          await MessagingController.getUnreadMessagesAmounts(message.recipient)
+        )
+      );
+    });
   }
 
   /**
@@ -150,6 +196,16 @@ export class MessagingController {
     await messageRepository.update({ id: message.id }, req.body);
 
     res.json(message);
+
+    const ws = MessagingController.messageSockets[message.recipient.id];
+
+    ws.forEach(async (ws) => {
+      ws.send(
+        JSON.stringify(
+          await MessagingController.getUnreadMessagesAmounts(message.recipient)
+        )
+      );
+    });
   }
 
   /**
@@ -172,7 +228,7 @@ export class MessagingController {
       NotificationChannel.emailAndMessageBox ||
       NotificationChannel.messageBoxOnly
     ) {
-      this.sendMessageViaMessageBox(
+      MessagingController.sendMessageViaMessageBox(
         recipient,
         title,
         content,
@@ -185,8 +241,24 @@ export class MessagingController {
       NotificationChannel.emailAndMessageBox ||
       NotificationChannel.emailOnly
     ) {
-      this.sendMessageViaEmail(recipient, title, content, linkText, linkUrl);
+      MessagingController.sendMessageViaEmail(
+        recipient,
+        title,
+        content,
+        linkText,
+        linkUrl
+      );
     }
+
+    const ws = MessagingController.messageSockets[recipient.id];
+
+    ws.forEach(async (ws) => {
+      ws.send(
+        JSON.stringify(
+          await MessagingController.getUnreadMessagesAmounts(recipient)
+        )
+      );
+    });
   }
 
   /**
@@ -286,7 +358,13 @@ export class MessagingController {
     });
 
     for (const recipient of admins) {
-      await this.sendMessage(recipient, title, content, linkText, linkUrl);
+      await MessagingController.sendMessage(
+        recipient,
+        title,
+        content,
+        linkText,
+        linkUrl
+      );
     }
   }
 }
