@@ -432,7 +432,7 @@ export class AdminController {
       take: limit ? +limit : 0,
     });
 
-    res.json({ count: total, data: users });
+    res.json({ total, data: users });
   }
 
   /**
@@ -467,7 +467,7 @@ export class AdminController {
       take: limit ? +limit : 0,
     });
 
-    res.json({ count: total, data: users });
+    res.json({ total, data: users });
   }
 
   /**
