@@ -79,7 +79,8 @@ const environment = {
       checkDomainAgainstWhitelist: '/global-settings/whitelist-retailers/check',
     },
     user_management: {
-      getAllUsers: '/users',
+      getAllPendingUsers: '/users/pending',
+      getAllAcceptedUsers: '/users/accepted',
       getSingleUser: '/users/:id',
 
       updateUser: '/users/:id',
