@@ -5,7 +5,6 @@ import { AuthController } from './auth.controller';
 import { OrderStatus } from '../types/enums/order-status';
 import { User } from '../models/user.entity';
 import { InventoryItem } from '../models/inventory-item.entity';
-import environment from '../environment';
 import { MessagingController } from './messaging.controller';
 
 /**
@@ -173,14 +172,14 @@ export class OrderController {
       'Order Request Confirmation',
       'Your order request has been sent.',
       'Your Orders',
-      `${environment.frontendUrl}/user/orders`
+      '/orders'
     );
 
     await MessagingController.sendMessageToAllAdmins(
       'Accept Order Request',
       'You have an open order request.',
       'Order Requests',
-      `${environment.frontendUrl}/orders`
+      '/orders/all'
     );
   }
 
@@ -290,7 +289,7 @@ export class OrderController {
         'Updated Order',
         'Your order request of ' + itemName + ' has been updated by an admin',
         'Your Orders',
-        `${environment.frontendUrl}/user/orders`
+        '/orders'
       );
     } else {
       await MessagingController.sendMessage(
@@ -298,7 +297,7 @@ export class OrderController {
         'Updated Order Request Confirmation',
         'Your order request of ' + itemName + ' has been updated.',
         'Your Orders',
-        `${environment.frontendUrl}/user/orders`
+        '/orders'
       );
     }
     await MessagingController.sendMessageToAllAdmins(
@@ -310,7 +309,7 @@ export class OrderController {
         order.user.lastName +
         'has been updated',
       'Updated Order',
-      `${environment.frontendUrl}/orders`
+      '/orders/all'
     );
   }
 
