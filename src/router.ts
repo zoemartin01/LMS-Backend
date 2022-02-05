@@ -51,10 +51,10 @@ class AppRouter {
       AuthController.checkAuthenticationMiddleware,
       MessagingController.getMessages
     );
-    this.router.get(
+    this.router.ws(
       environment.apiRoutes.messages.getCurrentUserUnreadMessagesAmounts,
-      AuthController.checkAuthenticationMiddleware,
-      MessagingController.getUnreadMessagesAmounts
+      AuthController.checkWebSocketAuthenticationMiddleware,
+      MessagingController.registerUnreadMessagesSocket
     );
     this.router.delete(
       addUUIDRegexToRoute(environment.apiRoutes.messages.deleteMessage),
@@ -157,7 +157,6 @@ class AppRouter {
       AuthController.checkAdminMiddleware,
       AdminController.deleteWhitelistRetailer
     );
-
     this.router.post(
       addUUIDRegexToRoute(
         environment.apiRoutes.admin_settings.addDomainToWhitelistRetailer
@@ -235,6 +234,11 @@ class AppRouter {
       AuthController.checkAuthenticationMiddleware,
       AuthController.checkAdminMiddleware,
       RoomController.createRoom
+    );
+    this.router.get(
+      addUUIDRegexToRoute(environment.apiRoutes.rooms.getRoomCalendar),
+      AuthController.checkAuthenticationMiddleware,
+      RoomController.getRoomCalendar
     );
     this.router.patch(
       addUUIDRegexToRoute(environment.apiRoutes.rooms.updateRoom),
