@@ -210,7 +210,7 @@ export class UserController {
           'Verify Email to confirm account',
           `You need to click on this link to confirm your account or go to ${environment.frontendUrl}/register/verify-email and enter user-ID: ${user.id} and token: ${token.token}.`,
           'Verify Email',
-          `${environment.frontendUrl}/register/verify-email/${user.id}/${token.token}`
+          `/register/verify-email/${user.id}/${token.token}`
         );
 
         res.status(201).json(user);
@@ -270,7 +270,7 @@ export class UserController {
       'Accept User Registration',
       'You have an open user registration request.',
       'Accept User',
-      `${environment.frontendUrl}/users`
+      '/users'
     );
 
     await tokenRepository.delete(tokenObject.id);
