@@ -194,7 +194,7 @@ export class AppointmentController {
       .where('"roomId" = :id', { id: room.id });
 
     if (user.role !== UserRole.admin) {
-      query.andWhere('appointment."userId" = :id', { id: user.id });
+      query.andWhere('appointment."userId" = :userId', { userId: user.id });
     }
 
     const appointments = await query.getRawMany();
@@ -254,7 +254,7 @@ export class AppointmentController {
       .where('appointment."seriesId" = :id', { id: req.params.id });
 
     if (user.role !== UserRole.admin) {
-      query.andWhere('appointment."userId" = :id', { id: user.id });
+      query.andWhere('appointment."userId" = :userId', { userId: user.id });
     }
 
     const appointments = await query.getRawMany();

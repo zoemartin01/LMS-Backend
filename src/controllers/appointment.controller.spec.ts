@@ -1,4 +1,4 @@
-import { Connection } from 'typeorm';
+import { Connection, getRepository } from 'typeorm';
 import {
   factory,
   runSeeder,
@@ -9,17 +9,21 @@ import App from '../app';
 import chai, { expect } from 'chai';
 import chaiHttp from 'chai-http';
 import environment from '../environment';
-import { v4 as uuidv4 } from 'uuid';
+import { v4 as uuidv4, v4 } from 'uuid';
 import CreateTestUsers from '../database/seeds/create-test-users.seed';
+import { createTimeslots } from '../database/seeds/create-rooms.seed';
 import { Helpers } from '../test.spec';
 import { User } from '../models/user.entity';
 import { AppointmentTimeslot } from '../models/appointment.timeslot.entity';
 import { Room } from '../models/room.entity';
+import moment from 'moment';
+import { TimeSlotRecurrence } from '../types/enums/timeslot-recurrence';
+import { AvailableTimeslot } from '../models/available.timeslot.entity';
 
 chai.use(chaiHttp);
 chai.should();
 
-describe('RoomController', () => {
+describe('AppointmentController', () => {
   const app: App = new App(3000);
   let connection: Connection;
   let adminHeader: string;
@@ -36,7 +40,9 @@ describe('RoomController', () => {
     connection = await useRefreshDatabase({ connection: 'default' });
     await useSeeding();
 
+    // await runSeeder(CreateRooms);
     await runSeeder(CreateTestUsers);
+    createTimeslots(room);
 
     // Authentifivation
     adminHeader = await Helpers.getAuthHeader();
@@ -44,7 +50,12 @@ describe('RoomController', () => {
 
     visitorHeader = await Helpers.getAuthHeader(false);
     visitor = await Helpers.getCurrentUser(visitorHeader);
-    room = await factory(Room)().create();
+    room = await getRepository(Room).findOne();
+
+    await createTimeslots(room, 10);
+    room = await getRepository(Room).findOne(room.id, {
+      relations: ['availableTimeSlots', 'unavailableTimeSlots'],
+    });
   });
 
   afterEach(async () => {
@@ -64,18 +75,18 @@ describe('RoomController', () => {
         });
     });
 
-    it('should get initial 20 appointments (seeder)', (done) => {
-      // Seeding doesn't create any appointments
-      chai
+    it('should get all appointments', async () => {
+      const expected = await getRepository(AppointmentTimeslot).count();
+
+      const res = await chai
         .request(app.app)
         .get(uri)
-        .set('Authorization', adminHeader)
-        .end((err, res) => {
-          expect(res.status).to.equal(200);
-          expect(res.body.data).to.be.an('array');
-          expect(res.body.data.length).to.be.equal(20);
-          done();
-        });
+        .set('Authorization', adminHeader);
+
+      expect(res.status).to.equal(200);
+      expect(res.body.total).to.equal(expected);
+      expect(res.body.data).to.be.an('array');
+      expect(res.body.data.length).to.be.equal(expected);
     });
 
     //ALL appointments not visible for visitors
@@ -91,6 +102,8 @@ describe('RoomController', () => {
     });
 
     it('should get 3 more appointments', async () => {
+      const expected = await getRepository(AppointmentTimeslot).count();
+
       const appointments = await factory(AppointmentTimeslot)({
         room,
         user: admin,
@@ -103,7 +116,7 @@ describe('RoomController', () => {
 
       expect(res.status).to.equal(200);
       expect(res.body.data).to.be.an('array');
-      expect(res.body.data.length).to.be.equal(23);
+      expect(res.body.data.length).to.be.equal(expected + 3);
     });
   });
 
@@ -201,7 +214,7 @@ describe('RoomController', () => {
   });
 
   describe('GET /appointments/series/:id', () => {
-    const uri = `${environment.apiRoutes.base}${environment.apiRoutes.appointments.getRoomAppointments}`;
+    const uri = `${environment.apiRoutes.base}${environment.apiRoutes.appointments.getSeriesAppointments}`;
 
     it('should fail without authentification', (done) => {
       chai
@@ -225,19 +238,29 @@ describe('RoomController', () => {
     });
 
     it('should get appointments of series', async () => {
-      const seriesId = uuidv4();
-      const appointments = await factory(AppointmentTimeslot)({
+      const id = uuidv4();
+      const appointment = await factory(AppointmentTimeslot)({
         room,
         user: visitor,
-        seriesId,
-      }).createMany(3);
+      }).make();
+      const appointments = await getRepository(AppointmentTimeslot).save(
+        createSeries(appointment, id)
+      );
+
+      console.log(
+        await getRepository(AppointmentTimeslot).find({
+          where: {
+            seriesId: id,
+          },
+        })
+      );
 
       const res = await chai
         .request(app.app)
-        .get(uri.replace(':id', room.id))
+        .get(uri.replace(':id', id))
         .set('Authorization', visitorHeader);
       expect(res.status).to.equal(200);
-      expect(res.body.data.length).to.be.equal(3);
+      expect(res.body.data.length).to.be.equal(appointments.length);
     });
   });
 
@@ -254,33 +277,45 @@ describe('RoomController', () => {
         });
     });
 
-    it('should get initial 10 appointments (seeder)', (done) => {
-      // Seeding doesn't create any appointments
-      chai
-        .request(app.app)
-        .get(uri)
-        .set('Authorization', adminHeader)
-        .end((err, res) => {
-          expect(res.status).to.equal(200);
-          expect(res.body.data).to.be.an('array');
-          expect(res.body.data.length).to.be.equal(10);
-          done();
-        });
-    });
-
-    it('should get 13 appointments', async () => {
-      const appointments = await factory(AppointmentTimeslot)({
-        room,
-        user: visitor,
-      }).createMany(3);
+    it('should get all appointments for current user', async () => {
+      const expected = await getRepository(AppointmentTimeslot).count({
+        where: {
+          user: admin,
+        },
+      });
 
       const res = await chai
         .request(app.app)
         .get(uri)
-        .set('Authorization', visitorHeader);
+        .set('Authorization', adminHeader);
 
       expect(res.status).to.equal(200);
-      expect(res.body.data.length).to.be.equal(13);
+      expect(res.body.data).to.be.an('array');
+      expect(res.body.data.length).to.be.equal(expected);
     });
   });
 });
+
+function createSeries(appointment: AppointmentTimeslot, id: string) {
+  const appointments = [];
+  const repo = getRepository(AppointmentTimeslot);
+  const amount = 3;
+
+  const start = moment(appointment.start);
+  const end = moment(appointment.end);
+
+  for (let i = 0; i < amount; i++) {
+    appointments.push(
+      repo.create({
+        ...appointment,
+        seriesId: id,
+        start: start.add(1, 'week').toISOString(),
+        end: end.add(1, 'week').toISOString(),
+        amount: amount,
+        timeSlotRecurrence: TimeSlotRecurrence.weekly,
+      })
+    );
+  }
+
+  return appointments;
+}
