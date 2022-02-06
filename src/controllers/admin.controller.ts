@@ -388,17 +388,15 @@ export class AdminController {
    * @param {Request} req frontend request to check a domain against whitelist
    * @param {Response} res backend response to check a domain against whitelist
    */
-  public static async checkDomainAgainstWhitelist(
-    req: Request,
-    res: Response
-  ): Promise<boolean> {
+  public static async checkDomainAgainstWhitelist(req: Request, res: Response) {
     const domainRepository = getRepository(RetailerDomain);
 
-    return (
-      (await domainRepository.findOne({
-        where: { domain: req.params.domain },
-      })) === undefined
-    );
+    res.json({
+      isWhitelisted:
+        (await domainRepository.findOne({
+          where: { domain: req.params.domain },
+        })) !== undefined,
+    });
   }
 
   /**
