@@ -1,5 +1,11 @@
 import { Request, Response } from 'express';
-import { Between, DeepPartial, getRepository, LessThanOrEqual } from 'typeorm';
+import {
+  Between,
+  DeepPartial,
+  getRepository,
+  LessThanOrEqual,
+  MoreThanOrEqual,
+} from 'typeorm';
 import { AppointmentTimeslot } from '../models/appointment.timeslot.entity';
 import { AuthController } from './auth.controller';
 import { validateOrReject } from 'class-validator';
@@ -318,11 +324,9 @@ export class AppointmentController {
     }
 
     if (req.body.amount !== undefined && req.body.amount > 1) {
-      res
-        .status(400)
-        .json({
-          message: 'Single appointment amount cannot be greater than 1',
-        });
+      res.status(400).json({
+        message: 'Single appointment amount cannot be greater than 1',
+      });
       return;
     }
 
@@ -362,7 +366,7 @@ export class AppointmentController {
         where: {
           room,
           start: LessThanOrEqual(appointment.start),
-          end: GreaterThanOrEqual(appointment.end),
+          end: MoreThanOrEqual(appointment.end),
         },
       })) === undefined;
 
@@ -562,7 +566,7 @@ export class AppointmentController {
           where: {
             room,
             start: LessThanOrEqual(appointment.start),
-            end: GreaterThanOrEqual(appointment.end),
+            end: MoreThanOrEqual(appointment.end),
           },
         })) === undefined;
 
@@ -1003,9 +1007,4 @@ export class AppointmentController {
       );
     }
   }
-}
-function GreaterThanOrEqual(
-  end: Date
-): any | import('typeorm').FindCondition<Date> | undefined {
-  throw new Error('Function not implemented.');
 }
