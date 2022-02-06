@@ -46,6 +46,7 @@ export class AppointmentController {
             .subQuery()
             .select('"seriesId", MAX(start) as "maxStart"')
             .from(AppointmentTimeslot, 'a')
+            .where('"isDirty = 0"')
             .groupBy('"seriesId"'),
         'last',
         'appointment."seriesId" = last."seriesId"'
@@ -113,6 +114,7 @@ export class AppointmentController {
             .subQuery()
             .select('"seriesId", MAX(start) as "maxStart"')
             .from(AppointmentTimeslot, 'a')
+            .where('"isDirty = 0"')
             .groupBy('"seriesId"'),
         'last',
         'appointment."seriesId" = last."seriesId"'
@@ -167,6 +169,7 @@ export class AppointmentController {
             .subQuery()
             .select('"seriesId", MAX(start) as "maxStart"')
             .from(AppointmentTimeslot, 'a')
+            .where('"isDirty = 0"')
             .groupBy('"seriesId"'),
         'last',
         'appointment."seriesId" = last."seriesId"'
@@ -215,6 +218,7 @@ export class AppointmentController {
             .subQuery()
             .select('"seriesId", MAX(start) as "maxStart"')
             .from(AppointmentTimeslot, 'a')
+            .where('"isDirty = 0"')
             .groupBy('"seriesId"'),
         'last',
         'appointment."seriesId" = last."seriesId"'

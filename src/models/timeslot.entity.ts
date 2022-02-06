@@ -55,7 +55,6 @@ export class TimeSlot extends BaseEntity {
   /**
    * The id of the series the time slot belongs to.
    * @type {string}
-   * @readonly
    */
   @Column()
   seriesId: string;
@@ -63,7 +62,6 @@ export class TimeSlot extends BaseEntity {
   /**
    * The amount of the appointments of the series.
    * @type {number}
-   * @readonly
    */
   @Column({ default: 1 })
   amount: number;
@@ -80,4 +78,12 @@ export class TimeSlot extends BaseEntity {
     default: TimeSlotRecurrence.single,
   })
   timeSlotRecurrence: TimeSlotRecurrence;
+
+  /**
+   * True if this appointment was changed and is not in the series anymore.
+   * @type {boolean}
+   * @default false
+   */
+  @Column({ default: false })
+  isDirty: boolean;
 }
