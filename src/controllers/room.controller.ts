@@ -242,11 +242,11 @@ export class RoomController {
           calendar[i][day][index] = null;
         }
       }
-    }catch (e) {
-      console.log(e);
+    } catch (e) {
       res.status(500).json({
-        message: 'Room has appointments outside of available timeslots.'
+        message: 'Room has appointments outside of available timeslots.',
       });
+      return;
     }
 
     res.json({ calendar, minTimeslot });

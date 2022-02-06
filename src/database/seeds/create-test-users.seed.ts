@@ -83,7 +83,10 @@ export default class CreateTestUsers implements Seeder {
       }
     }
 
-    console.log('test');
+    // await CreateTestUsers.createAppointments(
+    //   admin,
+    //   faker.random.arrayElement(rooms)
+    // );
 
     await Promise.all(
       rooms.map((room) => CreateTestUsers.createAppointments(admin, room))
@@ -130,38 +133,42 @@ export default class CreateTestUsers implements Seeder {
       },
     });
 
-    if (series) {
-      console.log(
-        await Promise.all(
-          availableTimeSlots.map(async (timeslot) => {
-            console.log(
-              availableTimeSlots[availableTimeSlots.indexOf(timeslot)]
-            );
-            const slot = await factory(AppointmentTimeslot)({
-              room,
-              user: user,
-              availableTimeSlot: timeslot,
-              seriesId: v4(),
-            }).make();
+    try {
+      if (series) {
+        console.log(
+          await Promise.all(
+            availableTimeSlots.map(async (timeslot) => {
+              console.log(
+                availableTimeSlots[availableTimeSlots.indexOf(timeslot)]
+              );
+              const slot = await factory(AppointmentTimeslot)({
+                room,
+                user: user,
+                availableTimeSlot: timeslot,
+                seriesId: v4(),
+              }).make();
 
-            return getRepository(AppointmentTimeslot).save(
-              CreateTestUsers.createSeries(slot)
-            );
-          })
-        )
-      );
-    } else {
-      console.log(
-        await Promise.all(
-          availableTimeSlots.map(async (timeslot) => {
-            return factory(AppointmentTimeslot)({
-              room,
-              user: user,
-              availableTimeSlot: timeslot,
-            }).create();
-          })
-        )
-      );
+              return getRepository(AppointmentTimeslot).save(
+                CreateTestUsers.createSeries(slot)
+              );
+            })
+          )
+        );
+      } else {
+        console.log(
+          await Promise.all(
+            availableTimeSlots.map(async (timeslot) => {
+              return factory(AppointmentTimeslot)({
+                room,
+                user: user,
+                availableTimeSlot: timeslot,
+              }).create();
+            })
+          )
+        );
+      }
+    } catch (error) {
+      // ignore
     }
   }
 }

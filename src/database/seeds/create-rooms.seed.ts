@@ -40,15 +40,15 @@ export default class CreateRooms implements Seeder {
               })
             );
 
-            timeslots.push(
-              getRepository(AvailableTimeslot).create({
-                start: uStart.add(1, 'weeks').toISOString(),
-                end: uEnd.add(1, 'weeks').toISOString(),
-                room,
-                amount: 52,
-                timeSlotRecurrence: TimeSlotRecurrence.weekly,
-              })
-            );
+            // timeslots.push(
+            //   getRepository(AvailableTimeslot).create({
+            //     start: uStart.add(1, 'weeks').toISOString(),
+            //     end: uEnd.add(1, 'weeks').toISOString(),
+            //     room,
+            //     amount: 52,
+            //     timeSlotRecurrence: TimeSlotRecurrence.weekly,
+            //   })
+            // );
           }
         }
 
