@@ -7,9 +7,6 @@ import { pipeline } from 'stream';
 import axios, { AxiosResponse } from 'axios';
 import { AuthController } from './auth.controller';
 import { WebSocket } from 'ws';
-import jsonwebtoken from 'jsonwebtoken';
-import { Token } from '../models/token.entity';
-import { TokenType } from '../types/enums/token-type';
 import { GlobalSetting } from '../models/global_settings.entity';
 
 /**
