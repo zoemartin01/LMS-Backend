@@ -317,6 +317,25 @@ export class AppointmentController {
       return;
     }
 
+    if (req.body.amount !== undefined && req.body.amount > 1) {
+      res
+        .status(400)
+        .json({
+          message: 'Single appointment amount cannot be greater than 1',
+        });
+      return;
+    }
+
+    if (
+      req.body.timeSlotRecurrence !== undefined &&
+      req.body.timeSlotRecurrence !== TimeSlotRecurrence.single
+    ) {
+      res
+        .status(400)
+        .json({ message: 'Single appointment recurrence cannot be set' });
+      return;
+    }
+
     let appointment;
 
     try {
@@ -462,6 +481,18 @@ export class AppointmentController {
 
     if (user === null) {
       res.status(401).json({ message: 'Not logged in' });
+      return;
+    }
+
+    if (timeSlotRecurrence === TimeSlotRecurrence.single) {
+      res.status(400).json({ message: 'Series can only be recurring' });
+      return;
+    }
+
+    if (amount <= 1) {
+      res
+        .status(400)
+        .json({ message: 'Series needs to have at least 2 appointments' });
       return;
     }
 
