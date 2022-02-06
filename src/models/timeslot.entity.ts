@@ -1,7 +1,7 @@
 import { Column, Entity, TableInheritance } from 'typeorm';
 import { BaseEntity } from './base.entity';
 import { TimeSlotType } from '../types/enums/timeslot-type';
-import { TimeSlotRecurrence } from "../types/enums/timeslot-recurrence";
+import { TimeSlotRecurrence } from '../types/enums/timeslot-recurrence';
 
 /**
  * A model for a time slot.
@@ -57,7 +57,7 @@ export class TimeSlot extends BaseEntity {
    * @type {string}
    * @readonly
    */
-  @Column()
+  @Column({ nullable: true })
   seriesId: string;
 
   /**
