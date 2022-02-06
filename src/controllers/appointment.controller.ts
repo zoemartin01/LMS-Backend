@@ -294,8 +294,6 @@ export class AppointmentController {
    * @bodyParam {ConfirmationStatus} confirmationStatus - status of request
    * @bodyParam {Date} start - start date and time of the appointment
    * @bodyParam {Date} end - end date and time of the appointment
-   * @bodyParam {TimeSlotRecurrence} timeSlotRecurrence - recurrence of appointment
-   * @bodyParam {number} amount - amount of appointments
    * @param {Request} req frontend request to create a new appointment
    * @param {Response} res backend response creation of a new appointment
    */
