@@ -218,28 +218,35 @@ export class RoomController {
     }
 
     //add appointments
-    for (appointment of appointments) {
-      if (appointment.start == null || appointment.end == null) {
-        continue;
+    try {
+      for (appointment of appointments) {
+        if (appointment.start == null || appointment.end == null) {
+          continue;
+        }
+
+        start = moment(appointment.start);
+        hour = +start.format('HH') - minTimeslot;
+        day = (+start.format('e') + 6) % 7;
+
+        for (index = 0; calendar[hour][day][index] === null; index++) {
+          //
+        }
+
+        calendar[hour][day][index] = appointment;
+
+        for (
+          let i = hour + 1;
+          i <= +moment(appointment.end).format('HH') - minTimeslot - 1;
+          i++
+        ) {
+          calendar[i][day][index] = null;
+        }
       }
-
-      start = moment(appointment.start);
-      hour = +start.format('HH') - minTimeslot;
-      day = (+start.format('e') + 6) % 7;
-
-      for (index = 0; calendar[hour][day][index] === null; index++) {
-        //
-      }
-
-      calendar[hour][day][index] = appointment;
-
-      for (
-        let i = hour + 1;
-        i <= +moment(appointment.end).format('HH') - minTimeslot;
-        i++
-      ) {
-        calendar[i][day][index] = null;
-      }
+    }catch (e) {
+      console.log(e);
+      res.status(500).json({
+        message: 'Room has appointments outside of available timeslots.'
+      });
     }
 
     res.json({ calendar, minTimeslot });
