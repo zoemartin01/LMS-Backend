@@ -5,6 +5,7 @@ import { Retailer } from '../models/retailer.entity';
 import { RetailerDomain } from '../models/retailer.domain.entity';
 import { User } from '../models/user.entity';
 import { UserRole } from '../types/enums/user-role';
+import { MessagingController } from './messaging.controller';
 
 /**
  * Controller for Admin Management
@@ -393,7 +394,7 @@ export class AdminController {
     res.json({
       isWhitelisted:
         (await domainRepository.findOne({
-          where: { domain: req.params.domain },
+          where: { domain: req.body.domain },
         })) !== undefined,
     });
   }
@@ -500,7 +501,7 @@ export class AdminController {
    * @bodyParam {string [Optional]} lastname - a new lastname
    * @bodyParam {string [Optional]} email - a new email address
    * @bodyParam {string [Optional]} password - a new password
-   * @bodyParam {UserRole [Optional]} userRole - a new user role
+   * @bodyParam {UserRole [Optional]} role - a new user role
    * @bodyParam {boolean [Optional]} emailVerification - a new email verification status
    * @param {Request} req frontend request to change data about one user
    * @param {Response} res backend response with data change of one user
@@ -525,8 +526,8 @@ export class AdminController {
       });
       if (
         userCount === 1 &&
-        (+req.params.role === UserRole.pending ||
-          +req.params.role === UserRole.visitor)
+        (+req.body.role === UserRole.pending ||
+          +req.body.role === UserRole.visitor)
       ) {
         res.status(403).json({
           message: 'Not allowed to degrade last admin',
@@ -534,6 +535,13 @@ export class AdminController {
         return;
       }
     }
+
+    await MessagingController.sendMessage(
+      user,
+      'Account updated',
+      'Your account has been updated by an admin.' + req.body
+    );
+
     try {
       await userRepository.update(
         { id: user.id },
@@ -584,11 +592,11 @@ export class AdminController {
       }
     }
 
-    /*    await MessagingController.sendMessage(
-       user,
-       'Account deletion',
-       'Your account has been deleted by an admin. Bye!'
-    );*/
+    await MessagingController.sendMessageViaEmail(
+      user,
+      'Account deletion',
+      'Your account has been deleted by an admin. Bye!'
+    );
     try {
       await userRepository.update(
         { id: user.id },
