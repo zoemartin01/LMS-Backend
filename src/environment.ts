@@ -121,6 +121,9 @@ const environment = {
       getCurrentUserOrders: '/user/orders',
 
       getAllOrders: '/orders',
+      getAllPendingOrders: '/orders/pending',
+      getAllAcceptedOrders: '/orders/accepted',
+      getAllDeclinedOrders: '/orders/declined',
       getSingleOrder: '/orders/:id',
 
       createOrder: '/orders',

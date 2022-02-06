@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { DeepPartial, getRepository } from 'typeorm';
+import { DeepPartial, getRepository, Not } from 'typeorm';
 import { Order } from '../models/order.entity';
 import { AuthController } from './auth.controller';
 import { OrderStatus } from '../types/enums/order-status';
@@ -32,6 +32,98 @@ export class OrderController {
 
     repository
       .find({
+        relations: ['user', 'item'],
+        order: { updatedAt: 'DESC' },
+        skip: offset ? +offset : 0,
+        take: limit ? +limit : 0,
+      })
+      .then((orders) => {
+        res.json({ total, data: orders });
+      });
+  }
+
+  /**
+   * Returns the data of all pending orders
+   *
+   * @route {GET} /orders/pending
+   * @param {Request} req frontend request to get data of all pending orders
+   * @param {Response} res backend response with data of all pending orders
+   */
+  public static async getAllPendingOrders(req: Request, res: Response) {
+    const { offset, limit } = req.query;
+    const repository = getRepository(Order);
+
+    const total = await repository.count({
+      where: {
+        status: OrderStatus.pending,
+      },
+    });
+
+    repository
+      .find({
+        where: { status: OrderStatus.pending },
+        relations: ['user', 'item'],
+        order: { updatedAt: 'DESC' },
+        skip: offset ? +offset : 0,
+        take: limit ? +limit : 0,
+      })
+      .then((orders) => {
+        res.json({ total, data: orders });
+      });
+  }
+  /**
+   * Returns the data of all accepted orders
+   *
+   * @route {GET} /orders/accepted
+   * @param {Request} req frontend request to get data of all accepted orders
+   * @param {Response} res backend response with data of all accepted orders
+   */
+  public static async getAllAcceptedOrders(req: Request, res: Response) {
+    const { offset, limit } = req.query;
+    const repository = getRepository(Order);
+
+    const total = await repository.count({
+      where: {
+        status: Not(OrderStatus.pending) && Not(OrderStatus.declined),
+      },
+    });
+
+    repository
+      .find({
+        where: [
+          { status: Not(OrderStatus.pending) },
+          { status: Not(OrderStatus.declined) },
+        ],
+        relations: ['user', 'item'],
+        order: { updatedAt: 'DESC' },
+        skip: offset ? +offset : 0,
+        take: limit ? +limit : 0,
+      })
+      .then((orders) => {
+        res.json({ total, data: orders });
+      });
+  }
+
+  /**
+   * Returns the data of all declined orders
+   *
+   * @route {GET} /orders/declined
+   * @param {Request} req frontend request to get data of all declined orders
+   * @param {Response} res backend response with data of all declined orders
+   */
+  public static async getAllDeclinedOrders(req: Request, res: Response) {
+    const { offset, limit } = req.query;
+    const repository = getRepository(Order);
+
+    const total = await repository.count({
+      where: {
+        status: OrderStatus.declined,
+      },
+    });
+
+    repository
+      .find({
+        where: { status: OrderStatus.declined },
         relations: ['user', 'item'],
         order: { updatedAt: 'DESC' },
         skip: offset ? +offset : 0,

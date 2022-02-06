@@ -374,6 +374,24 @@ class AppRouter {
       OrderController.getAllOrders
     );
     this.router.get(
+      environment.apiRoutes.orders.getAllPendingOrders,
+      AuthController.checkAuthenticationMiddleware,
+      AuthController.checkAdminMiddleware,
+      OrderController.getAllPendingOrders
+    );
+    this.router.get(
+      environment.apiRoutes.orders.getAllAcceptedOrders,
+      AuthController.checkAuthenticationMiddleware,
+      AuthController.checkAdminMiddleware,
+      OrderController.getAllAcceptedOrders
+    );
+    this.router.get(
+      environment.apiRoutes.orders.getAllDeclinedOrders,
+      AuthController.checkAuthenticationMiddleware,
+      AuthController.checkAdminMiddleware,
+      OrderController.getAllDeclinedOrders
+    );
+    this.router.get(
       environment.apiRoutes.orders.getCurrentUserOrders,
       AuthController.checkAuthenticationMiddleware,
       OrderController.getOrdersForCurrentUser
