@@ -20,6 +20,9 @@ export class UnavailableTimeslot extends TimeSlot {
    * @type {Room}
    * @readonly
    */
-  @ManyToOne(() => Room, (room) => room.unavailableTimeSlots)
+  @ManyToOne(() => Room, (room) => room.unavailableTimeSlots, {
+    eager: true,
+    onDelete: 'CASCADE',
+  })
   readonly room: Room;
 }
