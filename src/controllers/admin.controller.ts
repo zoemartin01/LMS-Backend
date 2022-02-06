@@ -5,6 +5,7 @@ import { Retailer } from '../models/retailer.entity';
 import { RetailerDomain } from '../models/retailer.domain.entity';
 import { User } from '../models/user.entity';
 import { UserRole } from '../types/enums/user-role';
+import { MessagingController } from './messaging.controller';
 
 /**
  * Controller for Admin Management
@@ -519,14 +520,15 @@ export class AdminController {
       return;
     }
 
+    //checking for user is last admin
     if (user.role === UserRole.admin) {
       const userCount = await userRepository.count({
         where: { role: UserRole.admin },
       });
       if (
         userCount === 1 &&
-        (+req.params.role === UserRole.pending ||
-          +req.params.role === UserRole.visitor)
+        (+req.body.role === UserRole.pending ||
+          +req.body.role === UserRole.visitor)
       ) {
         res.status(403).json({
           message: 'Not allowed to degrade last admin',
@@ -534,6 +536,18 @@ export class AdminController {
         return;
       }
     }
+
+    //checking for pending user is accepted
+    if (user.role === UserRole.pending) {
+      if (+req.body.role === UserRole.visitor) {
+        await MessagingController.sendMessageViaEmail(
+          user,
+          'Account request accepted',
+          'Your account request has been accepted. You can now login.'
+        );
+      }
+    }
+
     try {
       await userRepository.update(
         { id: user.id },
