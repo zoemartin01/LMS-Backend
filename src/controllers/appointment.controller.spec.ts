@@ -247,14 +247,6 @@ describe('AppointmentController', () => {
         createSeries(appointment, id)
       );
 
-      console.log(
-        await getRepository(AppointmentTimeslot).find({
-          where: {
-            seriesId: id,
-          },
-        })
-      );
-
       const res = await chai
         .request(app.app)
         .get(uri.replace(':id', id))
