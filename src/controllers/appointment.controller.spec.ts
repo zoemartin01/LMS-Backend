@@ -9,7 +9,7 @@ import App from '../app';
 import chai, { expect } from 'chai';
 import chaiHttp from 'chai-http';
 import environment from '../environment';
-import { v4 as uuidv4, v4 } from 'uuid';
+import { v4 as uuidv4 } from 'uuid';
 import CreateTestUsers from '../database/seeds/create-test-users.seed';
 import { createTimeslots } from '../database/seeds/create-rooms.seed';
 import { Helpers } from '../test.spec';
@@ -18,7 +18,6 @@ import { AppointmentTimeslot } from '../models/appointment.timeslot.entity';
 import { Room } from '../models/room.entity';
 import moment from 'moment';
 import { TimeSlotRecurrence } from '../types/enums/timeslot-recurrence';
-import { AvailableTimeslot } from '../models/available.timeslot.entity';
 
 chai.use(chaiHttp);
 chai.should();
