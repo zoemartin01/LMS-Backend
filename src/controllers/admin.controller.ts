@@ -278,8 +278,8 @@ export class AdminController {
   /**
    * Changes one domain of whitelist retailer
    *
-   * @route {PATCH} /global-settings/whitelist-retailers/:retailerId/domains/:domainId
-   * @routeParam {string} retailerId - a retailer id
+   * @route {PATCH} /global-settings/whitelist-retailers/:id/domains/:domainId
+   * @routeParam {string} id - a retailer id
    * @routeParam {string} domainId - a domain id
    * @bodyParam {string} domain - the new value of the domain of the retailer
    * @param {Request} req frontend request to change one domain of a whitelist retailer
@@ -290,7 +290,7 @@ export class AdminController {
     res: Response
   ) {
     const retailer = await getRepository(Retailer).findOne({
-      where: { id: req.params.retailerId },
+      where: { id: req.params.id },
     });
 
     if (retailer === undefined) {
@@ -337,8 +337,8 @@ export class AdminController {
   /**
    * Deletes one domain of a whitelist retailer
    *
-   * @route {DELETE} /global-settings/whitelist-retailers/:retailerId/domains/:domainId
-   * @routeParam {string} retailerId - a retailer id
+   * @route {DELETE} /global-settings/whitelist-retailers/:id/domains/:domainId
+   * @routeParam {string} id - a retailer id
    * @routeParam {string} domainId - a domain id
    * @param {Request} req frontend request to delete one domain of a whitelist retailer
    * @param {Response} res backend response deletion
@@ -348,7 +348,8 @@ export class AdminController {
     res: Response
   ) {
     const retailer = await getRepository(Retailer).findOne({
-      where: { id: req.params.retailerId },
+      where: { id: req.params.id },
+      relations: ['domains'],
     });
 
     if (retailer === undefined) {
