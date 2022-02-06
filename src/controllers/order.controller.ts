@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { DeepPartial, getRepository, Not } from 'typeorm';
+import { DeepPartial, getRepository } from 'typeorm';
 import { Order } from '../models/order.entity';
 import { AuthController } from './auth.controller';
 import { OrderStatus } from '../types/enums/order-status';
