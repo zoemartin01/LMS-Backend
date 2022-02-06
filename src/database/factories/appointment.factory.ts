@@ -39,16 +39,27 @@ define(
     );
 
     const span = moment.duration(minEnd.diff(availableTimeSlot.start));
+    console.log(span.hours());
 
     const start = moment(
       faker.date.between(
         availableTimeSlot.start,
         moment(availableTimeSlot.end)
-          .add(span.asMinutes() / 2, 'minutes')
+          .add(
+            span.hours() > 2 ? faker.random.number(span.asMinutes() / 3) : 0,
+            'minutes'
+          )
           .toDate()
       )
-    );
-    const end = moment(faker.date.between(start.toDate(), minEnd.toDate()));
+    )
+      .minutes(0)
+      .second(0);
+    const end = moment(faker.date.between(start.toDate(), minEnd.toDate()))
+      .minutes(0)
+      .second(0);
+
+    if (moment.duration(end.diff(start)).asHours() < 1)
+      throw new Error('Too short');
 
     const room = context.room;
     const user = context.user;
