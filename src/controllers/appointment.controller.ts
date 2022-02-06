@@ -12,6 +12,7 @@ import { TimeSlotRecurrence } from '../types/enums/timeslot-recurrence';
 import DurationConstructor = moment.unitOfTime.DurationConstructor;
 import { AvailableTimeslot } from '../models/available.timeslot.entity';
 import { UnavailableTimeslot } from '../models/unavaliable.timeslot.entity';
+import { ConfirmationStatus } from '../types/enums/confirmation-status';
 
 /**
  * Controller for appointment management
@@ -322,7 +323,9 @@ export class AppointmentController {
       appointment = repository.create(<DeepPartial<AppointmentTimeslot>>{
         start,
         end,
-        confirmationStatus,
+        confirmationStatus: room.autoAcceptBookings
+          ? ConfirmationStatus.accepted
+          : confirmationStatus,
         user,
         room,
         amount: 1,
@@ -371,6 +374,26 @@ export class AppointmentController {
         .json({ message: 'Appointment conflicts with unavailable timeslot' });
       return;
     }
+
+    const conflictingBookings = await getRepository(AppointmentTimeslot).count({
+      where: [
+        {
+          room,
+          start: Between(appointment.start, appointment.end),
+        },
+        {
+          room,
+          end: Between(appointment.start, appointment.end),
+        },
+      ],
+    });
+
+    if (conflictingBookings > room.maxConcurrentBookings) {
+      res.status(409).json({ message: 'Too many concurrent bookings' });
+      return;
+    }
+
+    res.status(201).json(await repository.save(appointment));
 
     await MessagingController.sendMessage(
       user,
@@ -485,7 +508,9 @@ export class AppointmentController {
       >{
         room,
         user,
-        confirmationStatus,
+        confirmationStatus: room.autoAcceptBookings
+          ? ConfirmationStatus.accepted
+          : confirmationStatus,
         start: mStart.add(1, recurrence).toDate(),
         end: mEnd.add(1, recurrence).toDate(),
         timeSlotRecurrence,
@@ -532,11 +557,32 @@ export class AppointmentController {
           ],
         })) !== undefined;
 
-      if (unavailableConflict && !force) {
+      if (unavailableConflict) {
         if (force) continue;
         res
           .status(409)
           .json({ message: 'Appointment conflicts with unavailable timeslot' });
+        return;
+      }
+
+      const conflictingBookings = await getRepository(
+        AppointmentTimeslot
+      ).count({
+        where: [
+          {
+            room,
+            start: Between(appointment.start, appointment.end),
+          },
+          {
+            room,
+            end: Between(appointment.start, appointment.end),
+          },
+        ],
+      });
+
+      if (conflictingBookings > room.maxConcurrentBookings) {
+        if (force) continue;
+        res.status(409).json({ message: 'Too many concurrent bookings' });
         return;
       }
 
