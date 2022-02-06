@@ -27,7 +27,7 @@ export default class CreateTestUsers implements Seeder {
       password: await CreateTestUsers.hashPassword('admin'),
       role: UserRole.admin,
       emailVerification: true,
-      notificationChannel: NotificationChannel.emailAndMessageBox,
+      notificationChannel: NotificationChannel.messageBoxOnly,
     });
 
     const visitor = await getRepository(User).save(<DeepPartial<User>>{
@@ -37,7 +37,7 @@ export default class CreateTestUsers implements Seeder {
       password: await CreateTestUsers.hashPassword('visitor'),
       role: UserRole.visitor,
       emailVerification: true,
-      notificationChannel: NotificationChannel.emailAndMessageBox,
+      notificationChannel: NotificationChannel.messageBoxOnly,
     });
 
     const rooms =
@@ -127,8 +127,8 @@ export default class CreateTestUsers implements Seeder {
       where: {
         room,
         start: Between(
-          moment().toISOString(),
-          moment().add(1, 'week').toISOString()
+          moment().subtract('1', 'week').toISOString(),
+          moment().toISOString()
         ),
       },
     });
