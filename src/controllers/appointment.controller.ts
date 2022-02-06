@@ -290,7 +290,7 @@ export class AppointmentController {
    * Creates a new appointment
    *
    * @route {POST} /appointments
-   * @bodyParam {Room} room - the room associated with the appointment
+   * @bodyParam {string} roomId - the id of the room associated with the appointment
    * @bodyParam {ConfirmationStatus} confirmationStatus - status of request
    * @bodyParam {Date} start - start date and time of the appointment
    * @bodyParam {Date} end - end date and time of the appointment
@@ -298,6 +298,8 @@ export class AppointmentController {
    * @param {Response} res backend response creation of a new appointment
    */
   public static async createAppointment(req: Request, res: Response) {
+    const { roomId, confirmationStatus, start, end } = req.body;
+
     const repository = getRepository(AppointmentTimeslot);
 
     const user = await AuthController.getCurrentUser(req);
@@ -307,19 +309,66 @@ export class AppointmentController {
       return;
     }
 
-    try {
-      const appointment = await repository.save(
-        repository.create(<DeepPartial<AppointmentTimeslot>>{
-          ...req.body,
-          user,
-          amount: 1,
-          timeSlotRecurrence: TimeSlotRecurrence.single,
-        })
-      );
+    const room = await getRepository(Room).findOne(roomId);
 
-      res.status(201).json(appointment);
+    if (room === undefined) {
+      res.status(404).json({ message: 'Room not found' });
+      return;
+    }
+
+    let appointment;
+
+    try {
+      appointment = repository.create(<DeepPartial<AppointmentTimeslot>>{
+        start,
+        end,
+        confirmationStatus,
+        user,
+        room,
+        amount: 1,
+        timeSlotRecurrence: TimeSlotRecurrence.single,
+      });
+
+      await validateOrReject(appointment);
     } catch (err) {
       res.status(400).json(err);
+      return;
+    }
+
+    const availableConflict =
+      (await getRepository(AvailableTimeslot).findOne({
+        where: {
+          room,
+          start: LessThanOrEqual(appointment.start),
+          end: GreaterThanOrEqual(appointment.end),
+        },
+      })) === undefined;
+
+    if (availableConflict) {
+      res
+        .status(409)
+        .json({ message: 'Appointment conflicts with available timeslot' });
+      return;
+    }
+
+    const unavailableConflict =
+      (await getRepository(UnavailableTimeslot).findOne({
+        where: [
+          {
+            room,
+            end: Between(appointment.start, appointment.end),
+          },
+          {
+            room,
+            start: Between(appointment.start, appointment.end),
+          },
+        ],
+      })) !== undefined;
+
+    if (unavailableConflict) {
+      res
+        .status(409)
+        .json({ message: 'Appointment conflicts with unavailable timeslot' });
       return;
     }
 
@@ -327,13 +376,13 @@ export class AppointmentController {
       user,
       'Appointment Request Confirmation',
       'Your appointment request at ' +
-        moment(req.body.start).format('DD.MM.YY') +
+        moment(start).format('DD.MM.YY') +
         ' from ' +
-        moment(req.body.start).format('HH:mm') +
+        moment(start).format('HH:mm') +
         ' to ' +
-        moment(req.body.end).format('HH:mm') +
+        moment(end).format('HH:mm') +
         ' in room ' +
-        req.body.room.name +
+        room.name +
         ' has been sent.',
       'Your Appointments',
       '/appointments'
@@ -342,17 +391,17 @@ export class AppointmentController {
     await MessagingController.sendMessageToAllAdmins(
       'Accept Appointment Series Request',
       'You have an open appointment series request at ' +
-        moment(req.body.start).format('DD.MM.YY') +
+        moment(start).format('DD.MM.YY') +
         ' from ' +
-        moment(req.body.start).format('HH:mm') +
+        moment(start).format('HH:mm') +
         ' to ' +
-        moment(req.body.end).format('HH:mm') +
+        moment(end).format('HH:mm') +
         ' in room ' +
-        req.body.room.name +
+        room.name +
         ' from user ' +
-        req.body.user.firstName +
+        user.firstName +
         ' ' +
-        req.body.user.lastName +
+        user.lastName +
         '.',
       'Appointment Requests',
       '/appointments/all'
@@ -363,7 +412,7 @@ export class AppointmentController {
    * Creates a new series of appointment
    *
    * @route {POST} /appointments/series
-   * @bodyParam {Room} room - the room associated with the appointment
+   * @bodyParam {string} roomId - the id of the room associated with the appointment
    * @bodyParam {ConfirmationStatus} confirmationStatus - status of request
    * @bodyParam {Date} start - start date and time of the appointment
    * @bodyParam {Date} end - end date and time of the appointment
@@ -377,7 +426,7 @@ export class AppointmentController {
     const repository = getRepository(AppointmentTimeslot);
     const appointments: AppointmentTimeslot[] = [];
     const {
-      room,
+      roomId,
       confirmationStatus,
       start,
       end,
@@ -393,9 +442,18 @@ export class AppointmentController {
       return;
     }
 
+    const room = await getRepository(Room).findOne(roomId);
+
+    if (room === undefined) {
+      res.status(404).json({ message: 'Room not found' });
+      return;
+    }
+
     const mStart = moment(start);
     const mEnd = moment(end);
     let recurrence: DurationConstructor;
+
+    // parse recurrence
 
     switch (timeSlotRecurrence) {
       case TimeSlotRecurrence.daily:
@@ -419,6 +477,8 @@ export class AppointmentController {
         return;
     }
 
+    // create all appointments
+
     for (let i = 0; i < +amount; i++) {
       const appointment: AppointmentTimeslot = repository.create(<
         DeepPartial<AppointmentTimeslot>
@@ -438,6 +498,8 @@ export class AppointmentController {
         res.status(400).json(err);
         return;
       }
+
+      // check for available & unavailable timeslot conflicts
 
       const availableConflict =
         (await getRepository(AvailableTimeslot).findOne({
@@ -494,7 +556,7 @@ export class AppointmentController {
         ' to ' +
         moment(req.body.end).format('HH:mm') +
         ' in room ' +
-        req.body.room.name +
+        room.name +
         ' has been sent.',
       'Your Appointments',
       '/appointments'
@@ -509,7 +571,7 @@ export class AppointmentController {
         ' to ' +
         moment(req.body.format('HH:mm')) +
         ' in room ' +
-        req.body.room.name +
+        room.name +
         ' from user ' +
         user.firstName +
         ' ' +
