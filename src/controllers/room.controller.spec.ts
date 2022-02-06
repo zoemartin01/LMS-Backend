@@ -64,29 +64,18 @@ describe('RoomController', () => {
         });
     });
 
-    it('should get initial 3 rooms', (done) => {
-      // Seeding doesn't create any rooms
-      chai
-        .request(app.app)
-        .get(uri)
-        .set('Authorization', adminHeader)
-        .end((err, res) => {
-          expect(res.status).to.equal(200);
-          expect(res.body.data).to.be.an('array');
-          expect(res.body.data.length).to.be.equal(3);
-          done();
-        });
-    });
+    it('should get all rooms', async () => {
+      const expected = await getRepository(Room).count();
 
-    it('should get 3 more rooms', async () => {
-      const rooms = await factory(Room)().createMany(3);
       const res = await chai
         .request(app.app)
         .get(uri)
         .set('Authorization', adminHeader);
+
       expect(res.status).to.equal(200);
+      expect(res.body.total).to.equal(expected);
       expect(res.body.data).to.be.an('array');
-      expect(res.body.data.length).to.be.equal(6);
+      expect(res.body.data.length).to.be.equal(expected);
     });
   });
 

@@ -27,7 +27,7 @@ export default class CreateTestUsers implements Seeder {
       password: await CreateTestUsers.hashPassword('admin'),
       role: UserRole.admin,
       emailVerification: true,
-      notificationChannel: NotificationChannel.emailAndMessageBox,
+      notificationChannel: NotificationChannel.messageBoxOnly,
     });
 
     const visitor = await getRepository(User).save(<DeepPartial<User>>{
@@ -37,7 +37,7 @@ export default class CreateTestUsers implements Seeder {
       password: await CreateTestUsers.hashPassword('visitor'),
       role: UserRole.visitor,
       emailVerification: true,
-      notificationChannel: NotificationChannel.emailAndMessageBox,
+      notificationChannel: NotificationChannel.messageBoxOnly,
     });
 
     const rooms =
@@ -83,7 +83,10 @@ export default class CreateTestUsers implements Seeder {
       }
     }
 
-    console.log('test');
+    // await CreateTestUsers.createAppointments(
+    //   admin,
+    //   faker.random.arrayElement(rooms)
+    // );
 
     await Promise.all(
       rooms.map((room) => CreateTestUsers.createAppointments(admin, room))
@@ -124,19 +127,16 @@ export default class CreateTestUsers implements Seeder {
       where: {
         room,
         start: Between(
-          moment().toISOString(),
-          moment().add(1, 'week').toISOString()
+          moment().subtract('1', 'week').toISOString(),
+          moment().toISOString()
         ),
       },
     });
 
-    if (series) {
-      console.log(
+    try {
+      if (series) {
         await Promise.all(
           availableTimeSlots.map(async (timeslot) => {
-            console.log(
-              availableTimeSlots[availableTimeSlots.indexOf(timeslot)]
-            );
             const slot = await factory(AppointmentTimeslot)({
               room,
               user: user,
@@ -148,10 +148,8 @@ export default class CreateTestUsers implements Seeder {
               CreateTestUsers.createSeries(slot)
             );
           })
-        )
-      );
-    } else {
-      console.log(
+        );
+      } else {
         await Promise.all(
           availableTimeSlots.map(async (timeslot) => {
             return factory(AppointmentTimeslot)({
@@ -160,8 +158,10 @@ export default class CreateTestUsers implements Seeder {
               availableTimeSlot: timeslot,
             }).create();
           })
-        )
-      );
+        );
+      }
+    } catch (error) {
+      // ignore
     }
   }
 }

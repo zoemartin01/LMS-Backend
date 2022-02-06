@@ -1,5 +1,11 @@
 import { Request, Response } from 'express';
-import { DeepPartial, getRepository } from 'typeorm';
+import {
+  Between,
+  DeepPartial,
+  getRepository,
+  LessThanOrEqual,
+  MoreThanOrEqual,
+} from 'typeorm';
 import { AppointmentTimeslot } from '../models/appointment.timeslot.entity';
 import { AuthController } from './auth.controller';
 import { validateOrReject } from 'class-validator';
@@ -8,6 +14,12 @@ import { v4 as uuidv4 } from 'uuid';
 import { MessagingController } from './messaging.controller';
 import moment from 'moment';
 import { User } from '../models/user.entity';
+import { TimeSlotRecurrence } from '../types/enums/timeslot-recurrence';
+import DurationConstructor = moment.unitOfTime.DurationConstructor;
+import { AvailableTimeslot } from '../models/available.timeslot.entity';
+import { UnavailableTimeslot } from '../models/unavaliable.timeslot.entity';
+import { ConfirmationStatus } from '../types/enums/confirmation-status';
+import { UserRole } from '../types/enums/user-role';
 
 /**
  * Controller for appointment management
@@ -155,11 +167,17 @@ export class AppointmentController {
       return;
     }
 
-    const repository = getRepository(AppointmentTimeslot);
+    const user = await AuthController.getCurrentUser(req);
 
+    if (user === null) {
+      res.status(404).json({ message: 'Not logged in.' });
+      return;
+    }
+
+    const repository = getRepository(AppointmentTimeslot);
     const total = await repository.count({ where: { room } });
 
-    const appointments = await repository
+    const query = repository
       .createQueryBuilder('appointment')
       .select('*')
       .leftJoin(
@@ -176,8 +194,13 @@ export class AppointmentController {
       .limit(limit ? +limit : 0)
       .offset(offset ? +offset : 0)
       .orderBy('appointment.start', 'ASC')
-      .where('"roomId" = :id', { id: room.id })
-      .getRawMany();
+      .where('"roomId" = :id', { id: room.id });
+
+    if (user.role !== UserRole.admin) {
+      query.andWhere('appointment."userId" = :userId', { userId: user.id });
+    }
+
+    const appointments = await query.getRawMany();
 
     await Promise.all(
       appointments.map(async (appointment) => {
@@ -195,7 +218,7 @@ export class AppointmentController {
   /**
    * Returns all appointments related to a series of appointments
    *
-   * @route {GET} /user/appointments/series/:id
+   * @route {GET} /appointments/series/:id
    * @routeParam {string} id - id of the series
    * @param {Request} req frontend request to get data about all appointments for a series
    * @param {Response} res backend response with data about all appointments for a series
@@ -208,7 +231,14 @@ export class AppointmentController {
       where: { seriesId: req.params.id },
     });
 
-    const appointments = await repository
+    const user = await AuthController.getCurrentUser(req);
+
+    if (user === null) {
+      res.status(404).json({ message: 'Not logged in.' });
+      return;
+    }
+
+    const query = repository
       .createQueryBuilder('appointment')
       .select('*')
       .leftJoin(
@@ -225,8 +255,18 @@ export class AppointmentController {
       .limit(limit ? +limit : 0)
       .offset(offset ? +offset : 0)
       .orderBy('appointment.start', 'ASC')
-      .where('appointment."seriesId" = :id', { id: req.params.id })
-      .getRawMany();
+      .where('appointment."seriesId" = :id', { id: req.params.id });
+
+    if (user.role !== UserRole.admin) {
+      query.andWhere('appointment."userId" = :userId', { userId: user.id });
+    }
+
+    const appointments = await query.getRawMany();
+
+    if (appointments.length === 0) {
+      res.status(404).json({ message: 'No appointments for series found' });
+      return;
+    }
 
     await Promise.all(
       appointments.map(async (appointment) => {
@@ -239,11 +279,6 @@ export class AppointmentController {
         return appointment;
       })
     );
-
-    if (appointments.length === 0) {
-      res.status(404).json({ message: 'No appointments for series found' });
-      return;
-    }
 
     res.json({ total, data: appointments });
   }
@@ -290,13 +325,16 @@ export class AppointmentController {
    * Creates a new appointment
    *
    * @route {POST} /appointments
+   * @bodyParam {string} roomId - the id of the room associated with the appointment
+   * @bodyParam {ConfirmationStatus} confirmationStatus - status of request
    * @bodyParam {Date} start - start date and time of the appointment
    * @bodyParam {Date} end - end date and time of the appointment
-   * @bodyParam {Room} room - the room associated with the appointment
    * @param {Request} req frontend request to create a new appointment
    * @param {Response} res backend response creation of a new appointment
    */
   public static async createAppointment(req: Request, res: Response) {
+    const { roomId, confirmationStatus, start, end } = req.body;
+
     const repository = getRepository(AppointmentTimeslot);
 
     const user = await AuthController.getCurrentUser(req);
@@ -306,31 +344,119 @@ export class AppointmentController {
       return;
     }
 
-    try {
-      const appointment = await repository.save(
-        repository.create(<DeepPartial<AppointmentTimeslot>>{
-          ...req.body,
-          user,
-        })
-      );
+    const room = await getRepository(Room).findOne(roomId);
 
-      res.status(201).json(appointment);
+    if (room === undefined) {
+      res.status(404).json({ message: 'Room not found' });
+      return;
+    }
+
+    if (req.body.amount !== undefined && req.body.amount > 1) {
+      res.status(400).json({
+        message: 'Single appointment amount cannot be greater than 1',
+      });
+      return;
+    }
+
+    if (
+      req.body.timeSlotRecurrence !== undefined &&
+      req.body.timeSlotRecurrence !== TimeSlotRecurrence.single
+    ) {
+      res
+        .status(400)
+        .json({ message: 'Single appointment recurrence cannot be set' });
+      return;
+    }
+
+    let appointment;
+
+    try {
+      appointment = repository.create(<DeepPartial<AppointmentTimeslot>>{
+        start,
+        end,
+        confirmationStatus: room.autoAcceptBookings
+          ? ConfirmationStatus.accepted
+          : confirmationStatus,
+        user,
+        room,
+        amount: 1,
+        timeSlotRecurrence: TimeSlotRecurrence.single,
+      });
+
+      await validateOrReject(appointment);
     } catch (err) {
       res.status(400).json(err);
       return;
     }
 
+    const availableConflict =
+      (await getRepository(AvailableTimeslot).findOne({
+        where: {
+          room,
+          start: LessThanOrEqual(appointment.start),
+          end: MoreThanOrEqual(appointment.end),
+        },
+      })) === undefined;
+
+    if (availableConflict) {
+      res
+        .status(409)
+        .json({ message: 'Appointment conflicts with available timeslot' });
+      return;
+    }
+
+    const unavailableConflict =
+      (await getRepository(UnavailableTimeslot).findOne({
+        where: [
+          {
+            room,
+            end: Between(appointment.start, appointment.end),
+          },
+          {
+            room,
+            start: Between(appointment.start, appointment.end),
+          },
+        ],
+      })) !== undefined;
+
+    if (unavailableConflict) {
+      res
+        .status(409)
+        .json({ message: 'Appointment conflicts with unavailable timeslot' });
+      return;
+    }
+
+    const conflictingBookings = await getRepository(AppointmentTimeslot).count({
+      where: [
+        {
+          room,
+          start: Between(appointment.start, appointment.end),
+        },
+        {
+          room,
+          end: Between(appointment.start, appointment.end),
+        },
+      ],
+    });
+
+    if (conflictingBookings > room.maxConcurrentBookings) {
+      res.status(409).json({ message: 'Too many concurrent bookings' });
+      return;
+    }
+
+    res.status(201).json(await repository.save(appointment));
+
     await MessagingController.sendMessage(
       user,
       'Appointment Request Confirmation',
       'Your appointment request at ' +
-        moment(req.body.start).format('DD.MM.YY') +
+        moment(start).format('DD.MM.YY') +
         ' from ' +
-        moment(req.body.start).format('HH:mm') +
+        moment(start).format('HH:mm') +
         ' to ' +
-        moment(req.body.end).format('HH:mm') +
+        moment(end).format('HH:mm') +
         ' in room ' +
-        req.body.room.name +
+        room.name +
         ' has been sent.',
       'Your Appointments',
       '/appointments'
@@ -339,17 +465,17 @@ export class AppointmentController {
     await MessagingController.sendMessageToAllAdmins(
       'Accept Appointment Series Request',
       'You have an open appointment series request at ' +
-        moment(req.body.start).format('DD.MM.YY') +
+        moment(start).format('DD.MM.YY') +
         ' from ' +
-        moment(req.body.start).format('HH:mm') +
+        moment(start).format('HH:mm') +
         ' to ' +
-        moment(req.body.end).format('HH:mm') +
+        moment(end).format('HH:mm') +
         ' in room ' +
-        req.body.room.name +
+        room.name +
         ' from user ' +
-        req.body.user.firstName +
+        user.firstName +
         ' ' +
-        req.body.user.lastName +
+        user.lastName +
         '.',
       'Appointment Requests',
       '/appointments/all'
@@ -360,20 +486,28 @@ export class AppointmentController {
    * Creates a new series of appointment
    *
    * @route {POST} /appointments/series
+   * @bodyParam {string} roomId - the id of the room associated with the appointment
+   * @bodyParam {ConfirmationStatus} confirmationStatus - status of request
    * @bodyParam {Date} start - start date and time of the appointment
    * @bodyParam {Date} end - end date and time of the appointment
-   * @bodyParam {Room} room - the room associated with the appointment
-   * @bodyParam {number} difference -  milliseconds, time difference between the appointments, regularity
+   * @bodyParam {TimeSlotRecurrence} timeSlotRecurrence - recurrence of appointment
    * @bodyParam {number} amount - 2-2048, amount of appointments wanted for the series
-   * @bodyParam {ConfirmationStatus [Optional]} confirmationStatus - the confirmation status of the appointment
+   * @bodyParam {boolean [Optional]} force - if true, the legal appointments of the series will be created regardless of conflicts overall
    * @param {Request} req frontend request to create a new appointment
    * @param {Response} res backend response creation of a new appointment
    */
   public static async createAppointmentSeries(req: Request, res: Response) {
     const repository = getRepository(AppointmentTimeslot);
     const appointments: AppointmentTimeslot[] = [];
-    const { start, end, room, difference, amount } = req.body;
-    const confirmationStatus: boolean | undefined = req.body.confirmationStatus;
+    const {
+      roomId,
+      confirmationStatus,
+      start,
+      end,
+      timeSlotRecurrence,
+      amount,
+      force,
+    } = req.body;
     const seriesId = uuidv4();
     const user = await AuthController.getCurrentUser(req);
 
@@ -382,23 +516,136 @@ export class AppointmentController {
       return;
     }
 
-    //TODO no difference
+    if (timeSlotRecurrence === TimeSlotRecurrence.single) {
+      res.status(400).json({ message: 'Series can only be recurring' });
+      return;
+    }
+
+    if (amount <= 1) {
+      res
+        .status(400)
+        .json({ message: 'Series needs to have at least 2 appointments' });
+      return;
+    }
+
+    const room = await getRepository(Room).findOne(roomId);
+
+    if (room === undefined) {
+      res.status(404).json({ message: 'Room not found' });
+      return;
+    }
+
+    const mStart = moment(start);
+    const mEnd = moment(end);
+    let recurrence: DurationConstructor;
+
+    // parse recurrence
+
+    switch (timeSlotRecurrence) {
+      case TimeSlotRecurrence.daily:
+        recurrence = 'days';
+        break;
+
+      case TimeSlotRecurrence.weekly:
+        recurrence = 'weeks';
+        break;
+
+      case TimeSlotRecurrence.monthly:
+        recurrence = 'months';
+        break;
+
+      case TimeSlotRecurrence.yearly:
+        recurrence = 'years';
+        break;
+
+      default:
+        res.status(400).json({ message: 'Illegal recurrence' });
+        return;
+    }
+
+    // create all appointments
+
     for (let i = 0; i < +amount; i++) {
       const appointment: AppointmentTimeslot = repository.create(<
         DeepPartial<AppointmentTimeslot>
       >{
-        start: new Date(start.getTime() + +difference * i),
-        end: new Date(end.getTime() + +difference * i),
         room,
         user,
-        confirmationStatus,
+        confirmationStatus: room.autoAcceptBookings
+          ? ConfirmationStatus.accepted
+          : confirmationStatus,
+        start: mStart.add(1, recurrence).toDate(),
+        end: mEnd.add(1, recurrence).toDate(),
+        timeSlotRecurrence,
         seriesId,
       });
 
       try {
-        validateOrReject(appointment);
+        await validateOrReject(appointment);
       } catch (err) {
         res.status(400).json(err);
+        return;
+      }
+
+      // check for available & unavailable timeslot conflicts
+
+      const availableConflict =
+        (await getRepository(AvailableTimeslot).findOne({
+          where: {
+            room,
+            start: LessThanOrEqual(appointment.start),
+            end: MoreThanOrEqual(appointment.end),
+          },
+        })) === undefined;
+
+      if (availableConflict) {
+        if (force) continue;
+        res
+          .status(409)
+          .json({ message: 'Appointment conflicts with available timeslot' });
+        return;
+      }
+
+      const unavailableConflict =
+        (await getRepository(UnavailableTimeslot).findOne({
+          where: [
+            {
+              room,
+              end: Between(appointment.start, appointment.end),
+            },
+            {
+              room,
+              start: Between(appointment.start, appointment.end),
+            },
+          ],
+        })) !== undefined;
+
+      if (unavailableConflict) {
+        if (force) continue;
+        res
+          .status(409)
+          .json({ message: 'Appointment conflicts with unavailable timeslot' });
+        return;
+      }
+
+      const conflictingBookings = await getRepository(
+        AppointmentTimeslot
+      ).count({
+        where: [
+          {
+            room,
+            start: Between(appointment.start, appointment.end),
+          },
+          {
+            room,
+            end: Between(appointment.start, appointment.end),
+          },
+        ],
+      });
+
+      if (conflictingBookings > room.maxConcurrentBookings) {
+        if (force) continue;
+        res.status(409).json({ message: 'Too many concurrent bookings' });
         return;
       }
 
@@ -418,7 +665,7 @@ export class AppointmentController {
         ' to ' +
         moment(req.body.end).format('HH:mm') +
         ' in room ' +
-        req.body.room.name +
+        room.name +
         ' has been sent.',
       'Your Appointments',
       '/appointments'
@@ -433,7 +680,7 @@ export class AppointmentController {
         ' to ' +
         moment(req.body.format('HH:mm')) +
         ' in room ' +
-        req.body.room.name +
+        room.name +
         ' from user ' +
         user.firstName +
         ' ' +
