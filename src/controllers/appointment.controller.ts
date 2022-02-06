@@ -8,6 +8,8 @@ import { v4 as uuidv4 } from 'uuid';
 import { MessagingController } from './messaging.controller';
 import moment from 'moment';
 import { User } from '../models/user.entity';
+import { TimeSlotRecurrence } from '../types/enums/timeslot-recurrence';
+import DurationConstructor = moment.unitOfTime.DurationConstructor;
 
 /**
  * Controller for appointment management
@@ -286,9 +288,12 @@ export class AppointmentController {
    * Creates a new appointment
    *
    * @route {POST} /appointments
+   * @bodyParam {Room} room - the room associated with the appointment
+   * @bodyParam {ConfirmationStatus} confirmationStatus - status of request
    * @bodyParam {Date} start - start date and time of the appointment
    * @bodyParam {Date} end - end date and time of the appointment
-   * @bodyParam {Room} room - the room associated with the appointment
+   * @bodyParam {TimeSlotRecurrence} timeSlotRecurrence - recurrence of appointment
+   * @bodyParam {number} amount - amount of appointments
    * @param {Request} req frontend request to create a new appointment
    * @param {Response} res backend response creation of a new appointment
    */
@@ -307,6 +312,7 @@ export class AppointmentController {
         repository.create(<DeepPartial<AppointmentTimeslot>>{
           ...req.body,
           user,
+          //todo here recurrence & amount set instead of send
         })
       );
 
@@ -356,20 +362,20 @@ export class AppointmentController {
    * Creates a new series of appointment
    *
    * @route {POST} /appointments/series
+   * @bodyParam {Room} room - the room associated with the appointment
+   * @bodyParam {ConfirmationStatus} confirmationStatus - status of request
    * @bodyParam {Date} start - start date and time of the appointment
    * @bodyParam {Date} end - end date and time of the appointment
-   * @bodyParam {Room} room - the room associated with the appointment
-   * @bodyParam {number} difference -  milliseconds, time difference between the appointments, regularity
+   * @bodyParam {TimeSlotRecurrence} timeSlotRecurrence - recurrence of appointment
    * @bodyParam {number} amount - 2-2048, amount of appointments wanted for the series
-   * @bodyParam {ConfirmationStatus [Optional]} confirmationStatus - the confirmation status of the appointment
    * @param {Request} req frontend request to create a new appointment
    * @param {Response} res backend response creation of a new appointment
    */
   public static async createAppointmentSeries(req: Request, res: Response) {
     const repository = getRepository(AppointmentTimeslot);
     const appointments: AppointmentTimeslot[] = [];
-    const { start, end, room, difference, amount } = req.body;
-    const confirmationStatus: boolean | undefined = req.body.confirmationStatus;
+    const { room, confirmationStatus, start, end, timeSlotRecurrence, amount } =
+      req.body;
     const seriesId = uuidv4();
     const user = await AuthController.getCurrentUser(req);
 
@@ -378,21 +384,47 @@ export class AppointmentController {
       return;
     }
 
-    //TODO no difference
+    const mStart = moment(start);
+    const mEnd = moment(end);
+    let recurrence: DurationConstructor;
+
+    switch (timeSlotRecurrence) {
+      case TimeSlotRecurrence.daily:
+        recurrence = 'days';
+        break;
+
+      case TimeSlotRecurrence.weekly:
+        recurrence = 'weeks';
+        break;
+
+      case TimeSlotRecurrence.monthly:
+        recurrence = 'months';
+        break;
+
+      case TimeSlotRecurrence.yearly:
+        recurrence = 'years';
+        break;
+
+      default:
+        res.status(400).json({ message: 'Illegal recurrence' });
+        return;
+    }
+
     for (let i = 0; i < +amount; i++) {
       const appointment: AppointmentTimeslot = repository.create(<
         DeepPartial<AppointmentTimeslot>
       >{
-        start: new Date(start.getTime() + +difference * i),
-        end: new Date(end.getTime() + +difference * i),
         room,
         user,
         confirmationStatus,
+        start: mStart.add(1, recurrence).toDate(),
+        end: mEnd.add(1, recurrence).toDate(),
+        timeSlotRecurrence,
         seriesId,
       });
 
       try {
-        validateOrReject(appointment);
+        await validateOrReject(appointment);
       } catch (err) {
         res.status(400).json(err);
         return;
