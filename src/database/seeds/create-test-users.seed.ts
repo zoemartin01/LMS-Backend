@@ -135,36 +135,29 @@ export default class CreateTestUsers implements Seeder {
 
     try {
       if (series) {
-        console.log(
-          await Promise.all(
-            availableTimeSlots.map(async (timeslot) => {
-              console.log(
-                availableTimeSlots[availableTimeSlots.indexOf(timeslot)]
-              );
-              const slot = await factory(AppointmentTimeslot)({
-                room,
-                user: user,
-                availableTimeSlot: timeslot,
-                seriesId: v4(),
-              }).make();
+        await Promise.all(
+          availableTimeSlots.map(async (timeslot) => {
+            const slot = await factory(AppointmentTimeslot)({
+              room,
+              user: user,
+              availableTimeSlot: timeslot,
+              seriesId: v4(),
+            }).make();
 
-              return getRepository(AppointmentTimeslot).save(
-                CreateTestUsers.createSeries(slot)
-              );
-            })
-          )
+            return getRepository(AppointmentTimeslot).save(
+              CreateTestUsers.createSeries(slot)
+            );
+          })
         );
       } else {
-        console.log(
-          await Promise.all(
-            availableTimeSlots.map(async (timeslot) => {
-              return factory(AppointmentTimeslot)({
-                room,
-                user: user,
-                availableTimeSlot: timeslot,
-              }).create();
-            })
-          )
+        await Promise.all(
+          availableTimeSlots.map(async (timeslot) => {
+            return factory(AppointmentTimeslot)({
+              room,
+              user: user,
+              availableTimeSlot: timeslot,
+            }).create();
+          })
         );
       }
     } catch (error) {
