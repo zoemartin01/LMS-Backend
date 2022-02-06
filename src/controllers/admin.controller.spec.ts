@@ -454,7 +454,7 @@ describe('AdminController', () => {
       domainRepository.findOne({ id: domain.id }).then((domain) => {
         expect(domain).to.be.not.undefined;
       });
-
+    // relations i findone
       const res = await chai
         .request(app.app)
         .delete(
