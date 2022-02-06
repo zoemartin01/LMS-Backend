@@ -7,7 +7,6 @@ import { Room } from '../models/room.entity';
 import { v4 as uuidv4 } from 'uuid';
 import { MessagingController } from './messaging.controller';
 import moment from 'moment';
-import app from '../app';
 import { User } from '../models/user.entity';
 
 /**
