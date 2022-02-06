@@ -19,6 +19,7 @@ import DurationConstructor = moment.unitOfTime.DurationConstructor;
 import { AvailableTimeslot } from '../models/available.timeslot.entity';
 import { UnavailableTimeslot } from '../models/unavaliable.timeslot.entity';
 import { ConfirmationStatus } from '../types/enums/confirmation-status';
+import { UserRole } from '../types/enums/user-role';
 
 /**
  * Controller for appointment management
@@ -164,11 +165,17 @@ export class AppointmentController {
       return;
     }
 
-    const repository = getRepository(AppointmentTimeslot);
+    const user = await AuthController.getCurrentUser(req);
 
+    if (user === null) {
+      res.status(404).json({ message: 'Not logged in.' });
+      return;
+    }
+
+    const repository = getRepository(AppointmentTimeslot);
     const total = await repository.count({ where: { room } });
 
-    const appointments = await repository
+    const query = repository
       .createQueryBuilder('appointment')
       .select('*')
       .leftJoin(
@@ -184,8 +191,13 @@ export class AppointmentController {
       .limit(limit ? +limit : 0)
       .offset(offset ? +offset : 0)
       .orderBy('appointment.start', 'ASC')
-      .where('"roomId" = :id', { id: room.id })
-      .getRawMany();
+      .where('"roomId" = :id', { id: room.id });
+
+    if (user.role !== UserRole.admin) {
+      query.andWhere('appointment."userId" = :id', { id: user.id });
+    }
+
+    const appointments = await query.getRawMany();
 
     await Promise.all(
       appointments.map(async (appointment) => {
@@ -203,7 +215,7 @@ export class AppointmentController {
   /**
    * Returns all appointments related to a series of appointments
    *
-   * @route {GET} /user/appointments/series/:id
+   * @route {GET} /appointments/series/:id
    * @routeParam {string} id - id of the series
    * @param {Request} req frontend request to get data about all appointments for a series
    * @param {Response} res backend response with data about all appointments for a series
@@ -216,7 +228,14 @@ export class AppointmentController {
       where: { seriesId: req.params.id },
     });
 
-    const appointments = await repository
+    const user = await AuthController.getCurrentUser(req);
+
+    if (user === null) {
+      res.status(404).json({ message: 'Not logged in.' });
+      return;
+    }
+
+    const query = repository
       .createQueryBuilder('appointment')
       .select('*')
       .leftJoin(
@@ -232,8 +251,18 @@ export class AppointmentController {
       .limit(limit ? +limit : 0)
       .offset(offset ? +offset : 0)
       .orderBy('appointment.start', 'ASC')
-      .where('appointment."seriesId" = :id', { id: req.params.id })
-      .getRawMany();
+      .where('appointment."seriesId" = :id', { id: req.params.id });
+
+    if (user.role !== UserRole.admin) {
+      query.andWhere('appointment."userId" = :id', { id: user.id });
+    }
+
+    const appointments = await query.getRawMany();
+
+    if (appointments.length === 0) {
+      res.status(404).json({ message: 'No appointments for series found' });
+      return;
+    }
 
     await Promise.all(
       appointments.map(async (appointment) => {
@@ -246,11 +275,6 @@ export class AppointmentController {
         return appointment;
       })
     );
-
-    if (appointments.length === 0) {
-      res.status(404).json({ message: 'No appointments for series found' });
-      return;
-    }
 
     res.json({ total, data: appointments });
   }
