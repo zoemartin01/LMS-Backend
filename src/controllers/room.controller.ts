@@ -32,7 +32,6 @@ export class RoomController {
     const total = await repository.count();
 
     const rooms = await repository.find({
-      relations: ['appointments', 'availableTimeSlots', 'unavailableTimeSlots'],
       order: {
         name: 'ASC',
       },
@@ -51,9 +50,7 @@ export class RoomController {
    * @param {Response} res backend response with data about one room
    */
   public static async getRoomById(req: Request, res: Response) {
-    const room = await getRepository(Room).findOne(req.params.id, {
-      relations: ['appointments', 'availableTimeSlots', 'unavailableTimeSlots'],
-    });
+    const room = await getRepository(Room).findOne(req.params.id);
 
     if (room === undefined) {
       res.status(404).json({ message: 'Room not found' });
@@ -221,28 +218,35 @@ export class RoomController {
     }
 
     //add appointments
-    for (appointment of appointments) {
-      if (appointment.start == null || appointment.end == null) {
-        continue;
+    try {
+      for (appointment of appointments) {
+        if (appointment.start == null || appointment.end == null) {
+          continue;
+        }
+
+        start = moment(appointment.start);
+        hour = +start.format('HH') - minTimeslot;
+        day = (+start.format('e') + 6) % 7;
+
+        for (index = 0; calendar[hour][day][index] === null; index++) {
+          //
+        }
+
+        calendar[hour][day][index] = appointment;
+
+        for (
+          let i = hour + 1;
+          i <= +moment(appointment.end).format('HH') - minTimeslot - 1;
+          i++
+        ) {
+          calendar[i][day][index] = null;
+        }
       }
-
-      start = moment(appointment.start);
-      hour = +start.format('HH') - minTimeslot;
-      day = (+start.format('e') + 6) % 7;
-
-      for (index = 0; calendar[hour][day][index] === null; index++) {
-        //
-      }
-
-      calendar[hour][day][index] = appointment;
-
-      for (
-        let i = hour + 1;
-        i <= +moment(appointment.end).format('HH') - minTimeslot;
-        i++
-      ) {
-        calendar[i][day][index] = null;
-      }
+    }catch (e) {
+      console.log(e);
+      res.status(500).json({
+        message: 'Room has appointments outside of available timeslots.'
+      });
     }
 
     res.json({ calendar, minTimeslot });
@@ -305,15 +309,7 @@ export class RoomController {
       return;
     }
 
-    res.json(
-      await repository.findOne(room.id, {
-        relations: [
-          'appointments',
-          'availableTimeSlots',
-          'unavailableTimeSlots',
-        ],
-      })
-    );
+    res.json(await repository.findOne(room.id));
   }
 
   /**

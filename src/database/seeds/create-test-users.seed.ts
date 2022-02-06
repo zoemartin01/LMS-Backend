@@ -1,6 +1,6 @@
 import faker from 'faker';
-import { Connection, DeepPartial, getRepository } from 'typeorm';
-import { Factory, Seeder } from 'typeorm-seeding';
+import { Between, Connection, DeepPartial, getRepository } from 'typeorm';
+import { factory, Factory, Seeder } from 'typeorm-seeding';
 import bcrypt from 'bcrypt';
 import environment from '../../environment';
 
@@ -13,7 +13,10 @@ import { Room } from '../../models/room.entity';
 import { User } from '../../models/user.entity';
 import { UserRole } from '../../types/enums/user-role';
 import { NotificationChannel } from '../../types/enums/notification-channel';
+import moment from 'moment';
+import { AvailableTimeslot } from '../../models/available.timeslot.entity';
 import { v4 } from 'uuid';
+import { TimeSlotRecurrence } from '../../types/enums/timeslot-recurrence';
 
 export default class CreateTestUsers implements Seeder {
   public async run(factory: Factory, connection: Connection): Promise<void> {
@@ -39,7 +42,9 @@ export default class CreateTestUsers implements Seeder {
 
     const rooms =
       (await getRepository(Room).count()) != 0
-        ? await connection.getRepository(Room).find()
+        ? await connection
+            .getRepository(Room)
+            .find({ relations: ['availableTimeSlots', 'unavailableTimeSlots'] })
         : await factory(Room)().createMany(3);
     const items =
       (await getRepository(InventoryItem).count()) != 0
@@ -78,30 +83,85 @@ export default class CreateTestUsers implements Seeder {
       }
     }
 
-    await factory(AppointmentTimeslot)({
-      user: admin,
-      room: faker.random.arrayElement(rooms),
-    }).createMany(10);
+    console.log('test');
 
-    await factory(AppointmentTimeslot)({
-      user: admin,
-      room: faker.random.arrayElement(rooms),
-      seriesId: v4(),
-    }).createMany(10);
-
-    await factory(AppointmentTimeslot)({
-      user: visitor,
-      room: faker.random.arrayElement(rooms),
-    }).createMany(10);
-
-    await factory(AppointmentTimeslot)({
-      user: visitor,
-      room: faker.random.arrayElement(rooms),
-      seriesId: v4(),
-    }).createMany(10);
+    await Promise.all(
+      rooms.map((room) => CreateTestUsers.createAppointments(admin, room))
+    );
   }
 
   private static async hashPassword(password: string): Promise<string> {
     return bcrypt.hash(password, environment.pwHashSaltRound);
+  }
+
+  private static createSeries(appointment: AppointmentTimeslot) {
+    const appointments = [];
+    const repo = getRepository(AppointmentTimeslot);
+    const amount = faker.random.number({ min: 5, max: 10 });
+
+    const start = moment(appointment.start);
+    const end = moment(appointment.end);
+
+    for (let i = 0; i < amount; i++) {
+      appointments.push(
+        repo.create({
+          ...appointment,
+          start: start.add(1, 'week').toISOString(),
+          end: end.add(1, 'week').toISOString(),
+          amount: amount,
+          timeSlotRecurrence: TimeSlotRecurrence.weekly,
+        })
+      );
+    }
+
+    return appointments;
+  }
+
+  private static async createAppointments(user: User, room: Room) {
+    const series = faker.random.boolean();
+
+    const availableTimeSlots = await getRepository(AvailableTimeslot).find({
+      where: {
+        room,
+        start: Between(
+          moment().toISOString(),
+          moment().add(1, 'week').toISOString()
+        ),
+      },
+    });
+
+    if (series) {
+      console.log(
+        await Promise.all(
+          availableTimeSlots.map(async (timeslot) => {
+            console.log(
+              availableTimeSlots[availableTimeSlots.indexOf(timeslot)]
+            );
+            const slot = await factory(AppointmentTimeslot)({
+              room,
+              user: user,
+              availableTimeSlot: timeslot,
+              seriesId: v4(),
+            }).make();
+
+            return getRepository(AppointmentTimeslot).save(
+              CreateTestUsers.createSeries(slot)
+            );
+          })
+        )
+      );
+    } else {
+      console.log(
+        await Promise.all(
+          availableTimeSlots.map(async (timeslot) => {
+            return factory(AppointmentTimeslot)({
+              room,
+              user: user,
+              availableTimeSlot: timeslot,
+            }).create();
+          })
+        )
+      );
+    }
   }
 }
