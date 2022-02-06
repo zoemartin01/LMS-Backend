@@ -4,7 +4,6 @@ import { Room } from './room.entity';
 import { TimeSlot } from './timeslot.entity';
 import { User } from './user.entity';
 import { TimeSlotType } from '../types/enums/timeslot-type';
-import { TimeSlotRecurrence } from '../types/enums/timeslot-recurrence';
 
 /**
  * Appointment Timeslot
@@ -51,33 +50,4 @@ export class AppointmentTimeslot extends TimeSlot {
     default: ConfirmationStatus.pending,
   })
   confirmationStatus: ConfirmationStatus;
-
-  /**
-   * The id of the series the time slot belongs to.
-   * @type {string}
-   * @readonly
-   */
-  @Column()
-  seriesId: string;
-
-  /**
-   * The amount of the appointments of the series.
-   * @type {number}
-   * @readonly
-   */
-  @Column({ default: 1 })
-  amount: number;
-
-  /**
-   * The recurrence of an appointment.
-   *
-   * @type {TimeSlotRecurrence}
-   * @default TimeSlotRecurrence.single
-   */
-  @Column({
-    type: 'enum',
-    enum: TimeSlotRecurrence,
-    default: TimeSlotRecurrence.single,
-  })
-  timeSlotRecurrence: TimeSlotRecurrence;
 }
