@@ -397,6 +397,21 @@ class AppRouter {
       OrderController.getOrdersForCurrentUser
     );
     this.router.get(
+      environment.apiRoutes.orders.getCurrentUsersPendingOrders,
+      AuthController.checkAuthenticationMiddleware,
+      OrderController.getPendingOrdersForCurrentUser
+    );
+    this.router.get(
+      environment.apiRoutes.orders.getCurrentUsersAcceptedOrders,
+      AuthController.checkAuthenticationMiddleware,
+      OrderController.getAcceptedOrdersForCurrentUser
+    );
+    this.router.get(
+      environment.apiRoutes.orders.getCurrentUsersDeclinedOrders,
+      AuthController.checkAuthenticationMiddleware,
+      OrderController.getDeclinedOrdersForCurrentUser
+    );
+    this.router.get(
       addUUIDRegexToRoute(environment.apiRoutes.orders.getSingleOrder),
       AuthController.checkAuthenticationMiddleware,
       OrderController.getOrder

@@ -119,6 +119,9 @@ const environment = {
     },
     orders: {
       getCurrentUserOrders: '/user/orders',
+      getCurrentUsersPendingOrders: '/user/orders/pending',
+      getCurrentUsersAcceptedOrders: '/user/orders/accepted',
+      getCurrentUsersDeclinedOrders: '/user/orders/declined',
 
       getAllOrders: '/orders',
       getAllPendingOrders: '/orders/pending',

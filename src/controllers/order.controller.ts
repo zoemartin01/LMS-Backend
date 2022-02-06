@@ -83,9 +83,10 @@ export class OrderController {
     const repository = getRepository(Order);
 
     const total = await repository.count({
-      where: {
-        status: Not(OrderStatus.pending) && Not(OrderStatus.declined),
-      },
+      where: [
+        { status: Not(OrderStatus.pending) },
+        { status: Not(OrderStatus.declined) },
+      ],
     });
 
     repository
@@ -160,6 +161,137 @@ export class OrderController {
     repository
       .find({
         where: { user: currentUser },
+        relations: ['user', 'item'],
+        order: {
+          updatedAt: 'DESC',
+        },
+        skip: offset ? +offset : 0,
+        take: limit ? +limit : 0,
+      })
+      .then((orders) => {
+        res.json({ total, data: orders });
+      });
+  }
+
+  /**
+   * Returns all pending orders related to the current user
+   *
+   * @route {GET} /user/orders/pending
+   * @param {Request} req frontend request to get data of all pending orders for the current user
+   * @param {Response} res backend response with data of all pending orders for the current user
+   */
+  public static async getPendingOrdersForCurrentUser(
+    req: Request,
+    res: Response
+  ) {
+    const currentUser: User | null = await AuthController.getCurrentUser(req);
+
+    if (currentUser === null) {
+      res.status(404).json({
+        message: 'User not found.',
+      });
+    }
+
+    const { offset, limit } = req.query;
+    const repository = getRepository(Order);
+
+    const total = await repository.count({
+      where: [{ user: currentUser }, { status: OrderStatus.pending }],
+    });
+
+    repository
+      .find({
+        where: [{ user: currentUser }, { status: OrderStatus.pending }],
+        relations: ['user', 'item'],
+        order: {
+          updatedAt: 'DESC',
+        },
+        skip: offset ? +offset : 0,
+        take: limit ? +limit : 0,
+      })
+      .then((orders) => {
+        res.json({ total, data: orders });
+      });
+  }
+
+  /**
+   * Returns all accepted orders related to the current user
+   *
+   * @route {GET} /user/orders/accepted
+   * @param {Request} req frontend request to get data of all accepted orders for the current user
+   * @param {Response} res backend response with data of all accepted orders for the current user
+   */
+  public static async getAcceptedOrdersForCurrentUser(
+    req: Request,
+    res: Response
+  ) {
+    const currentUser: User | null = await AuthController.getCurrentUser(req);
+
+    if (currentUser === null) {
+      res.status(404).json({
+        message: 'User not found.',
+      });
+    }
+
+    const { offset, limit } = req.query;
+    const repository = getRepository(Order);
+
+    const total = await repository.count({
+      where: [
+        { user: currentUser },
+        { status: Not(OrderStatus.pending) },
+        { status: Not(OrderStatus.declined) },
+      ],
+    });
+
+    repository
+      .find({
+        where: [
+          { user: currentUser },
+          { status: Not(OrderStatus.pending) },
+          { status: Not(OrderStatus.declined) },
+        ],
+        relations: ['user', 'item'],
+        order: {
+          updatedAt: 'DESC',
+        },
+        skip: offset ? +offset : 0,
+        take: limit ? +limit : 0,
+      })
+      .then((orders) => {
+        res.json({ total, data: orders });
+      });
+  }
+
+  /**
+   * Returns all declined orders related to the current user
+   *
+   * @route {GET} /user/orders/declined
+   * @param {Request} req frontend request to get data of all declined orders for the current user
+   * @param {Response} res backend response with data of all declined orders for the current user
+   */
+  public static async getDeclinedOrdersForCurrentUser(
+    req: Request,
+    res: Response
+  ) {
+    const currentUser: User | null = await AuthController.getCurrentUser(req);
+
+    if (currentUser === null) {
+      res.status(404).json({
+        message: 'User not found.',
+      });
+    }
+
+    const { offset, limit } = req.query;
+    const repository = getRepository(Order);
+
+    const total = await repository.count({
+      where: [{ user: currentUser }, { status: OrderStatus.declined }],
+    });
+
+    repository
+      .find({
+        where: [{ user: currentUser }, { status: OrderStatus.declined }],
         relations: ['user', 'item'],
         order: {
           updatedAt: 'DESC',
