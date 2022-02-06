@@ -390,7 +390,6 @@ export class AdminController {
    */
   public static async checkDomainAgainstWhitelist(req: Request, res: Response) {
     const domainRepository = getRepository(RetailerDomain);
-
     res.json({
       isWhitelisted:
         (await domainRepository.findOne({
