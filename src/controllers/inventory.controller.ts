@@ -178,6 +178,8 @@ export class InventoryController {
   /**
    * Returns an existing inventory item or null
    *
+   * @route {GET} /inventory-items/name/:name
+   * @routeParam {string} name - The name of the inventory item
    * @param {Request} req frontend request to delete one inventory item
    * @param {Response} res backend response deletion
    */

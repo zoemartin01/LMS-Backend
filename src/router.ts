@@ -348,9 +348,9 @@ class AppRouter {
       InventoryController.getInventoryItem
     );
     this.router.get(
-      addUUIDRegexToRoute(environment.apiRoutes.inventory_item.getByName),
+      environment.apiRoutes.inventory_item.getByName,
       AuthController.checkAuthenticationMiddleware,
-      InventoryController.getInventoryItem
+      InventoryController.getByName
     );
     this.router.post(
       environment.apiRoutes.inventory_item.createItem,
