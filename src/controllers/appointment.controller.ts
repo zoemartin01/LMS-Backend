@@ -312,7 +312,8 @@ export class AppointmentController {
         repository.create(<DeepPartial<AppointmentTimeslot>>{
           ...req.body,
           user,
-          //todo here recurrence & amount set instead of send
+          amount: 1,
+          timeSlotRecurrence: TimeSlotRecurrence.single,
         })
       );
 
