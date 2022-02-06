@@ -6,7 +6,6 @@ import { validateOrReject } from 'class-validator';
 import { Room } from '../models/room.entity';
 import { v4 as uuidv4 } from 'uuid';
 import { MessagingController } from './messaging.controller';
-import environment from '../environment';
 import moment from 'moment';
 
 /**
@@ -228,7 +227,7 @@ export class AppointmentController {
         req.body.room.name +
         ' has been sent.',
       'Your Appointments',
-      `${environment.frontendUrl}/user/appointments`
+      '/appointments'
     );
 
     await MessagingController.sendMessageToAllAdmins(
@@ -247,7 +246,7 @@ export class AppointmentController {
         req.body.user.lastName +
         '.',
       'Appointment Requests',
-      `${environment.frontendUrl}/appointments`
+      '/appointments/all'
     );
   }
 
@@ -315,7 +314,7 @@ export class AppointmentController {
         req.body.room.name +
         ' has been sent.',
       'Your Appointments',
-      `${environment.frontendUrl}/user/appointments`
+      '/appointments'
     );
 
     await MessagingController.sendMessageToAllAdmins(
@@ -334,7 +333,7 @@ export class AppointmentController {
         user.lastName +
         '.',
       'Appointment Requests',
-      `${environment.frontendUrl}/appointments`
+      '/appointments/all'
     );
   }
 
@@ -400,10 +399,7 @@ export class AppointmentController {
         appointment.room.name +
         ' was edited by an admin.',
       'View Appointment',
-      `${environment.frontendUrl}/appointments/:id`.replace(
-        ':id',
-        appointment.user.id
-      )
+      '/appointments/:id'.replace(':id', appointment.user.id)
     );
   }
 
@@ -504,10 +500,7 @@ export class AppointmentController {
         room.name +
         ' was edited by an admin.',
       'View Appointments',
-      '${environment.frontendUrl}/appointments/series/:id'.replace(
-        ':id',
-        user.id
-      )
+      '/appointments/series/:id'.replace(':id', user.id)
     );
   }
 
@@ -566,7 +559,7 @@ export class AppointmentController {
           appointment.room.name +
           ' was deleted by an admin.',
         'Your appointments',
-        `${environment.frontendUrl}/user/appointments`
+        '/appointments'
       );
     } else {
       await MessagingController.sendMessage(
@@ -578,7 +571,7 @@ export class AppointmentController {
           appointment.room.name +
           ' has been deleted.',
         'Your Appointments',
-        `${environment.frontendUrl}/user/appointments`
+        '/appointments'
       );
 
       await MessagingController.sendMessageToAllAdmins(
@@ -593,10 +586,7 @@ export class AppointmentController {
           appointment.user.lastName +
           '.',
         'View user',
-        `${environment.frontendUrl}/users/:id`.replace(
-          ':id',
-          appointment.user.id
-        )
+        '/users/:id'.replace(':id', appointment.user.id)
       );
     }
   }
@@ -652,7 +642,7 @@ export class AppointmentController {
           appointments[0].room.name +
           ' has been deleted by an admin',
         'Your appointments',
-        `${environment.frontendUrl}/user/appointments`
+        '/appointments'
       );
     } else {
       await MessagingController.sendMessage(
@@ -668,7 +658,7 @@ export class AppointmentController {
           appointments[0].room.name +
           ' has been deleted.',
         'Your Appointments',
-        `${environment.frontendUrl}/user/appointments`
+        '/appointments'
       );
 
       await MessagingController.sendMessageToAllAdmins(
@@ -687,10 +677,7 @@ export class AppointmentController {
           appointments[0].user.lastName +
           '.',
         'View user',
-        `${environment.frontendUrl}/users/:id`.replace(
-          ':id',
-          appointments[0].user.id
-        )
+        '/users/:id'.replace(':id', appointments[0].user.id)
       );
     }
   }
