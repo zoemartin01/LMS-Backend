@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { DeepPartial, getRepository } from 'typeorm';
+import { Between, DeepPartial, getRepository, LessThanOrEqual } from 'typeorm';
 import { AppointmentTimeslot } from '../models/appointment.timeslot.entity';
 import { AuthController } from './auth.controller';
 import { validateOrReject } from 'class-validator';
@@ -10,6 +10,8 @@ import moment from 'moment';
 import { User } from '../models/user.entity';
 import { TimeSlotRecurrence } from '../types/enums/timeslot-recurrence';
 import DurationConstructor = moment.unitOfTime.DurationConstructor;
+import { AvailableTimeslot } from '../models/available.timeslot.entity';
+import { UnavailableTimeslot } from '../models/unavaliable.timeslot.entity';
 
 /**
  * Controller for appointment management
@@ -369,14 +371,22 @@ export class AppointmentController {
    * @bodyParam {Date} end - end date and time of the appointment
    * @bodyParam {TimeSlotRecurrence} timeSlotRecurrence - recurrence of appointment
    * @bodyParam {number} amount - 2-2048, amount of appointments wanted for the series
+   * @bodyParam {boolean [Optional]} force - if true, the legal appointments of the series will be created regardless of conflicts overall
    * @param {Request} req frontend request to create a new appointment
    * @param {Response} res backend response creation of a new appointment
    */
   public static async createAppointmentSeries(req: Request, res: Response) {
     const repository = getRepository(AppointmentTimeslot);
     const appointments: AppointmentTimeslot[] = [];
-    const { room, confirmationStatus, start, end, timeSlotRecurrence, amount } =
-      req.body;
+    const {
+      room,
+      confirmationStatus,
+      start,
+      end,
+      timeSlotRecurrence,
+      amount,
+      force,
+    } = req.body;
     const seriesId = uuidv4();
     const user = await AuthController.getCurrentUser(req);
 
@@ -428,6 +438,45 @@ export class AppointmentController {
         await validateOrReject(appointment);
       } catch (err) {
         res.status(400).json(err);
+        return;
+      }
+
+      const availableConflict =
+        (await getRepository(AvailableTimeslot).findOne({
+          where: {
+            room,
+            start: LessThanOrEqual(appointment.start),
+            end: GreaterThanOrEqual(appointment.end),
+          },
+        })) === undefined;
+
+      if (availableConflict) {
+        if (force) continue;
+        res
+          .status(409)
+          .json({ message: 'Appointment conflicts with available timeslot' });
+        return;
+      }
+
+      const unavailableConflict =
+        (await getRepository(UnavailableTimeslot).findOne({
+          where: [
+            {
+              room,
+              end: Between(appointment.start, appointment.end),
+            },
+            {
+              room,
+              start: Between(appointment.start, appointment.end),
+            },
+          ],
+        })) !== undefined;
+
+      if (unavailableConflict && !force) {
+        if (force) continue;
+        res
+          .status(409)
+          .json({ message: 'Appointment conflicts with unavailable timeslot' });
         return;
       }
 
@@ -817,4 +866,9 @@ export class AppointmentController {
       );
     }
   }
+}
+function GreaterThanOrEqual(
+  end: Date
+): any | import('typeorm').FindCondition<Date> | undefined {
+  throw new Error('Function not implemented.');
 }
