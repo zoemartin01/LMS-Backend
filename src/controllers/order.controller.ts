@@ -18,31 +18,6 @@ import { MessagingController } from './messaging.controller';
  */
 export class OrderController {
   /**
-   * Returns the data of all orders
-   *
-   * @route {GET} /orders
-   * @param {Request} req frontend request to get data of all orders
-   * @param {Response} res backend response with data of all orders
-   */
-  public static async getAllOrders(req: Request, res: Response) {
-    const { offset, limit } = req.query;
-    const repository = getRepository(Order);
-
-    const total = await repository.count();
-
-    repository
-      .find({
-        relations: ['user', 'item'],
-        order: { updatedAt: 'DESC' },
-        skip: offset ? +offset : 0,
-        take: limit ? +limit : 0,
-      })
-      .then((orders) => {
-        res.json({ total, data: orders });
-      });
-  }
-
-  /**
    * Returns the data of all pending orders
    *
    * @route {GET} /orders/pending
@@ -127,44 +102,6 @@ export class OrderController {
         where: { status: OrderStatus.declined },
         relations: ['user', 'item'],
         order: { updatedAt: 'DESC' },
-        skip: offset ? +offset : 0,
-        take: limit ? +limit : 0,
-      })
-      .then((orders) => {
-        res.json({ total, data: orders });
-      });
-  }
-
-  /**
-   * Returns all orders related to the current user
-   *
-   * @route {GET} /user/orders
-   * @param {Request} req frontend request to get data of all orders for the current user
-   * @param {Response} res backend response with data of all orders for the current user
-   */
-  public static async getOrdersForCurrentUser(req: Request, res: Response) {
-    const currentUser: User | null = await AuthController.getCurrentUser(req);
-
-    if (currentUser === null) {
-      res.status(404).json({
-        message: 'User not found.',
-      });
-    }
-
-    const { offset, limit } = req.query;
-    const repository = getRepository(Order);
-
-    const total = await repository.count({
-      where: { user: currentUser },
-    });
-
-    repository
-      .find({
-        where: { user: currentUser },
-        relations: ['user', 'item'],
-        order: {
-          updatedAt: 'DESC',
-        },
         skip: offset ? +offset : 0,
         take: limit ? +limit : 0,
       })
