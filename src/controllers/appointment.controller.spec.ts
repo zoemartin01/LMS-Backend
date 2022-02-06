@@ -11,7 +11,7 @@ import chaiHttp from 'chai-http';
 import environment from '../environment';
 import { v4 as uuidv4 } from 'uuid';
 import CreateTestUsers from '../database/seeds/create-test-users.seed';
-import { createTimeslots } from '../database/seeds/create-rooms.seed';
+import { createTimeslots } from '../database/helpers';
 import { Helpers } from '../test.spec';
 import { User } from '../models/user.entity';
 import { AppointmentTimeslot } from '../models/appointment.timeslot.entity';
