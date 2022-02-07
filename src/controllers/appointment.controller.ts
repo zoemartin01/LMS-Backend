@@ -499,14 +499,7 @@ export class AppointmentController {
   public static async createAppointmentSeries(req: Request, res: Response) {
     const repository = getRepository(AppointmentTimeslot);
     const appointments: AppointmentTimeslot[] = [];
-    const {
-      roomId,
-      start,
-      end,
-      timeSlotRecurrence,
-      amount,
-      force,
-    } = req.body;
+    const { roomId, start, end, timeSlotRecurrence, amount, force } = req.body;
     const seriesId = uuidv4();
     const user = await AuthController.getCurrentUser(req);
 
@@ -573,8 +566,8 @@ export class AppointmentController {
         confirmationStatus: room.autoAcceptBookings
           ? ConfirmationStatus.accepted
           : ConfirmationStatus.pending,
-        start: mStart.add(i > 1 ? 1 : 0, recurrence).toDate(),
-        end: mEnd.add(i > 1 ? 1 : 0, recurrence).toDate(),
+        start: mStart.add(i > 0 ? 1 : 0, recurrence).toDate(),
+        end: mEnd.add(i > 0 ? 1 : 0, recurrence).toDate(),
         timeSlotRecurrence,
         seriesId,
         amount,
