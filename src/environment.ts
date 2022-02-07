@@ -91,7 +91,13 @@ const environment = {
       updateRoom: '/rooms/:id',
       deleteRoom: '/rooms/:id',
 
+      getAllAvailableTimeslotsForRoom: '/rooms/:roomId/timeslots/available',
+      getAllUnavailableTimeslotsForRoom: '/rooms/:roomId/timeslots/unavailable',
+
       createTimeslot: '/rooms/:roomId/timeslots',
+      createTimeslotSeries: '/rooms/:roomId/timeslots/series',
+      updateTimeslot: '/rooms/:roomId/timeslots/:timeslotId',
+      updateTimeslotSeries: '/rooms/:roomId/timeslots/series/:seriesId',
       deleteTimeslot: '/rooms/:roomId/timeslots/:timeslotId',
     },
     appointments: {
