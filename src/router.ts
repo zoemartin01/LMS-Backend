@@ -311,7 +311,6 @@ class AppRouter {
     this.router.patch(
       addUUIDRegexToRoute(environment.apiRoutes.appointments.updateAppointment),
       AuthController.checkAuthenticationMiddleware,
-      AuthController.checkAdminMiddleware,
       AppointmentController.updateAppointment
     );
     this.router.patch(
@@ -319,7 +318,6 @@ class AppRouter {
         environment.apiRoutes.appointments.updateAppointmentSeries
       ),
       AuthController.checkAuthenticationMiddleware,
-      AuthController.checkAdminMiddleware,
       AppointmentController.updateAppointmentSeries
     );
     this.router.delete(
