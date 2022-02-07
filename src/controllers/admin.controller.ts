@@ -550,7 +550,6 @@ export class AdminController {
         return;
       }
     }
-    //console.log(Object.keys(UserRole)[req.body.role - 1 + (Object.keys(UserRole).length / 2)]);
 
     await MessagingController.sendMessage(
       user,
@@ -615,7 +614,6 @@ export class AdminController {
           email: Not('SYSTEM'),
         },
       });
-      console.log(adminCount);
 
       if (adminCount <= 1) {
         res.status(403).json({
