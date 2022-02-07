@@ -53,7 +53,7 @@ describe('AdminController', () => {
     app.shutdownJobs();
   });
 
-  describe('GET /global-settings', () => {
+  describe('GET /application-settings', () => {
     const uri = `${environment.apiRoutes.base}${environment.apiRoutes.admin_settings.getGlobalSettings}`;
 
     it('should fail without authentification', (done) => {
@@ -98,7 +98,7 @@ describe('AdminController', () => {
         });
     });
 
-    describe('PATCH /global-settings', () => {
+    describe('PATCH /application-settings', () => {
       const uri = `${environment.apiRoutes.base}${environment.apiRoutes.admin_settings.updateGlobalSettings}`;
 
       it('should fail without authentification', (done) => {
@@ -137,7 +137,7 @@ describe('AdminController', () => {
       });
     });
 
-    describe('GET /global-settings/whitelist-retailers', () => {
+    describe('GET /application-settings/whitelist-retailers', () => {
       const uri = `${environment.apiRoutes.base}${environment.apiRoutes.admin_settings.getWhitelistRetailers}`;
 
       it('should fail without authentification', (done) => {
@@ -185,7 +185,7 @@ describe('AdminController', () => {
       });
     });
 
-    describe('GET /global-settings/whitelist-retailers', () => {
+    describe('GET /application-settings/whitelist-retailers', () => {
       const uri = `${environment.apiRoutes.base}${environment.apiRoutes.admin_settings.getWhitelistRetailer}`;
 
       it('should fail without authentification', (done) => {
@@ -234,7 +234,7 @@ describe('AdminController', () => {
       });
     });
 
-    describe('POST /global-settings/whitelist-retailers', () => {
+    describe('POST /application-settings/whitelist-retailers', () => {
       const uri = `${environment.apiRoutes.base}${environment.apiRoutes.admin_settings.createWhitelistRetailer}`;
 
       it('should fail without authentification', (done) => {
@@ -274,7 +274,7 @@ describe('AdminController', () => {
       });
     });
 
-    describe('PATCH /global-settings/whitelist-retailers/:id', () => {
+    describe('PATCH /application-settings/whitelist-retailers/:id', () => {
       const uri = `${environment.apiRoutes.base}${environment.apiRoutes.admin_settings.updateWhitelistRetailer}`;
 
       it('should fail without authentification', (done) => {
@@ -311,7 +311,7 @@ describe('AdminController', () => {
     });
   });
 
-  describe('DELETE /global-settings/whitelist-retailers/:id', () => {
+  describe('DELETE /application-settings/whitelist-retailers/:id', () => {
     const uri = `${environment.apiRoutes.base}${environment.apiRoutes.admin_settings.deleteWhitelistRetailer}`;
 
     it('should fail without authentification', (done) => {
@@ -366,7 +366,7 @@ describe('AdminController', () => {
     });
   });
 
-  describe('POST /global-settings/whitelist-retailers/:id/domains', () => {
+  describe('POST /application-settings/whitelist-retailers/:id/domains', () => {
     const uri = `${environment.apiRoutes.base}${environment.apiRoutes.admin_settings.addDomainToWhitelistRetailer}`;
 
     it('should fail without authentification', async () => {
@@ -402,7 +402,7 @@ describe('AdminController', () => {
     });
   });
 
-  /** describe('DELETE /global-settings/whitelist-retailers/:id/domains/:domainId', () => {
+  /** describe('DELETE /application-settings/whitelist-retailers/:id/domains/:domainId', () => {
     const uri = `${environment.apiRoutes.base}${environment.apiRoutes.rooms.deleteTimeslot}`;
 
     it('should fail without authentification', async () => {
