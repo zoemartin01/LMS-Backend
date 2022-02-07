@@ -348,6 +348,122 @@ export class RoomController {
   }
 
   /**
+   * Returns all available timeslots for a room
+   *
+   * @route {GET} /rooms/:roomId/timeslots/available
+   * @queryParam {number} offset - offset for pagination
+   * @queryParam {number} limit - limit for pagination
+   * @param {Request} req frontend request to get data about all appointments
+   * @param {Response} res backend response with data about all appointments
+   */
+  public static async getAllAvailableTimeslotsForRoom(
+    req: Request,
+    res: Response
+  ) {
+    const { offset, limit } = req.query;
+    const repository = getRepository(AvailableTimeslot);
+
+    const room = await getRepository(Room).findOne(req.params.roomId);
+
+    if (room === undefined) {
+      res.status(404).json({ message: 'Room not found' });
+      return;
+    }
+
+    const total = await repository.count({
+      where: { room: room.id },
+    });
+
+    const timeslots = await repository
+      .createQueryBuilder('timeslot')
+      .select('*')
+      .leftJoin(
+        (qb) =>
+          qb
+            .subQuery()
+            .select('"seriesId", MAX(start) as "maxStart"')
+            .from(AvailableTimeslot, 't')
+            .groupBy('"seriesId"'),
+        'last',
+        'timeslot."seriesId" = last."seriesId"'
+      )
+      .where('timeslot."roomId" = :roomId', { roomId: room.id })
+      .limit(limit ? +limit : 0)
+      .offset(offset ? +offset : 0)
+      .orderBy('timeslot.start', 'ASC')
+      .getRawMany();
+
+    await Promise.all(
+      timeslots.map(async (timeslot) => {
+        timeslot.room = await getRepository(Room).findOne({
+          id: timeslot.roomId,
+        });
+        return timeslot;
+      })
+    );
+
+    res.json({ total, data: timeslots });
+  }
+
+  /**
+   * Returns all unavailable timeslots for a room
+   *
+   * @route {GET} /rooms/:roomId/timeslots/unavailable
+   * @queryParam {number} offset - offset for pagination
+   * @queryParam {number} limit - limit for pagination
+   * @param {Request} req frontend request to get data about all appointments
+   * @param {Response} res backend response with data about all appointments
+   */
+  public static async getAllUnavailableTimeslotsForRoom(
+    req: Request,
+    res: Response
+  ) {
+    const { offset, limit } = req.query;
+    const repository = getRepository(UnavailableTimeslot);
+
+    const room = await getRepository(Room).findOne(req.params.roomId);
+
+    if (room === undefined) {
+      res.status(404).json({ message: 'Room not found' });
+      return;
+    }
+
+    const total = await repository.count({
+      where: { room: room.id },
+    });
+
+    const timeslots = await repository
+      .createQueryBuilder('timeslot')
+      .select('*')
+      .leftJoin(
+        (qb) =>
+          qb
+            .subQuery()
+            .select('"seriesId", MAX(start) as "maxStart"')
+            .from(UnavailableTimeslot, 't')
+            .groupBy('"seriesId"'),
+        'last',
+        'timeslot."seriesId" = last."seriesId"'
+      )
+      .where('timeslot."roomId" = :roomId', { roomId: room.id })
+      .limit(limit ? +limit : 0)
+      .offset(offset ? +offset : 0)
+      .orderBy('timeslot.start', 'ASC')
+      .getRawMany();
+
+    await Promise.all(
+      timeslots.map(async (timeslot) => {
+        timeslot.room = await getRepository(Room).findOne({
+          id: timeslot.roomId,
+        });
+        return timeslot;
+      })
+    );
+
+    res.json({ total, data: timeslots });
+  }
+
+  /**
    * Creates a new available timeslot
    *
    * @route {POST} /rooms/:roomId/timeslots
@@ -472,7 +588,7 @@ export class RoomController {
   /**
    * Creates a new timeslot series
    *
-   * @route {POST} /rooms/:roomId/timeslots
+   * @route {POST} /rooms/:roomId/timeslots/series
    * @routeParam {string} roomId - id of the room
    * @bodyParam {Date} start - The start time of the time slot.
    * @bodyParam {Date} end - The end time of the time slot.

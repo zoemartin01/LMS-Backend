@@ -252,12 +252,46 @@ class AppRouter {
       AuthController.checkAdminMiddleware,
       RoomController.deleteRoom
     );
+    this.router.get(
+      addUUIDRegexToRoute(
+        environment.apiRoutes.rooms.getAllAvailableTimeslotsForRoom
+      ),
+      AuthController.checkAuthenticationMiddleware,
+      AuthController.checkAdminMiddleware,
+      RoomController.getAllAvailableTimeslotsForRoom
+    );
+    this.router.get(
+      addUUIDRegexToRoute(
+        environment.apiRoutes.rooms.getAllUnavailableTimeslotsForRoom
+      ),
+      AuthController.checkAuthenticationMiddleware,
+      AuthController.checkAdminMiddleware,
+      RoomController.getAllUnavailableTimeslotsForRoom
+    );
     this.router.post(
-      environment.apiRoutes.rooms.createTimeslot,
+      addUUIDRegexToRoute(environment.apiRoutes.rooms.createTimeslot),
       AuthController.checkAuthenticationMiddleware,
       AuthController.checkAdminMiddleware,
       RoomController.createTimeslot
     );
+    this.router.post(
+      addUUIDRegexToRoute(environment.apiRoutes.rooms.createTimeslotSeries),
+      AuthController.checkAuthenticationMiddleware,
+      AuthController.checkAdminMiddleware,
+      RoomController.createTimeslotSeries
+    );
+    this.router.patch(
+      addUUIDRegexToRoute(environment.apiRoutes.rooms.updateTimeslot),
+      AuthController.checkAuthenticationMiddleware,
+      AuthController.checkAdminMiddleware,
+      RoomController.updateTimeslot
+    );
+    // this.router.patch(
+    //   addUUIDRegexToRoute(environment.apiRoutes.rooms.updateTimeslotSeries),
+    //   AuthController.checkAuthenticationMiddleware,
+    //   AuthController.checkAdminMiddleware,
+    //   RoomController.updateTimeslotSeries
+    // );
     this.router.delete(
       addUUIDRegexToRoute(environment.apiRoutes.rooms.deleteTimeslot),
       AuthController.checkAuthenticationMiddleware,
