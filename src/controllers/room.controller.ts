@@ -19,7 +19,6 @@ import { TimeSlotRecurrence } from '../types/enums/timeslot-recurrence';
 import { validateOrReject } from 'class-validator';
 import DurationConstructor = moment.unitOfTime.DurationConstructor;
 import { v4 } from 'uuid';
-import { AuthController } from './auth.controller';
 
 /**
  * Controller for room management
@@ -356,7 +355,6 @@ export class RoomController {
    * @bodyParam {Date} start - The start time of the time slot.
    * @bodyParam {Date} end - The end time of the time slot.
    * @bodyParam {Room} room - The room the time slot belongs to.
-   * @bodyParam {User} user - The user associated with the time slot.
    * @bodyParam {TimeSlotType} type - The type of the time slot.
    * @param {Request} req frontend request to create a new available timeslot of a room
    * @param {Response} res backend response creation of a new available timeslot of a room
@@ -479,7 +477,6 @@ export class RoomController {
    * @bodyParam {Date} start - The start time of the time slot.
    * @bodyParam {Date} end - The end time of the time slot.
    * @bodyParam {Room} room - The room the time slot belongs to.
-   * @bodyParam {User} user - The user associated with the time slot.
    * @bodyParam {TimeSlotType} type - The type of the time slot.
    * @bodyParam {TimeSlotRecurrence} timeSlotRecurrence - The recurrence of the time slot.
    * @bodyParam {number} amount - The amount of the time slot.
@@ -489,12 +486,6 @@ export class RoomController {
   public static async createTimeslotSeries(req: Request, res: Response) {
     const { roomId, start, end, timeSlotRecurrence, amount, force } = req.body;
     const seriesId = v4();
-    const user = await AuthController.getCurrentUser(req);
-
-    if (user === null) {
-      res.status(401).json({ message: 'Not logged in' });
-      return;
-    }
 
     const room = await getRepository(Room).findOne(roomId);
 
@@ -633,6 +624,130 @@ export class RoomController {
 
     const savedTimeslots = await repository.save(timeslots);
     res.status(201).json(savedTimeslots);
+  }
+
+  /**
+   * Updates a timeslot
+   *
+   * @route {PATCH} /rooms/:roomId/timeslots/:timeslotId
+   * @routeParam {string} roomId - id of the room
+   * @routeParam {string} timeslotId - id of the timeslot
+   * @bodyParam {Date [Optional]} start - The start time of the time slot.
+   * @bodyParam {Date [Optional]} end - The end time of the time slot.
+   * @bodyParam {Room [Optional]} room - The room the time slot belongs to.
+   * @param {Request} req frontend request to create a new available timeslot of a room
+   * @param {Response} res backend response creation of a new available timeslot of a room
+   */
+  public static async updateTimeslot(req: Request, res: Response) {
+    const room = await getRepository(Room).findOne(req.params.roomId);
+
+    if (room === undefined) {
+      res.status(404).json({ message: 'Room not found' });
+      return;
+    }
+
+    let timeslot = await getRepository(TimeSlot).findOne(req.params.timeslotId);
+    let repository;
+
+    if (timeslot === undefined) {
+      res.status(404).json({ message: 'Timeslot not found' });
+      return;
+    }
+
+    const type = timeslot.type;
+
+    if (type === TimeSlotType.booked) {
+      res.status(400).json({ message: 'Type appointment is illegal here' });
+      return;
+    }
+
+    if (type === TimeSlotType.available) {
+      repository = getRepository(AvailableTimeslot);
+      const availableTimeslot = await repository.findOneOrFail(timeslot.id);
+
+      if (availableTimeslot.room !== room) {
+        res.sendStatus(404);
+        return;
+      }
+      timeslot = availableTimeslot;
+    } else if (type === TimeSlotType.unavailable) {
+      repository = getRepository(UnavailableTimeslot);
+      const unavailableTimeslot = await repository.findOneOrFail(timeslot.id);
+
+      if (unavailableTimeslot.room !== room) {
+        res.sendStatus(404);
+        return;
+      }
+      timeslot = unavailableTimeslot;
+    } else {
+      return;
+    }
+
+    const { start, end } = req.body;
+    let newTimeslot;
+
+    try {
+      newTimeslot = repository.create({
+        start: moment(start).toDate(),
+        end: moment(end).toDate(),
+        room,
+      });
+
+      await validateOrReject(timeslot);
+    } catch (err) {
+      res.status(400).json(err);
+      return;
+    }
+
+    const mergables = await repository.findAndCount({
+      where: [
+        {
+          start: end,
+          type,
+          room,
+        },
+        {
+          end: start,
+          type,
+          room,
+        },
+        {
+          start: LessThanOrEqual(start),
+          type,
+          room,
+        },
+        {
+          end: MoreThanOrEqual(end),
+          type,
+          room,
+        },
+        {
+          start: Between(start, end),
+          type,
+          room,
+        },
+        {
+          end: Between(start, end),
+          type,
+          room,
+        },
+      ],
+    });
+
+    if (mergables[1] > 0) {
+      const minStart = min(mergables[0].map((m) => moment(m.start)));
+      const maxEnd = max(mergables[0].map((m) => moment(m.end)));
+
+      newTimeslot = repository.create({
+        room,
+        start: minStart.toDate(),
+        end: maxEnd.toDate(),
+      });
+      await repository.remove(mergables[0]);
+    }
+
+    await repository.update(timeslot.id, newTimeslot);
+    res.json(newTimeslot);
   }
 
   /**
