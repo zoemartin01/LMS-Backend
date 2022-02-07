@@ -34,7 +34,7 @@ export class Order extends BaseEntity {
   /**
    * The item name.
    *
-   * @type {String}
+   * @type {string}
    * @nullable if item has been set.
    */
   @Column({ nullable: true })

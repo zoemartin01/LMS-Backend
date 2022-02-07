@@ -1,7 +1,7 @@
 /**
  * An enum representing the status of an order.
  *
- * @typedef {pending | declined | ordererd | inventoried | sent_back} OrderStatus
+ * @typedef {pending | declined | ordered | inventoried | sent_back} OrderStatus
  * @kind enum
  * @enumerators {pending} The order has been requested
  * @enumerators {declined} The order has been declined
