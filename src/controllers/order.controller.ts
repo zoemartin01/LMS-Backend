@@ -266,13 +266,22 @@ export class OrderController {
       return;
     }
 
+    const currentUser: User | null = await AuthController.getCurrentUser(req);
     if (
+      currentUser !== null &&
       !(await AuthController.checkAdmin(req)) &&
-      order.user !== (await AuthController.getCurrentUser(req))
+      order.user.id !== currentUser.id
     ) {
-      res.status(403);
+      res.sendStatus(403);
       return;
     }
+    /*if (
+      !(await AuthController.checkAdmin(req)) &&
+      (order.user !== (await AuthController.getCurrentUser(req)))
+    ) {
+      res.sendStatus(403);
+      return;
+    }*/
 
     res.json(order);
   }
@@ -385,13 +394,13 @@ export class OrderController {
         // check if no admin user tried to change order status
         'status' in req.body
       ) {
-        res.status(403);
+        res.sendStatus(403);
         return;
       }
     }
     // check if user tried to change affiliated user
     if ('user' in req.body) {
-      res.status(403);
+      res.sendStatus(403);
       return;
     }
 
@@ -531,7 +540,7 @@ export class OrderController {
       !(await AuthController.checkAdmin(req)) &&
       order.user !== (await AuthController.getCurrentUser(req))
     ) {
-      res.status(403);
+      res.sendStatus(403);
       return;
     }
 
