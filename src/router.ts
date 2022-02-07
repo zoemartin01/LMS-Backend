@@ -240,6 +240,11 @@ class AppRouter {
       AuthController.checkAuthenticationMiddleware,
       RoomController.getRoomCalendar
     );
+    this.router.get(
+      addUUIDRegexToRoute(environment.apiRoutes.rooms.getAvailabilityCalendar),
+      AuthController.checkAuthenticationMiddleware,
+      RoomController.getAvailabilityCalendar
+    );
     this.router.patch(
       addUUIDRegexToRoute(environment.apiRoutes.rooms.updateRoom),
       AuthController.checkAuthenticationMiddleware,

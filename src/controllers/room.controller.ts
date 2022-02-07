@@ -264,6 +264,105 @@ export class RoomController {
   }
 
   /**
+   * Returns available and unavailable timeslots as calendar for one room by its id
+   *
+   * @route {GET} /rooms/:id/calendar
+   * @routeParam {string} id - id of the room
+   * @getParam {date} date
+   * @param {Request} req frontend request to get data about one room
+   * @param {Response} res backend response with data about one room
+   */
+  public static async getAvailabilityCalendar(req: Request, res: Response) {
+    const date: moment.Moment =
+      req.query.date === undefined ? moment() : moment(+req.query.date * 1000);
+
+    const from: string = date.day(1).format('YYYY-MM-DD');
+    const to: string = date.day(1).add(7, 'days').format('YYYY-MM-DD');
+
+    const room = await getRepository(Room).findOne(req.params.id);
+
+    if (room === undefined) {
+      res.status(404).json({ message: 'Room not found' });
+      return;
+    }
+
+    const timeSlotRepository = getRepository(TimeSlot);
+    const availableTimeSlots = await timeSlotRepository.find({
+      where: [
+        {
+          start: Between(from, to),
+          room,
+          type: TimeSlotType.available,
+        },
+        {
+          end: Between(from, to),
+          room,
+          type: TimeSlotType.available,
+        },
+      ],
+    });
+    const unavailableTimeSlots = await timeSlotRepository.find({
+      where: [
+        {
+          start: Between(from, to),
+          room,
+          type: TimeSlotType.unavailable,
+        },
+        {
+          end: Between(from, to),
+          room,
+          type: TimeSlotType.unavailable,
+        },
+      ],
+    });
+
+    //initialise array (timeslot, days, parallel bookings)
+    let availableTimespan, unavailableTimeSlot, timespanStart, timespanEnd;
+    const calendar: string[][] = [
+      ...Array(24),
+    ].map(() => [...Array(7)]);
+
+    //set available timeslots
+    for (availableTimespan of availableTimeSlots) {
+      if (availableTimespan.start == null || availableTimespan.end == null) {
+        continue;
+      }
+
+      for (
+        let i = +moment(availableTimespan.start).format('HH');
+        i < +moment(availableTimespan.end).format('HH');
+        i++
+      ) {
+        calendar[i][
+        (+moment(availableTimespan.start).format('e') + 6) % 7
+          ] = `available ${availableTimespan.id}`;
+      }
+    }
+
+    //set unavailable timeslots
+    for (unavailableTimeSlot of unavailableTimeSlots) {
+      if (
+        unavailableTimeSlot.start == null ||
+        unavailableTimeSlot.end == null
+      ) {
+        continue;
+      }
+
+      for (
+        let i = +moment(unavailableTimeSlot.start).format('HH');
+        i < +moment(unavailableTimeSlot.end).format('HH');
+        i++
+      ) {
+        calendar[i][
+        (+moment(unavailableTimeSlot.start).format('e') + 6) % 7
+          ] = `unavailable ${unavailableTimeSlot.id}`;
+      }
+    }
+
+    res.json(calendar);
+  }
+
+  /**
    * Creates a new room
    *
    * @route {POST} /rooms
