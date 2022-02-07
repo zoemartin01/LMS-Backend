@@ -5,6 +5,7 @@ import {
   getRepository,
   LessThanOrEqual,
   MoreThanOrEqual,
+  Not,
 } from 'typeorm';
 import { AppointmentTimeslot } from '../models/appointment.timeslot.entity';
 import { AuthController } from './auth.controller';
@@ -429,16 +430,25 @@ export class AppointmentController {
       where: [
         {
           room,
-          start: Between(appointment.start, appointment.end),
+          // @todo is there a better solution to this?
+          start: Between(
+            moment(appointment.start).add(1, 'ms').toDate(),
+            moment(appointment.end).subtract(1, 'ms').toDate()
+          ),
+          confirmationStatus: Not(ConfirmationStatus.denied),
         },
         {
           room,
-          end: Between(appointment.start, appointment.end),
+          end: Between(
+            moment(appointment.start).add(1, 'ms').toDate(),
+            moment(appointment.end).subtract(1, 'ms').toDate()
+          ),
+          confirmationStatus: Not(ConfirmationStatus.denied),
         },
       ],
     });
 
-    if (conflictingBookings > room.maxConcurrentBookings) {
+    if (conflictingBookings >= room.maxConcurrentBookings) {
       res.status(409).json({ message: 'Too many concurrent bookings' });
       return;
     }
@@ -497,14 +507,7 @@ export class AppointmentController {
   public static async createAppointmentSeries(req: Request, res: Response) {
     const repository = getRepository(AppointmentTimeslot);
     const appointments: AppointmentTimeslot[] = [];
-    const {
-      roomId,
-      start,
-      end,
-      timeSlotRecurrence,
-      amount,
-      force,
-    } = req.body;
+    const { roomId, start, end, timeSlotRecurrence, amount, force } = req.body;
     const seriesId = uuidv4();
     const user = await AuthController.getCurrentUser(req);
 
@@ -571,8 +574,8 @@ export class AppointmentController {
         confirmationStatus: room.autoAcceptBookings
           ? ConfirmationStatus.accepted
           : ConfirmationStatus.pending,
-        start: mStart.add(i > 1 ? 1 : 0, recurrence).toDate(),
-        end: mEnd.add(i > 1 ? 1 : 0, recurrence).toDate(),
+        start: mStart.add(i > 0 ? 1 : 0, recurrence).toDate(),
+        end: mEnd.add(i > 0 ? 1 : 0, recurrence).toDate(),
         timeSlotRecurrence,
         seriesId,
         amount,
@@ -632,16 +635,28 @@ export class AppointmentController {
         where: [
           {
             room,
-            start: Between(appointment.start, appointment.end),
+            start: Between(
+              moment(appointment.start).add(1, 'ms').toDate(),
+              moment(appointment.end).subtract(1, 'ms').toDate()
+            ),
+            confirmationStatus: Not(ConfirmationStatus.denied),
           },
           {
             room,
-            end: Between(appointment.start, appointment.end),
+            end: Between(
+              moment(appointment.start).add(1, 'ms').toDate(),
+              moment(appointment.end).subtract(1, 'ms').toDate()
+            ),
+            confirmationStatus: Not(ConfirmationStatus.denied),
           },
         ],
       });
 
-      if (conflictingBookings > room.maxConcurrentBookings) {
+      console.log(
+        `conflicting bookings: ${conflictingBookings}, force: ${force}, max: ${room.maxConcurrentBookings}`
+      );
+
+      if (conflictingBookings >= room.maxConcurrentBookings) {
         if (force) continue;
         res.status(409).json({ message: 'Too many concurrent bookings' });
         return;
@@ -709,20 +724,40 @@ export class AppointmentController {
       return;
     }
 
-    //single appointment in series can't be edited
-    if (appointment.seriesId !== null) {
-      res
-        .status(400)
-        .json({ message: 'single appointment of series can`t be edited' });
+    const isAdmin = await AuthController.checkAdmin(req);
+    const isSeries = appointment.seriesId !== undefined;
+
+    const user = await AuthController.getCurrentUser(req);
+
+    if (user === undefined) {
       return;
     }
+
+    if (
+      (appointment.user !== user || req.body.confirmationStatus) &&
+      !isAdmin
+    ) {
+      res.sendStatus(403);
+      return;
+    }
+
+    const confirmationStatus =
+      req.body.confirmationStatus || appointment.confirmationStatus;
+    const { start, end } = req.body;
 
     try {
       await repository.update(
         { id: appointment.id },
         repository.create(<DeepPartial<AppointmentTimeslot>>{
           ...appointment,
-          ...req.body,
+          start: moment(start).toDate(),
+          end: moment(end).toDate(),
+          isDirty: isSeries ? true : undefined,
+          confirmationStatus: isAdmin
+            ? confirmationStatus
+            : appointment.room.autoAcceptBookings
+            ? ConfirmationStatus.accepted
+            : ConfirmationStatus.pending,
         })
       );
     } catch (err) {
@@ -760,94 +795,237 @@ export class AppointmentController {
    *
    * @route {PATCH} /appointments/series/:id
    * @routeParam {string} id - id of the series
+   * @bodyParam {ConfirmationStatus [Optional]} confirmationStatus - confirmation status of the appointment
    * @bodyParam {Date [Optional]} start - start date and time of the appointment
    * @bodyParam {Date [Optional]} end - end date and time of the appointment
-   * @bodyParam {number [Optional]} difference - time difference in milliseconds between the appointments, regularity
-   * @bodyParam {number [Optional]} amount - amount of appointments wanted for the series, 2-2048
+   * @bodyParam {TimeSlotRecurrence [Optional]} timeSlotRecurrence - recurrence of appointment
+   * @bodyParma {number [Optional]} amount - 2-2048, amount of appointments wanted for the series
+   * @bodyParam {boolean [Optional]} force - if true, the legal appointments of the series will be created regardless of conflicts overall
    * @param {Request} req frontend request to change data about one appointment
    * @param {Response} res backend response with data change of one appointment
    */
   public static async updateAppointmentSeries(req: Request, res: Response) {
     const repository = getRepository(AppointmentTimeslot);
-    const { start, end, difference, amount } = req.body;
-    const appointments = await repository.find({
+    const originalAppointments = await repository.find({
       where: { seriesId: req.params.id },
       withDeleted: true,
     });
 
-    if (appointments.length === 0) {
+    if (originalAppointments.length === 0) {
       res.status(404).json({ message: 'no appointments for series found' });
       return;
     }
 
-    const { room, user, seriesId } = appointments[0];
+    const first = await repository.findOneOrFail({
+      where: { seriesId: req.params.id, isDirty: false },
+      order: { start: 'ASC' },
+    });
+    const { room, user, seriesId } = first;
+    const confirmationStatus =
+      req.body.confirmationStatus || first.confirmationStatus;
+    const start = req.body.start || first.start;
+    const end = req.body.end || first.end;
+    const timeSlotRecurrence =
+      req.body.timeSlotRecurrence || first.timeSlotRecurrence;
+    const amount = req.body.amount || first.amount;
+    const force = req.body.force || false;
 
-    for (
-      let i = 0;
-      i < (+amount >= appointments.length ? +amount : appointments.length);
-      i++
-    ) {
-      //loop to the biggest border
-      if (appointments[i].deletedAt !== undefined) continue;
+    const onlyStatusPatch =
+      req.body.confirmationStatus !== undefined &&
+      Object.keys(req.body).length === 1;
+    const isAdmin = await AuthController.checkAdmin(req);
 
-      if (
-        i < (+amount <= appointments.length ? +amount : appointments.length)
-      ) {
-        //these appointments are safe to update
-        try {
-          await repository.update(
-            { id: appointments[i].id },
-            repository.create(<DeepPartial<AppointmentTimeslot>>{
-              ...appointments[i],
-              start: new Date(start.getTime() + +difference * i),
-              end: new Date(end.getTime() + +difference * i),
-            })
-          ); //Todo change!!???
-        } catch (err) {
-          res.status(400).json(err);
-          return;
-        }
-      } else {
-        //appointment series needs to be shortened or lengthened
-        if (+amount > appointments.length) {
-          //lengthen series by creating more in future
-          try {
-            repository.save(
-              repository.create(<DeepPartial<AppointmentTimeslot>>{
-                start: new Date(start.getTime() + +difference * i),
-                end: new Date(end.getTime() + +difference * i),
-                room,
-                user,
-                seriesId,
-              })
-            );
-          } catch (err) {
-            res.status(400).json(err);
-            return;
-          }
-        } else if (appointments.length > +amount) {
-          //shorten series by removing access ones
-          await repository.softDelete(appointments[i].id);
-        }
-      }
+    if ((first.user !== user || req.body.confirmationStatus) && !isAdmin) {
+      res.sendStatus(403);
+      return;
     }
 
-    res.status(200).json(
-      await repository.find({
-        where: { seriesId: req.params.id },
-        order: { start: 'ASC' },
-      })
-    );
+    if (onlyStatusPatch) {
+      // @todo this might cause issues
+      const updatedAppointments = await repository.update(
+        originalAppointments.map((appointment) => appointment.id),
+        { confirmationStatus }
+      );
+      res.json(updatedAppointments);
+      return;
+    }
+
+    if (timeSlotRecurrence === TimeSlotRecurrence.single) {
+      res.status(400).json({ message: 'Series can only be recurring' });
+      return;
+    }
+
+    if (amount <= 1) {
+      res
+        .status(400)
+        .json({ message: 'Series needs to have at least 2 appointments' });
+      return;
+    }
+
+    const mStart = moment(start);
+    const mEnd = moment(end);
+    let recurrence: DurationConstructor;
+
+    // parse recurrence
+
+    switch (timeSlotRecurrence) {
+      case TimeSlotRecurrence.daily:
+        recurrence = 'days';
+        break;
+
+      case TimeSlotRecurrence.weekly:
+        recurrence = 'weeks';
+        break;
+
+      case TimeSlotRecurrence.monthly:
+        recurrence = 'months';
+        break;
+
+      case TimeSlotRecurrence.yearly:
+        recurrence = 'years';
+        break;
+
+      default:
+        res.status(400).json({ message: 'Illegal recurrence' });
+        return;
+    }
+
+    // create all appointments
+
+    const newAppointments = [];
+
+    for (let i = 0; i < +amount; i++) {
+      const appointment: AppointmentTimeslot = repository.create(<
+        DeepPartial<AppointmentTimeslot>
+      >{
+        room,
+        user,
+        confirmationStatus: isAdmin
+          ? confirmationStatus
+          : room.autoAcceptBookings
+          ? ConfirmationStatus.accepted
+          : ConfirmationStatus.pending,
+        start: mStart.add(i > 0 ? 1 : 0, recurrence).toDate(),
+        end: mEnd.add(i > 0 ? 1 : 0, recurrence).toDate(),
+        timeSlotRecurrence,
+        seriesId,
+        amount,
+      });
+
+      try {
+        await validateOrReject(appointment);
+      } catch (err) {
+        res.status(400).json(err);
+        return;
+      }
+
+      // check for available & unavailable timeslot conflicts
+
+      const availableConflict =
+        (await getRepository(AvailableTimeslot).findOne({
+          where: {
+            room,
+            start: LessThanOrEqual(appointment.start),
+            end: MoreThanOrEqual(appointment.end),
+          },
+        })) === undefined;
+
+      if (availableConflict) {
+        if (force) continue;
+        res
+          .status(409)
+          .json({ message: 'Appointment conflicts with available timeslot' });
+        return;
+      }
+
+      const unavailableConflict =
+        (await getRepository(UnavailableTimeslot).findOne({
+          where: [
+            {
+              room,
+              end: Between(appointment.start, appointment.end),
+            },
+            {
+              room,
+              start: Between(appointment.start, appointment.end),
+            },
+          ],
+        })) !== undefined;
+
+      if (unavailableConflict) {
+        if (force) continue;
+        res
+          .status(409)
+          .json({ message: 'Appointment conflicts with unavailable timeslot' });
+        return;
+      }
+
+      const conflictingBookings = await getRepository(
+        AppointmentTimeslot
+      ).count({
+        where: [
+          {
+            room,
+            start: Between(
+              moment(appointment.start).add(1, 'ms').toDate(),
+              moment(appointment.end).subtract(1, 'ms').toDate()
+            ),
+            confirmationStatus: Not(ConfirmationStatus.denied),
+            seriesId: Not(seriesId),
+          },
+          {
+            room,
+            end: Between(
+              moment(appointment.start).add(1, 'ms').toDate(),
+              moment(appointment.end).subtract(1, 'ms').toDate()
+            ),
+            confirmationStatus: Not(ConfirmationStatus.denied),
+            seriesId: Not(seriesId),
+          },
+          {
+            room,
+            start: Between(
+              moment(appointment.start).add(1, 'ms').toDate(),
+              moment(appointment.end).subtract(1, 'ms').toDate()
+            ),
+            confirmationStatus: Not(ConfirmationStatus.denied),
+            seriesId: null,
+          },
+          {
+            room,
+            end: Between(
+              moment(appointment.start).add(1, 'ms').toDate(),
+              moment(appointment.end).subtract(1, 'ms').toDate()
+            ),
+            confirmationStatus: Not(ConfirmationStatus.denied),
+            seriesId: null,
+          },
+        ],
+      });
+
+      if (conflictingBookings >= room.maxConcurrentBookings) {
+        if (force) continue;
+        res.status(409).json({ message: 'Too many concurrent bookings' });
+        return;
+      }
+
+      newAppointments.push(appointment);
+    }
+
+    await repository.remove(originalAppointments);
+    const savedAppointments = await repository.save(newAppointments);
+
+    res.status(200).json(savedAppointments);
 
     await MessagingController.sendMessage(
       user,
       'Appointment Edited',
       'Your appointment series at ' +
-        moment(appointments[0].start).format('DD.MM.YY') +
+        moment(first.start).format('DD.MM.YY') +
         ' from ' +
-        moment(appointments[0].start).format('HH:mm') +
+        moment(first.start).format('HH:mm') +
         ' to ' +
-        moment(appointments[0].end).format('HH:mm') +
+        moment(first.end).format('HH:mm') +
         ' in room ' +
         room.name +
         ' was edited by an admin.',

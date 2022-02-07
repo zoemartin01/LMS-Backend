@@ -1,4 +1,11 @@
-import { Between, DeepPartial, getRepository, Not } from 'typeorm';
+import {
+  Between,
+  DeepPartial,
+  getRepository,
+  LessThanOrEqual,
+  MoreThanOrEqual,
+  Not,
+} from 'typeorm';
 import { Room } from '../models/room.entity';
 import { Request, Response } from 'express';
 import { TimeSlot } from '../models/timeslot.entity';
@@ -7,7 +14,11 @@ import { AppointmentTimeslot } from '../models/appointment.timeslot.entity';
 import { AvailableTimeslot } from '../models/available.timeslot.entity';
 import { UnavailableTimeslot } from '../models/unavaliable.timeslot.entity';
 import { ConfirmationStatus } from '../types/enums/confirmation-status';
-import moment from 'moment/moment';
+import moment, { min, max } from 'moment/moment';
+import { TimeSlotRecurrence } from '../types/enums/timeslot-recurrence';
+import { validateOrReject } from 'class-validator';
+import DurationConstructor = moment.unitOfTime.DurationConstructor;
+import { v4 } from 'uuid';
 
 /**
  * Controller for room management
@@ -440,18 +451,20 @@ export class RoomController {
    *
    * @route {POST} /rooms/:roomId/timeslots
    * @routeParam {string} roomId - id of the room
-   * @bodyParam {string} seriesId - The id of the series the time slot belongs to.
    * @bodyParam {Date} start - The start time of the time slot.
    * @bodyParam {Date} end - The end time of the time slot.
    * @bodyParam {Room} room - The room the time slot belongs to.
-   * @bodyParam {User} user - The user associated with the time slot.
    * @bodyParam {TimeSlotType} type - The type of the time slot.
    * @param {Request} req frontend request to create a new available timeslot of a room
    * @param {Response} res backend response creation of a new available timeslot of a room
    */
   public static async createTimeslot(req: Request, res: Response) {
-    if ((await getRepository(Room).findOne(req.body.roomId)) === undefined) {
-      res.status(400).json({ message: 'Room not found' });
+    const { roomId, start, end } = req.body;
+
+    const room = await getRepository(Room).findOne(roomId);
+
+    if (room === undefined) {
+      res.status(404).json({ message: 'Room not found' });
       return;
     }
 
@@ -467,27 +480,373 @@ export class RoomController {
       return;
     }
 
-    const { start, end, room } = req.body;
+    if (req.body.amount !== undefined && req.body.amount > 1) {
+      res.status(400).json({
+        message: 'Single timeslot amount cannot be greater than 1',
+      });
+      return;
+    }
+
+    if (
+      req.body.timeSlotRecurrence !== undefined &&
+      req.body.timeSlotRecurrence !== TimeSlotRecurrence.single
+    ) {
+      res
+        .status(400)
+        .json({ message: 'Single timeslot recurrence cannot be set' });
+      return;
+    }
 
     const repository =
       type === TimeSlotType.available
         ? getRepository(AvailableTimeslot)
         : getRepository(UnavailableTimeslot);
 
-    try {
-      const timeslot = await repository.save(
-        repository.create({
-          start: moment(start).toDate(),
-          end: moment(end).toDate(),
-          room,
-        })
-      );
+    let timeslot;
 
-      res.status(201).json(timeslot);
+    try {
+      timeslot = repository.create({
+        start: moment(start).toDate(),
+        end: moment(end).toDate(),
+        room,
+      });
+
+      await validateOrReject(timeslot);
     } catch (err) {
       res.status(400).json(err);
       return;
     }
+
+    const mergables = await repository.findAndCount({
+      where: [
+        {
+          start: end,
+          type,
+          room,
+        },
+        {
+          end: start,
+          type,
+          room,
+        },
+        {
+          start: LessThanOrEqual(start),
+          type,
+          room,
+        },
+        {
+          end: MoreThanOrEqual(end),
+          type,
+          room,
+        },
+        {
+          start: Between(start, end),
+          type,
+          room,
+        },
+        {
+          end: Between(start, end),
+          type,
+          room,
+        },
+      ],
+    });
+
+    if (mergables[1] > 0) {
+      const minStart = min(mergables[0].map((m) => moment(m.start)));
+      const maxEnd = max(mergables[0].map((m) => moment(m.end)));
+
+      timeslot = repository.create({
+        room,
+        start: minStart.toDate(),
+        end: maxEnd.toDate(),
+      });
+      await repository.remove(mergables[0]);
+    }
+
+    await repository.save(timeslot);
+    res.status(201).json(timeslot);
+  }
+
+  /**
+   * Creates a new timeslot series
+   *
+   * @route {POST} /rooms/:roomId/timeslots
+   * @routeParam {string} roomId - id of the room
+   * @bodyParam {Date} start - The start time of the time slot.
+   * @bodyParam {Date} end - The end time of the time slot.
+   * @bodyParam {Room} room - The room the time slot belongs to.
+   * @bodyParam {TimeSlotType} type - The type of the time slot.
+   * @bodyParam {TimeSlotRecurrence} timeSlotRecurrence - The recurrence of the time slot.
+   * @bodyParam {number} amount - The amount of the time slot.
+   * @param {Request} req frontend request to create a new available timeslot of a room
+   * @param {Response} res backend response creation of a new available timeslot of a room
+   */
+  public static async createTimeslotSeries(req: Request, res: Response) {
+    const { roomId, start, end, timeSlotRecurrence, amount, force } = req.body;
+    const seriesId = v4();
+
+    const room = await getRepository(Room).findOne(roomId);
+
+    if (room === undefined) {
+      res.status(404).json({ message: 'Room not found' });
+      return;
+    }
+
+    const type = req.body.type;
+
+    if (type === undefined) {
+      res.status(400).json({ message: 'No type specified' });
+      return;
+    }
+
+    if (type === TimeSlotType.booked) {
+      res.status(400).json({ message: 'Type appointment is illegal here' });
+      return;
+    }
+
+    if (timeSlotRecurrence === TimeSlotRecurrence.single) {
+      res.status(400).json({ message: 'Series can only be recurring' });
+      return;
+    }
+
+    if (amount <= 1) {
+      res
+        .status(400)
+        .json({ message: 'Series needs to have at least 2 appointments' });
+      return;
+    }
+
+    const repository =
+      type === TimeSlotType.available
+        ? getRepository(AvailableTimeslot)
+        : getRepository(UnavailableTimeslot);
+
+    const mStart = moment(start);
+    const mEnd = moment(end);
+    let recurrence: DurationConstructor;
+
+    // parse recurrence
+
+    switch (timeSlotRecurrence) {
+      case TimeSlotRecurrence.daily:
+        recurrence = 'days';
+        break;
+
+      case TimeSlotRecurrence.weekly:
+        recurrence = 'weeks';
+        break;
+
+      case TimeSlotRecurrence.monthly:
+        recurrence = 'months';
+        break;
+
+      case TimeSlotRecurrence.yearly:
+        recurrence = 'years';
+        break;
+
+      default:
+        res.status(400).json({ message: 'Illegal recurrence' });
+        return;
+    }
+
+    // create all timeslots
+
+    const timeslots = [];
+
+    for (let i = 0; i < +amount; i++) {
+      let timeslot = repository.create({
+        room,
+        start: mStart.add(i > 0 ? 1 : 0, recurrence).toDate(),
+        end: mEnd.add(i > 0 ? 1 : 0, recurrence).toDate(),
+        timeSlotRecurrence,
+        seriesId,
+        amount,
+      });
+
+      try {
+        await validateOrReject(timeslot);
+      } catch (err) {
+        res.status(400).json(err);
+        return;
+      }
+
+      const mergables = await repository.findAndCount({
+        where: [
+          {
+            start: end,
+            type,
+            room,
+          },
+          {
+            end: start,
+            type,
+            room,
+          },
+          {
+            start: LessThanOrEqual(start),
+            type,
+            room,
+          },
+          {
+            end: MoreThanOrEqual(end),
+            type,
+            room,
+          },
+          {
+            start: Between(start, end),
+            type,
+            room,
+          },
+          {
+            end: Between(start, end),
+            type,
+            room,
+          },
+        ],
+      });
+
+      if (mergables[1] > 0) {
+        const minStart = min(mergables[0].map((m) => moment(m.start)));
+        const maxEnd = max(mergables[0].map((m) => moment(m.end)));
+
+        timeslot = repository.create({
+          room,
+          start: minStart.toDate(),
+          end: maxEnd.toDate(),
+        });
+        await repository.remove(mergables[0]);
+      }
+
+      timeslots.push(timeslot);
+    }
+
+    const savedTimeslots = await repository.save(timeslots);
+    res.status(201).json(savedTimeslots);
+  }
+
+  /**
+   * Updates a timeslot
+   *
+   * @route {PATCH} /rooms/:roomId/timeslots/:timeslotId
+   * @routeParam {string} roomId - id of the room
+   * @routeParam {string} timeslotId - id of the timeslot
+   * @bodyParam {Date [Optional]} start - The start time of the time slot.
+   * @bodyParam {Date [Optional]} end - The end time of the time slot.
+   * @bodyParam {Room [Optional]} room - The room the time slot belongs to.
+   * @param {Request} req frontend request to create a new available timeslot of a room
+   * @param {Response} res backend response creation of a new available timeslot of a room
+   */
+  public static async updateTimeslot(req: Request, res: Response) {
+    const room = await getRepository(Room).findOne(req.params.roomId);
+
+    if (room === undefined) {
+      res.status(404).json({ message: 'Room not found' });
+      return;
+    }
+
+    let timeslot = await getRepository(TimeSlot).findOne(req.params.timeslotId);
+    let repository;
+
+    if (timeslot === undefined) {
+      res.status(404).json({ message: 'Timeslot not found' });
+      return;
+    }
+
+    const type = timeslot.type;
+
+    if (type === TimeSlotType.booked) {
+      res.status(400).json({ message: 'Type appointment is illegal here' });
+      return;
+    }
+
+    if (type === TimeSlotType.available) {
+      repository = getRepository(AvailableTimeslot);
+      const availableTimeslot = await repository.findOneOrFail(timeslot.id);
+
+      if (availableTimeslot.room !== room) {
+        res.sendStatus(404);
+        return;
+      }
+      timeslot = availableTimeslot;
+    } else if (type === TimeSlotType.unavailable) {
+      repository = getRepository(UnavailableTimeslot);
+      const unavailableTimeslot = await repository.findOneOrFail(timeslot.id);
+
+      if (unavailableTimeslot.room !== room) {
+        res.sendStatus(404);
+        return;
+      }
+      timeslot = unavailableTimeslot;
+    } else {
+      return;
+    }
+
+    const { start, end } = req.body;
+    let newTimeslot;
+
+    try {
+      newTimeslot = repository.create({
+        start: moment(start).toDate(),
+        end: moment(end).toDate(),
+        room,
+      });
+
+      await validateOrReject(timeslot);
+    } catch (err) {
+      res.status(400).json(err);
+      return;
+    }
+
+    const mergables = await repository.findAndCount({
+      where: [
+        {
+          start: end,
+          type,
+          room,
+        },
+        {
+          end: start,
+          type,
+          room,
+        },
+        {
+          start: LessThanOrEqual(start),
+          type,
+          room,
+        },
+        {
+          end: MoreThanOrEqual(end),
+          type,
+          room,
+        },
+        {
+          start: Between(start, end),
+          type,
+          room,
+        },
+        {
+          end: Between(start, end),
+          type,
+          room,
+        },
+      ],
+    });
+
+    if (mergables[1] > 0) {
+      const minStart = min(mergables[0].map((m) => moment(m.start)));
+      const maxEnd = max(mergables[0].map((m) => moment(m.end)));
+
+      newTimeslot = repository.create({
+        room,
+        start: minStart.toDate(),
+        end: maxEnd.toDate(),
+      });
+      await repository.remove(mergables[0]);
+    }
+
+    await repository.update(timeslot.id, newTimeslot);
+    res.json(newTimeslot);
   }
 
   /**
