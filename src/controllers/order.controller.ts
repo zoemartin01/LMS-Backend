@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { DeepPartial, getRepository, Not } from 'typeorm';
+import { DeepPartial, getRepository } from 'typeorm';
 import { Order } from '../models/order.entity';
 import { AuthController } from './auth.controller';
 import { OrderStatus } from '../types/enums/order-status';
@@ -59,16 +59,18 @@ export class OrderController {
 
     const total = await repository.count({
       where: [
-        { status: Not(OrderStatus.pending) },
-        { status: Not(OrderStatus.declined) },
+        { status: OrderStatus.ordered },
+        { status: OrderStatus.inventoried },
+        { status: OrderStatus.sent_back },
       ],
     });
 
     repository
       .find({
         where: [
-          { status: Not(OrderStatus.pending) },
-          { status: Not(OrderStatus.declined) },
+          { status: OrderStatus.ordered },
+          { status: OrderStatus.inventoried },
+          { status: OrderStatus.sent_back },
         ],
         relations: ['user', 'item'],
         order: { updatedAt: 'DESC' },
@@ -133,12 +135,12 @@ export class OrderController {
     const repository = getRepository(Order);
 
     const total = await repository.count({
-      where: [{ user: currentUser }, { status: OrderStatus.pending }],
+      where: { user: currentUser, status: OrderStatus.pending },
     });
 
     repository
       .find({
-        where: [{ user: currentUser }, { status: OrderStatus.pending }],
+        where: { user: currentUser, status: OrderStatus.pending },
         relations: ['user', 'item'],
         order: {
           updatedAt: 'DESC',
@@ -175,18 +177,18 @@ export class OrderController {
 
     const total = await repository.count({
       where: [
-        { user: currentUser },
-        { status: Not(OrderStatus.pending) },
-        { status: Not(OrderStatus.declined) },
+        { user: currentUser, status: OrderStatus.ordered },
+        { user: currentUser, status: OrderStatus.inventoried },
+        { user: currentUser, status: OrderStatus.sent_back },
       ],
     });
 
     repository
       .find({
         where: [
-          { user: currentUser },
-          { status: Not(OrderStatus.pending) },
-          { status: Not(OrderStatus.declined) },
+          { user: currentUser, status: OrderStatus.ordered },
+          { user: currentUser, status: OrderStatus.inventoried },
+          { user: currentUser, status: OrderStatus.sent_back },
         ],
         relations: ['user', 'item'],
         order: {
@@ -223,12 +225,12 @@ export class OrderController {
     const repository = getRepository(Order);
 
     const total = await repository.count({
-      where: [{ user: currentUser }, { status: OrderStatus.declined }],
+      where: { user: currentUser, status: OrderStatus.declined },
     });
 
     repository
       .find({
-        where: [{ user: currentUser }, { status: OrderStatus.declined }],
+        where: { user: currentUser, status: OrderStatus.declined },
         relations: ['user', 'item'],
         order: {
           updatedAt: 'DESC',
