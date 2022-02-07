@@ -6,6 +6,8 @@ import { RetailerDomain } from '../models/retailer.domain.entity';
 import { User } from '../models/user.entity';
 import { UserRole } from '../types/enums/user-role';
 import { MessagingController } from './messaging.controller';
+import bcrypt from 'bcrypt';
+import environment from '../environment';
 
 /**
  * Controller for Admin Management
@@ -517,71 +519,78 @@ export class AdminController {
    * @param {Response} res backend response with data change of one user
    */
   public static async updateUser(req: Request, res: Response) {
-    const userRepository = getRepository(User);
+    bcrypt.hash(
+      req.body.password,
+      environment.pwHashSaltRound,
+      async (err: Error | undefined, hash) => {
+        const userRepository = getRepository(User);
 
-    const user: User | undefined = await userRepository.findOne({
-      where: { id: req.params.id },
-    });
-
-    if (user === undefined) {
-      res.status(404).json({
-        message: 'User not found.',
-      });
-      return;
-    }
-
-    //checking for user is last admin
-    if (user.role === UserRole.admin) {
-      const adminCount = await userRepository.count({
-        where: {
-          role: UserRole.admin,
-          emailVerification: true,
-          email: Not('SYSTEM'),
-        },
-      });
-      if (
-        adminCount <= 1 &&
-        (+req.body.role === UserRole.pending ||
-          +req.body.role === UserRole.visitor)
-      ) {
-        res.status(403).json({
-          message: 'Not allowed to degrade last admin',
+        const user: User | undefined = await userRepository.findOne({
+          where: { id: req.params.id },
         });
-        return;
-      }
-    }
 
-    await MessagingController.sendMessage(
-      user,
-      'Account updated',
-      'Your account has been updated by an admin.' + req.body
-    );
+        if (user === undefined) {
+          res.status(404).json({
+            message: 'User not found.',
+          });
+          return;
+        }
 
-    //checking for pending user is accepted
-    if (user.role === UserRole.pending) {
-      if (+req.body.role === UserRole.visitor) {
-        await MessagingController.sendMessageViaEmail(
+        //checking for user is last admin
+        if (user.role === UserRole.admin) {
+          const adminCount = await userRepository.count({
+            where: {
+              role: UserRole.admin,
+              emailVerification: true,
+              email: Not('SYSTEM'),
+            },
+          });
+          if (
+            adminCount <= 1 &&
+            (+req.body.role === UserRole.pending ||
+              +req.body.role === UserRole.visitor)
+          ) {
+            res.status(403).json({
+              message: 'Not allowed to degrade last admin',
+            });
+            return;
+          }
+        }
+
+        await MessagingController.sendMessage(
           user,
-          'Account request accepted',
-          'Your account request has been accepted. You can now login.'
+          'Account updated',
+          'Your account has been updated by an admin.' + req.body
         );
+
+        //checking for pending user is accepted
+        if (user.role === UserRole.pending) {
+          if (+req.body.role === UserRole.visitor) {
+            await MessagingController.sendMessageViaEmail(
+              user,
+              'Account request accepted',
+              'Your account request has been accepted. You can now login.'
+            );
+          }
+        }
+
+        try {
+          await userRepository.update(
+            { id: user.id },
+            userRepository.create(<DeepPartial<User>>{
+              ...user,
+              ...req.body,
+              password: hash,
+            })
+          );
+        } catch (err) {
+          res.status(400).json(err);
+          return;
+        }
+
+        res.json(await userRepository.findOne(user.id));
       }
-    }
-
-    try {
-      await userRepository.update(
-        { id: user.id },
-        userRepository.create(<DeepPartial<User>>{
-          ...user,
-          ...req.body,
-        })
-      );
-    } catch (err) {
-      res.status(400).json(err);
-      return;
-    }
-
-    res.json(await userRepository.findOne(user.id));
+    );
   }
 
   /**
