@@ -721,7 +721,7 @@ export class AppointmentController {
     }
 
     try {
-      repository.update(
+      await repository.update(
         { id: appointment.id },
         repository.create(<DeepPartial<AppointmentTimeslot>>{
           ...appointment,
@@ -798,7 +798,7 @@ export class AppointmentController {
       ) {
         //these appointments are safe to update
         try {
-          repository.update(
+          await repository.update(
             { id: appointments[i].id },
             repository.create(<DeepPartial<AppointmentTimeslot>>{
               ...appointments[i],
