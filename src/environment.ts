@@ -112,15 +112,20 @@ const environment = {
     inventory_item: {
       getAllItems: '/inventory-items',
       getSingleItem: '/inventory-items/:id',
+      getByName: '/inventory-items/name/:name',
 
       createItem: '/inventory-items',
       updateItem: '/inventory-items/:id',
       deleteItem: '/inventory-items/:id',
     },
     orders: {
-      getCurrentUserOrders: '/user/orders',
+      getCurrentUsersPendingOrders: '/user/orders/pending',
+      getCurrentUsersAcceptedOrders: '/user/orders/accepted',
+      getCurrentUsersDeclinedOrders: '/user/orders/declined',
 
-      getAllOrders: '/orders',
+      getAllPendingOrders: '/orders/pending',
+      getAllAcceptedOrders: '/orders/accepted',
+      getAllDeclinedOrders: '/orders/declined',
       getSingleOrder: '/orders/:id',
 
       createOrder: '/orders',

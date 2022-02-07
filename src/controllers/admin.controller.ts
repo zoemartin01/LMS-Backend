@@ -530,6 +530,7 @@ export class AdminController {
       return;
     }
 
+    //checking for user is last admin
     if (user.role === UserRole.admin) {
       const adminCount = await userRepository.count({
         where: {
@@ -557,6 +558,17 @@ export class AdminController {
       'Your account has been updated by an admin.' + req.body
     );
 
+    //checking for pending user is accepted
+    if (user.role === UserRole.pending) {
+      if (+req.body.role === UserRole.visitor) {
+        await MessagingController.sendMessageViaEmail(
+          user,
+          'Account request accepted',
+          'Your account request has been accepted. You can now login.'
+        );
+      }
+    }
+
     try {
       await userRepository.update(
         { id: user.id },
@@ -566,7 +578,6 @@ export class AdminController {
         })
       );
     } catch (err) {
-      console.log(err);
       res.status(400).json(err);
       return;
     }
