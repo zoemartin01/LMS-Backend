@@ -574,21 +574,44 @@ export class AdminController {
           }
         }
 
-        try {
-          await userRepository.update(
-            { id: user.id },
-            userRepository.create(<DeepPartial<User>>{
-              ...user,
-              ...req.body,
-              password: hash,
-            })
-          );
-        } catch (err) {
-          res.status(400).json(err);
-          return;
-        }
+        if (req.body.password) {
+          bcrypt.hash(
+            req.body.password,
+            environment.pwHashSaltRound,
+            async (err: Error | undefined, hash) => {
+              try {
+                await userRepository.update(
+                  { id: user.id },
+                  userRepository.create(<DeepPartial<User>>{
+                    ...user,
+                    ...req.body,
+                    password: hash,
+                  })
+                );
+              } catch (err) {
+                res.status(400).json(err);
+                return;
+              }
 
-        res.json(await userRepository.findOne(user.id));
+              res.json(await userRepository.findOne(user.id));
+            }
+          );
+        } else {
+          try {
+            await userRepository.update(
+              { id: user.id },
+              userRepository.create(<DeepPartial<User>>{
+                ...user,
+                ...req.body,
+              })
+            );
+          } catch (err) {
+            res.status(400).json(err);
+            return;
+          }
+
+          res.json(await userRepository.findOne(user.id));
+        }
       }
     );
   }

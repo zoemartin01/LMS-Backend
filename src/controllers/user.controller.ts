@@ -45,76 +45,90 @@ export class UserController {
    * @param {Response} res backend response
    */
   public static async updateUser(req: Request, res: Response) {
-    bcrypt.hash(
-      req.body.password,
-      environment.pwHashSaltRound,
-      async (err: Error | undefined, hash) => {
-        const user = await AuthController.getCurrentUser(req);
-        const repository = getRepository(User);
+    const user = await AuthController.getCurrentUser(req);
+    const repository = getRepository(User);
 
-        if (user === null) {
-          res.status(404).json({
-            message: 'user not found.',
-          });
-          return;
-        }
-        if (req.body.role !== undefined) {
-          res.status(403).json({
-            message: 'No permission to change role.',
-          });
-          return;
-        }
-        if (req.body.emailVerification !== undefined) {
-          res.status(403).json({
-            message: 'No permission to change email verification.',
-          });
-          return;
-        }
-        if (req.body.isActiveDirectory !== undefined) {
-          res.status(403).json({
-            message: 'No permission to change login option.',
-          });
-          return;
-        }
-        if (
-          req.body.firstName !== undefined ||
-          req.body.lastName !== undefined
-        ) {
-          res.status(403).json({
-            message: 'No permission to change name.',
-          });
-          return;
-        }
-        if (req.body.email !== undefined) {
-          res.status(403).json({
-            message: 'No permission to change email.',
-          });
-          return;
-        }
-        if (req.body.id !== undefined) {
-          res.status(403).json({
-            message: 'No permission to change id.',
-          });
-          return;
-        }
+    if (user === null) {
+      res.status(404).json({
+        message: 'user not found.',
+      });
+      return;
+    }
+    if (req.body.role !== undefined) {
+      res.status(403).json({
+        message: 'No permission to change role.',
+      });
+      return;
+    }
+    if (req.body.emailVerification !== undefined) {
+      res.status(403).json({
+        message: 'No permission to change email verification.',
+      });
+      return;
+    }
+    if (req.body.isActiveDirectory !== undefined) {
+      res.status(403).json({
+        message: 'No permission to change login option.',
+      });
+      return;
+    }
+    if (req.body.firstName !== undefined || req.body.lastName !== undefined) {
+      res.status(403).json({
+        message: 'No permission to change name.',
+      });
+      return;
+    }
+    if (req.body.email !== undefined) {
+      res.status(403).json({
+        message: 'No permission to change email.',
+      });
+      return;
+    }
+    if (req.body.id !== undefined) {
+      res.status(403).json({
+        message: 'No permission to change id.',
+      });
+      return;
+    }
 
-        try {
-          await repository.update(
-            { id: user.id },
-            repository.create(<DeepPartial<User>>{
-              ...user,
-              ...req.body,
-              password: hash,
-            })
-          );
-        } catch (err) {
-          res.status(400).json(err);
-          return;
-        }
+    if (req.body.password) {
+      bcrypt.hash(
+        req.body.password,
+        environment.pwHashSaltRound,
+        async (err: Error | undefined, hash) => {
+          try {
+            await repository.update(
+              { id: user.id },
+              repository.create(<DeepPartial<User>>{
+                ...user,
+                ...req.body,
+                password: hash,
+              })
+            );
+          } catch (err) {
+            res.status(400).json(err);
+            return;
+          }
 
-        res.json(await repository.findOne(user.id));
+          res.json(await repository.findOne(user.id));
+        }
+      );
+    } else {
+      try {
+        await repository.update(
+          { id: user.id },
+          repository.create(<DeepPartial<User>>{
+            ...user,
+            ...req.body,
+          })
+        );
+      } catch (err) {
+        res.status(400).json(err);
+        return;
       }
-    );
+
+      res.json(await repository.findOne(user.id));
+    }
   }
 
   /**
