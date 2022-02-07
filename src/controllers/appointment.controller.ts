@@ -5,6 +5,7 @@ import {
   getRepository,
   LessThanOrEqual,
   MoreThanOrEqual,
+  Not,
 } from 'typeorm';
 import { AppointmentTimeslot } from '../models/appointment.timeslot.entity';
 import { AuthController } from './auth.controller';
@@ -431,6 +432,7 @@ export class AppointmentController {
         {
           room,
           start: Between(appointment.start, appointment.end),
+          confirmationStatus: Not(ConfirmationStatus.denied),
         },
         {
           room,
@@ -636,10 +638,12 @@ export class AppointmentController {
           {
             room,
             start: Between(appointment.start, appointment.end),
+            confirmationStatus: Not(ConfirmationStatus.denied),
           },
           {
             room,
             end: Between(appointment.start, appointment.end),
+            confirmationStatus: Not(ConfirmationStatus.denied),
           },
         ],
       });
