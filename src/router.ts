@@ -291,12 +291,12 @@ class AppRouter {
       AuthController.checkAdminMiddleware,
       RoomController.updateTimeslot
     );
-    // this.router.patch(
-    //   addUUIDRegexToRoute(environment.apiRoutes.rooms.updateTimeslotSeries),
-    //   AuthController.checkAuthenticationMiddleware,
-    //   AuthController.checkAdminMiddleware,
-    //   RoomController.updateTimeslotSeries
-    // );
+    this.router.patch(
+      addUUIDRegexToRoute(environment.apiRoutes.rooms.updateTimeslotSeries),
+      AuthController.checkAuthenticationMiddleware,
+      AuthController.checkAdminMiddleware,
+      RoomController.updateTimeslotSeries
+    );
     this.router.delete(
       addUUIDRegexToRoute(environment.apiRoutes.rooms.deleteTimeslot),
       AuthController.checkAuthenticationMiddleware,
