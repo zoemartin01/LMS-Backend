@@ -440,7 +440,7 @@ export class AppointmentController {
       ],
     });
 
-    if (conflictingBookings > room.maxConcurrentBookings) {
+    if (conflictingBookings >= room.maxConcurrentBookings) {
       res.status(409).json({ message: 'Too many concurrent bookings' });
       return;
     }
@@ -638,7 +638,11 @@ export class AppointmentController {
         ],
       });
 
-      if (conflictingBookings > room.maxConcurrentBookings) {
+      console.log(
+        `conflicting bookings: ${conflictingBookings}, force: ${force}, max: ${room.maxConcurrentBookings}`
+      );
+
+      if (conflictingBookings >= room.maxConcurrentBookings) {
         if (force) continue;
         res.status(409).json({ message: 'Too many concurrent bookings' });
         return;
