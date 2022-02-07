@@ -63,6 +63,16 @@ export class AdminController {
         });
         return;
       }
+      if (
+        (globalSettings[globalSetting].key === 'user.max_recordings' ||
+          globalSettings[globalSetting].key === 'recording.auto_delete') &&
+        +globalSettings[globalSetting].value < 1
+      ) {
+        res.status(404).json({
+          message: `Can't set those settings on negative values`,
+        });
+        return;
+      }
     }
 
     for (const globalSetting in globalSettings) {
@@ -521,11 +531,15 @@ export class AdminController {
     }
 
     if (user.role === UserRole.admin) {
-      const userCount = await userRepository.count({
-        where: { role: UserRole.admin },
+      const adminCount = await userRepository.count({
+        where: {
+          role: UserRole.admin,
+          emailVerification: true,
+          email: Not('SYSTEM'),
+        },
       });
       if (
-        userCount === 1 &&
+        adminCount <= 1 &&
         (+req.body.role === UserRole.pending ||
           +req.body.role === UserRole.visitor)
       ) {
@@ -535,6 +549,7 @@ export class AdminController {
         return;
       }
     }
+    //console.log(Object.keys(UserRole)[req.body.role - 1 + (Object.keys(UserRole).length / 2)]);
 
     await MessagingController.sendMessage(
       user,
@@ -551,6 +566,7 @@ export class AdminController {
         })
       );
     } catch (err) {
+      console.log(err);
       res.status(400).json(err);
       return;
     }
@@ -581,10 +597,16 @@ export class AdminController {
     }
 
     if (user.role === UserRole.admin) {
-      const userCount = await userRepository.count({
-        where: { role: UserRole.admin },
+      const adminCount = await userRepository.count({
+        where: {
+          role: UserRole.admin,
+          emailVerification: true,
+          email: Not('SYSTEM'),
+        },
       });
-      if (userCount == 1) {
+      console.log(adminCount);
+
+      if (adminCount <= 1) {
         res.status(403).json({
           message: 'Not allowed to delete last admin',
         });
@@ -597,18 +619,24 @@ export class AdminController {
       'Account deletion',
       'Your account has been deleted by an admin. Bye!'
     );
+
     try {
       await userRepository.update(
         { id: user.id },
         userRepository.create(<DeepPartial<User>>{
           ...user,
-          ...{ firstName: undefined, lastName: undefined, email: undefined },
+          ...{
+            firstName: 'strawberry',
+            lastName: 'mango',
+            email: 'raspberry@choco.late',
+          },
         })
       );
     } catch (err) {
       res.status(400).json(err);
       return;
     }
+
     await userRepository.softDelete(user.id);
 
     res.sendStatus(204);
