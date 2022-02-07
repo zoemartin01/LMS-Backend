@@ -190,7 +190,8 @@ export class InventoryController {
       })
       .then((inventoryItem) => {
         if (inventoryItem === undefined) {
-          res.json(null);
+          res.sendStatus(404);
+          return;
         }
         res.json(inventoryItem);
       });
