@@ -55,24 +55,25 @@ const environment = {
       verifyEmail: '/user/verify-email',
     },
     admin_settings: {
-      getGlobalSettings: '/global-settings',
-      updateGlobalSettings: '/global-settings',
+      getGlobalSettings: '/application-settings',
+      updateGlobalSettings: '/application-settings',
 
-      getWhitelistRetailer: '/global-settings/whitelist-retailers/:id',
-      getWhitelistRetailers: '/global-settings/whitelist-retailers',
+      getWhitelistRetailer: '/application-settings/whitelist-retailers/:id',
+      getWhitelistRetailers: '/application-settings/whitelist-retailers',
 
-      createWhitelistRetailer: '/global-settings/whitelist-retailers',
-      updateWhitelistRetailer: '/global-settings/whitelist-retailers/:id',
-      deleteWhitelistRetailer: '/global-settings/whitelist-retailers/:id',
+      createWhitelistRetailer: '/application-settings/whitelist-retailers',
+      updateWhitelistRetailer: '/application-settings/whitelist-retailers/:id',
+      deleteWhitelistRetailer: '/application-settings/whitelist-retailers/:id',
 
       addDomainToWhitelistRetailer:
-        '/global-settings/whitelist-retailers/:id/domains',
+        '/application-settings/whitelist-retailers/:id/domains',
       updateDomainOfWhitelistRetailer:
-        '/global-settings/whitelist-retailers/:id/domains/:domainId',
+        '/application-settings/whitelist-retailers/:id/domains/:domainId',
       deleteDomainOfWhitelistRetailer:
-        '/global-settings/whitelist-retailers/:id/domains/:domainId',
+        '/application-settings/whitelist-retailers/:id/domains/:domainId',
 
-      checkDomainAgainstWhitelist: '/global-settings/whitelist-retailers/check',
+      checkDomainAgainstWhitelist:
+        '/application-settings/whitelist-retailers/check',
     },
     user_management: {
       getAllPendingUsers: '/users/pending',
