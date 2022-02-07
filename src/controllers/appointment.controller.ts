@@ -327,14 +327,13 @@ export class AppointmentController {
    *
    * @route {POST} /appointments
    * @bodyParam {string} roomId - the id of the room associated with the appointment
-   * @bodyParam {ConfirmationStatus} confirmationStatus - status of request
    * @bodyParam {Date} start - start date and time of the appointment
    * @bodyParam {Date} end - end date and time of the appointment
    * @param {Request} req frontend request to create a new appointment
    * @param {Response} res backend response creation of a new appointment
    */
   public static async createAppointment(req: Request, res: Response) {
-    const { roomId, confirmationStatus, start, end } = req.body;
+    const { roomId, start, end } = req.body;
 
     const repository = getRepository(AppointmentTimeslot);
 
@@ -377,7 +376,7 @@ export class AppointmentController {
         end: moment(end).toDate(),
         confirmationStatus: room.autoAcceptBookings
           ? ConfirmationStatus.accepted
-          : confirmationStatus,
+          : ConfirmationStatus.pending,
         user,
         room,
         amount: 1,
@@ -489,7 +488,6 @@ export class AppointmentController {
    *
    * @route {POST} /appointments/series
    * @bodyParam {string} roomId - the id of the room associated with the appointment
-   * @bodyParam {ConfirmationStatus} confirmationStatus - status of request
    * @bodyParam {Date} start - start date and time of the appointment
    * @bodyParam {Date} end - end date and time of the appointment
    * @bodyParam {TimeSlotRecurrence} timeSlotRecurrence - recurrence of appointment
@@ -503,7 +501,6 @@ export class AppointmentController {
     const appointments: AppointmentTimeslot[] = [];
     const {
       roomId,
-      confirmationStatus,
       start,
       end,
       timeSlotRecurrence,
@@ -575,7 +572,7 @@ export class AppointmentController {
         user,
         confirmationStatus: room.autoAcceptBookings
           ? ConfirmationStatus.accepted
-          : confirmationStatus,
+          : ConfirmationStatus.pending,
         start: mStart.add(i > 1 ? 1 : 0, recurrence).toDate(),
         end: mEnd.add(i > 1 ? 1 : 0, recurrence).toDate(),
         timeSlotRecurrence,
