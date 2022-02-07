@@ -127,7 +127,7 @@ export class UserController {
       'User' + user.firstName + user.lastName + 'deleted their account'
     );
 
-    await MessagingController.sendMessage(
+    await MessagingController.sendMessageViaEmail(
       user,
       'Account deleted',
       'Your account has been deleted. Bye!'
