@@ -45,20 +45,18 @@ export class InventoryController {
    * @param {Response} res backend response with data of one inventory item
    */
   public static async getInventoryItem(req: Request, res: Response) {
-    getRepository(InventoryItem)
-      .findOne({
-        where: { id: req.params.id },
-      })
-      .then((inventoryItem) => {
-        if (inventoryItem === undefined) {
-          res.status(404).json({
-            message: 'Inventory item not found.',
-          });
-          return;
-        }
+    const inventoryItem = await getRepository(InventoryItem).findOne({
+      where: { id: req.params.id },
+    });
 
-        res.json(inventoryItem);
+    if (inventoryItem === undefined) {
+      res.status(404).json({
+        message: 'Inventory item not found.',
       });
+      return;
+    }
+
+    res.json(inventoryItem);
   }
 
   /**
@@ -128,7 +126,7 @@ export class InventoryController {
     }
 
     try {
-      repository.update(
+      await repository.update(
         { id: inventoryItem.id },
         repository.create(<DeepPartial<InventoryItem>>{
           ...inventoryItem,
