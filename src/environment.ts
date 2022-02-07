@@ -118,9 +118,13 @@ const environment = {
       deleteItem: '/inventory-items/:id',
     },
     orders: {
-      getCurrentUserOrders: '/user/orders',
+      getCurrentUsersPendingOrders: '/user/orders/pending',
+      getCurrentUsersAcceptedOrders: '/user/orders/accepted',
+      getCurrentUsersDeclinedOrders: '/user/orders/declined',
 
-      getAllOrders: '/orders',
+      getAllPendingOrders: '/orders/pending',
+      getAllAcceptedOrders: '/orders/accepted',
+      getAllDeclinedOrders: '/orders/declined',
       getSingleOrder: '/orders/:id',
 
       createOrder: '/orders',
