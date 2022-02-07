@@ -26,8 +26,8 @@ export async function createTimeslots(room: Room, weeks = 52) {
     for (let j = 0; j < weeks; j++) {
       timeslots.push(
         getRepository(AvailableTimeslot).create({
-          start: aStart.add(1, 'weeks').toISOString(),
-          end: aEnd.add(1, 'weeks').toISOString(),
+          start: aStart.add(1, 'weeks').toDate(),
+          end: aEnd.add(1, 'weeks').toDate(),
           room,
           amount: weeks,
           timeSlotRecurrence: TimeSlotRecurrence.weekly,

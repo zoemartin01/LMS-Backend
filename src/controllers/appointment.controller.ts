@@ -372,8 +372,8 @@ export class AppointmentController {
 
     try {
       appointment = repository.create(<DeepPartial<AppointmentTimeslot>>{
-        start,
-        end,
+        start: moment(start).toDate(),
+        end: moment(end).toDate(),
         confirmationStatus: room.autoAcceptBookings
           ? ConfirmationStatus.accepted
           : confirmationStatus,
@@ -574,10 +574,11 @@ export class AppointmentController {
         confirmationStatus: room.autoAcceptBookings
           ? ConfirmationStatus.accepted
           : confirmationStatus,
-        start: mStart.add(1, recurrence).toDate(),
-        end: mEnd.add(1, recurrence).toDate(),
+        start: mStart.add(i > 1 ? 1 : 0, recurrence).toDate(),
+        end: mEnd.add(i > 1 ? 1 : 0, recurrence).toDate(),
         timeSlotRecurrence,
         seriesId,
+        amount,
       });
 
       try {
@@ -678,7 +679,7 @@ export class AppointmentController {
         ' from ' +
         moment(req.body.start).format('HH:mm') +
         ' to ' +
-        moment(req.body.format('HH:mm')) +
+        moment(req.body.start).format('HH:mm') +
         ' in room ' +
         room.name +
         ' from user ' +
