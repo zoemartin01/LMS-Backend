@@ -318,9 +318,7 @@ export class RoomController {
 
     //initialise array (timeslot, days, parallel bookings)
     let availableTimespan, unavailableTimeSlot, timespanStart, timespanEnd;
-    const calendar: string[][] = [
-      ...Array(24),
-    ].map(() => [...Array(7)]);
+    const calendar: string[][] = [...Array(24)].map(() => [...Array(7)]);
 
     //set available timeslots
     for (availableTimespan of availableTimeSlots) {
@@ -334,8 +332,8 @@ export class RoomController {
         i++
       ) {
         calendar[i][
-        (+moment(availableTimespan.start).format('e') + 6) % 7
-          ] = `available ${availableTimespan.id}`;
+          (+moment(availableTimespan.start).format('e') + 6) % 7
+        ] = `available ${availableTimespan.id}`;
       }
     }
 
@@ -354,8 +352,8 @@ export class RoomController {
         i++
       ) {
         calendar[i][
-        (+moment(unavailableTimeSlot.start).format('e') + 6) % 7
-          ] = `unavailable ${unavailableTimeSlot.id}`;
+          (+moment(unavailableTimeSlot.start).format('e') + 6) % 7
+        ] = `unavailable ${unavailableTimeSlot.id}`;
       }
     }
 
@@ -997,11 +995,62 @@ export class RoomController {
       (timeslot.type === TimeSlotType.unavailable &&
         (<UnavailableTimeslot>timeslot).room.id !== req.params.roomId)
     ) {
-      res.status(400).json({ message: 'Timeslot not found for this room' });
+      res.status(404).json({ message: 'Timeslot not found for this room' });
       return;
     }
 
-    await repository.delete(timeslot.id).then(() => {
+    repository.delete(timeslot.id).then(() => {
+      res.sendStatus(204);
+    });
+  }
+
+  /**
+   * Deletes a timeslot series
+   *
+   * @route {DELETE} /rooms/:roomId/timeslots/series/:seriesId
+   * @routeParam {string} roomId - id of the room
+   * @routeParam {string} seriesId - id of the series
+   * @param {Request} req frontend request to delete one room
+   * @param {Response} res backend response deletion
+   */
+  public static async deleteTimeslotSeries(req: Request, res: Response) {
+    const repository = getRepository(TimeSlot);
+
+    if ((await getRepository(Room).findOne(req.body.roomId)) === undefined) {
+      res.status(400).json({ message: 'Room not found' });
+      return;
+    }
+
+    const timeslot = await repository.findOne({
+      where: {
+        seriesId: req.params.seriesId,
+      },
+    });
+
+    if (timeslot === undefined) {
+      res.status(404).json({ message: 'Timeslot not found' });
+      return;
+    }
+
+    if (
+      (timeslot.type === TimeSlotType.booked &&
+        (<AppointmentTimeslot>timeslot).room.id !== req.params.roomId) ||
+      (timeslot.type === TimeSlotType.available &&
+        (<AvailableTimeslot>timeslot).room.id !== req.params.roomId) ||
+      (timeslot.type === TimeSlotType.unavailable &&
+        (<UnavailableTimeslot>timeslot).room.id !== req.params.roomId)
+    ) {
+      res.status(404).json({ message: 'Timeslot series found for this room' });
+      return;
+    }
+
+    const timeslots = await repository.find({
+      where: {
+        seriesId: timeslot.seriesId,
+      },
+    });
+
+    repository.remove(timeslots).then(() => {
       res.sendStatus(204);
     });
   }

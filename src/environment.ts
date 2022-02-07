@@ -100,6 +100,7 @@ const environment = {
       updateTimeslot: '/rooms/:roomId/timeslots/:timeslotId',
       updateTimeslotSeries: '/rooms/:roomId/timeslots/series/:seriesId',
       deleteTimeslot: '/rooms/:roomId/timeslots/:timeslotId',
+      deleteTimeslotSeries: '/rooms/:roomId/timeslots/series/:seriesId',
     },
     appointments: {
       getCurrentUserAppointments: '/user/appointments',

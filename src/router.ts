@@ -303,6 +303,12 @@ class AppRouter {
       AuthController.checkAdminMiddleware,
       RoomController.deleteTimeslot
     );
+    this.router.delete(
+      addUUIDRegexToRoute(environment.apiRoutes.rooms.deleteTimeslotSeries),
+      AuthController.checkAuthenticationMiddleware,
+      AuthController.checkAdminMiddleware,
+      RoomController.deleteTimeslotSeries
+    );
 
     // Appointment Management
     this.router.get(
