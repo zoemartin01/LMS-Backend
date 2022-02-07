@@ -377,7 +377,11 @@ export class RoomController {
 
     try {
       const timeslot = await repository.save(
-        repository.create({ start, end, room })
+        repository.create({
+          start: moment(start).toDate(),
+          end: moment(end).toDate(),
+          room,
+        })
       );
 
       res.status(201).json(timeslot);

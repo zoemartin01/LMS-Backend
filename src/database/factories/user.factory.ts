@@ -3,6 +3,7 @@ import { define } from 'typeorm-seeding';
 import Faker from 'faker';
 import { UserRole } from '../../types/enums/user-role';
 import { getRepository } from 'typeorm';
+import { NotificationChannel } from '../../types/enums/notification-channel';
 
 define(User, (faker: typeof Faker) => {
   const email = faker.internet.email();
@@ -24,6 +25,7 @@ define(User, (faker: typeof Faker) => {
     password,
     role,
     emailVerification,
+    notificationChannel: NotificationChannel.messageBoxOnly,
   });
   return user;
 });

@@ -5,6 +5,7 @@ import {
   getRepository,
   LessThanOrEqual,
   MoreThanOrEqual,
+  Not,
 } from 'typeorm';
 import { AppointmentTimeslot } from '../models/appointment.timeslot.entity';
 import { AuthController } from './auth.controller';
@@ -326,14 +327,13 @@ export class AppointmentController {
    *
    * @route {POST} /appointments
    * @bodyParam {string} roomId - the id of the room associated with the appointment
-   * @bodyParam {ConfirmationStatus} confirmationStatus - status of request
    * @bodyParam {Date} start - start date and time of the appointment
    * @bodyParam {Date} end - end date and time of the appointment
    * @param {Request} req frontend request to create a new appointment
    * @param {Response} res backend response creation of a new appointment
    */
   public static async createAppointment(req: Request, res: Response) {
-    const { roomId, confirmationStatus, start, end } = req.body;
+    const { roomId, start, end } = req.body;
 
     const repository = getRepository(AppointmentTimeslot);
 
@@ -372,11 +372,11 @@ export class AppointmentController {
 
     try {
       appointment = repository.create(<DeepPartial<AppointmentTimeslot>>{
-        start,
-        end,
+        start: moment(start).toDate(),
+        end: moment(end).toDate(),
         confirmationStatus: room.autoAcceptBookings
           ? ConfirmationStatus.accepted
-          : confirmationStatus,
+          : ConfirmationStatus.pending,
         user,
         room,
         amount: 1,
@@ -431,6 +431,7 @@ export class AppointmentController {
         {
           room,
           start: Between(appointment.start, appointment.end),
+          confirmationStatus: Not(ConfirmationStatus.denied),
         },
         {
           room,
@@ -487,7 +488,6 @@ export class AppointmentController {
    *
    * @route {POST} /appointments/series
    * @bodyParam {string} roomId - the id of the room associated with the appointment
-   * @bodyParam {ConfirmationStatus} confirmationStatus - status of request
    * @bodyParam {Date} start - start date and time of the appointment
    * @bodyParam {Date} end - end date and time of the appointment
    * @bodyParam {TimeSlotRecurrence} timeSlotRecurrence - recurrence of appointment
@@ -499,15 +499,7 @@ export class AppointmentController {
   public static async createAppointmentSeries(req: Request, res: Response) {
     const repository = getRepository(AppointmentTimeslot);
     const appointments: AppointmentTimeslot[] = [];
-    const {
-      roomId,
-      confirmationStatus,
-      start,
-      end,
-      timeSlotRecurrence,
-      amount,
-      force,
-    } = req.body;
+    const { roomId, start, end, timeSlotRecurrence, amount, force } = req.body;
     const seriesId = uuidv4();
     const user = await AuthController.getCurrentUser(req);
 
@@ -573,11 +565,12 @@ export class AppointmentController {
         user,
         confirmationStatus: room.autoAcceptBookings
           ? ConfirmationStatus.accepted
-          : confirmationStatus,
-        start: mStart.add(1, recurrence).toDate(),
-        end: mEnd.add(1, recurrence).toDate(),
+          : ConfirmationStatus.pending,
+        start: mStart.add(i > 0 ? 1 : 0, recurrence).toDate(),
+        end: mEnd.add(i > 0 ? 1 : 0, recurrence).toDate(),
         timeSlotRecurrence,
         seriesId,
+        amount,
       });
 
       try {
@@ -635,10 +628,12 @@ export class AppointmentController {
           {
             room,
             start: Between(appointment.start, appointment.end),
+            confirmationStatus: Not(ConfirmationStatus.denied),
           },
           {
             room,
             end: Between(appointment.start, appointment.end),
+            confirmationStatus: Not(ConfirmationStatus.denied),
           },
         ],
       });
@@ -678,7 +673,7 @@ export class AppointmentController {
         ' from ' +
         moment(req.body.start).format('HH:mm') +
         ' to ' +
-        moment(req.body.format('HH:mm')) +
+        moment(req.body.start).format('HH:mm') +
         ' in room ' +
         room.name +
         ' from user ' +
@@ -720,7 +715,7 @@ export class AppointmentController {
     }
 
     try {
-      repository.update(
+      await repository.update(
         { id: appointment.id },
         repository.create(<DeepPartial<AppointmentTimeslot>>{
           ...appointment,
@@ -797,7 +792,7 @@ export class AppointmentController {
       ) {
         //these appointments are safe to update
         try {
-          repository.update(
+          await repository.update(
             { id: appointments[i].id },
             repository.create(<DeepPartial<AppointmentTimeslot>>{
               ...appointments[i],

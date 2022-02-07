@@ -2,6 +2,7 @@ import { Column, Entity, TableInheritance } from 'typeorm';
 import { BaseEntity } from './base.entity';
 import { TimeSlotType } from '../types/enums/timeslot-type';
 import { TimeSlotRecurrence } from '../types/enums/timeslot-recurrence';
+import { IsDate } from 'class-validator';
 
 /**
  * A model for a time slot.
@@ -27,7 +28,7 @@ export class TimeSlot extends BaseEntity {
    * @readonly
    */
   @Column()
-  // @IsDateString()
+  @IsDate()
   start: Date;
 
   /**
@@ -37,7 +38,7 @@ export class TimeSlot extends BaseEntity {
    * @readonly
    */
   @Column()
-  // @IsDateString()
+  @IsDate()
   end: Date;
 
   /**
