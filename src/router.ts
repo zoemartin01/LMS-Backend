@@ -347,6 +347,11 @@ class AppRouter {
       AuthController.checkAuthenticationMiddleware,
       InventoryController.getInventoryItem
     );
+    this.router.get(
+      environment.apiRoutes.inventory_item.getByName,
+      AuthController.checkAuthenticationMiddleware,
+      InventoryController.getByName
+    );
     this.router.post(
       environment.apiRoutes.inventory_item.createItem,
       AuthController.checkAuthenticationMiddleware,
