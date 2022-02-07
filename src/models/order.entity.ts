@@ -27,7 +27,7 @@ export class Order extends BaseEntity {
    * @type {InventoryItem}
    * @nullable if item does not yet exist.
    */
-  @ManyToOne(() => InventoryItem, (item) => item.orders, { nullable: true })
+  @ManyToOne(() => InventoryItem, (item) => item.orders, { nullable: true, onDelete: 'CASCADE', })
   @IsOptional()
   item: InventoryItem;
 
