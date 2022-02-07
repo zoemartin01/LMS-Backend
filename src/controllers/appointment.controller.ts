@@ -371,8 +371,8 @@ export class AppointmentController {
 
     try {
       appointment = repository.create(<DeepPartial<AppointmentTimeslot>>{
-        start,
-        end,
+        start: moment(start).toDate(),
+        end: moment(end).toDate(),
         confirmationStatus: room.autoAcceptBookings
           ? ConfirmationStatus.accepted
           : ConfirmationStatus.pending,
@@ -571,10 +571,11 @@ export class AppointmentController {
         confirmationStatus: room.autoAcceptBookings
           ? ConfirmationStatus.accepted
           : ConfirmationStatus.pending,
-        start: mStart.add(1, recurrence).toDate(),
-        end: mEnd.add(1, recurrence).toDate(),
+        start: mStart.add(i > 1 ? 1 : 0, recurrence).toDate(),
+        end: mEnd.add(i > 1 ? 1 : 0, recurrence).toDate(),
         timeSlotRecurrence,
         seriesId,
+        amount,
       });
 
       try {
@@ -675,7 +676,7 @@ export class AppointmentController {
         ' from ' +
         moment(req.body.start).format('HH:mm') +
         ' to ' +
-        moment(req.body.format('HH:mm')) +
+        moment(req.body.start).format('HH:mm') +
         ' in room ' +
         room.name +
         ' from user ' +
@@ -717,7 +718,7 @@ export class AppointmentController {
     }
 
     try {
-      repository.update(
+      await repository.update(
         { id: appointment.id },
         repository.create(<DeepPartial<AppointmentTimeslot>>{
           ...appointment,
@@ -794,7 +795,7 @@ export class AppointmentController {
       ) {
         //these appointments are safe to update
         try {
-          repository.update(
+          await repository.update(
             { id: appointments[i].id },
             repository.create(<DeepPartial<AppointmentTimeslot>>{
               ...appointments[i],
