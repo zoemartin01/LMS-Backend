@@ -171,7 +171,7 @@ describe('AdminController', () => {
           .end((err, res) => {
             expect(res.status).to.equal(200);
             expect(res.body.data).to.be.an('array');
-            expect(res.body.data.length).to.be.equal(10);
+            expect(res.body.data.length).to.be.equal(0);
             done();
           });
       });
@@ -183,7 +183,7 @@ describe('AdminController', () => {
           .set('Authorization', adminHeader);
         expect(res.status).to.equal(200);
         expect(res.body.data).to.be.an('array');
-        expect(res.body.data.length).to.be.equal(13);
+        expect(res.body.data.length).to.be.equal(3);
       });
     });
 

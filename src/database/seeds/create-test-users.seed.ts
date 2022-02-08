@@ -6,7 +6,7 @@ import environment from '../../environment';
 
 import { AppointmentTimeslot } from '../../models/appointment.timeslot.entity';
 import { InventoryItem } from '../../models/inventory-item.entity';
-import { Message } from '../../models/message.entity';
+// import { Message } from '../../models/message.entity';
 import { Order } from '../../models/order.entity';
 import { Recording } from '../../models/recording.entity';
 import { Room } from '../../models/room.entity';
