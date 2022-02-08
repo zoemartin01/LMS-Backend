@@ -35,6 +35,7 @@ export class AuthController {
 
     if (email === 'SYSTEM') {
       res.sendStatus(401);
+      return;
     }
 
     isActiveDirectory
