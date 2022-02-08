@@ -648,7 +648,7 @@ export class RoomController {
     const mStart = moment(start).toDate();
     const mEnd = moment(end).toDate();
 
-    let timeslot;
+    let timeslot: AvailableTimeslot | UnavailableTimeslot;
 
     try {
       timeslot = repository.create({
@@ -721,11 +721,16 @@ export class RoomController {
     mergables = mergables.filter((mergable) =>
       moment(mergable.start).isSame(mStart, 'day')
     );
-    mergables.push(timeslot);
 
-    if (mergables.length > 1) {
-      const minStart = min(mergables.map((m) => moment(m.start)));
-      const maxEnd = max(mergables.map((m) => moment(m.end)));
+    if (mergables.length > 0) {
+      const minStart = min([
+        ...mergables.map((m) => moment(m.start)),
+        moment(timeslot.start),
+      ]);
+      const maxEnd = max([
+        ...mergables.map((m) => moment(m.end)),
+        moment(timeslot.end),
+      ]);
 
       timeslot = repository.create({
         room,
@@ -735,7 +740,7 @@ export class RoomController {
       await repository.remove(mergables);
     }
 
-    console.log(await repository.save(timeslot));
+    await repository.save(timeslot);
     res.status(201).json(timeslot);
   }
 
@@ -897,11 +902,16 @@ export class RoomController {
       mergables = mergables.filter((mergable) =>
         moment(mergable.start).isSame(mStart, 'day')
       );
-      mergables.push(timeslot);
 
-      if (mergables.length > 1) {
-        const minStart = min(mergables.map((m) => moment(m.start)));
-        const maxEnd = max(mergables.map((m) => moment(m.end)));
+      if (mergables.length > 0) {
+        const minStart = min([
+          ...mergables.map((m) => moment(m.start)),
+          moment(timeslot.start),
+        ]);
+        const maxEnd = max([
+          ...mergables.map((m) => moment(m.end)),
+          moment(timeslot.end),
+        ]);
 
         timeslot = repository.create({
           room,
@@ -1053,11 +1063,16 @@ export class RoomController {
     mergables = mergables.filter(
       (mergable) => mergable.id !== timeslot?.id ?? ''
     );
-    mergables.push({ ...timeslot, room } as AvailableTimeslot);
 
-    if (mergables.length > 1) {
-      const minStart = min(mergables.map((m) => moment(m.start)));
-      const maxEnd = max(mergables.map((m) => moment(m.end)));
+    if (mergables.length > 0) {
+      const minStart = min([
+        ...mergables.map((m) => moment(m.start)),
+        moment(newTimeslot.start),
+      ]);
+      const maxEnd = max([
+        ...mergables.map((m) => moment(m.end)),
+        moment(newTimeslot.end),
+      ]);
 
       newTimeslot = repository.create({
         room,
@@ -1252,19 +1267,23 @@ export class RoomController {
       mergables = mergables.filter(
         (mergable) => mergable.seriesId !== first.seriesId
       );
-      mergables.push(newTimeslot);
 
-      if (mergables.length > 1) {
-        const minStart = min(mergables.map((m) => moment(m.start)));
-        const maxEnd = max(mergables.map((m) => moment(m.end)));
-
-        await repository.remove(mergables.filter((m) => m !== newTimeslot));
+      if (mergables.length > 0) {
+        const minStart = min([
+          ...mergables.map((m) => moment(m.start)),
+          moment(newTimeslot.start),
+        ]);
+        const maxEnd = max([
+          ...mergables.map((m) => moment(m.end)),
+          moment(newTimeslot.end),
+        ]);
 
         newTimeslot = repository.create({
           room,
           start: minStart.toDate(),
           end: maxEnd.toDate(),
         });
+        await repository.remove(mergables);
       }
 
       newTimeslots.push(newTimeslot);
