@@ -230,26 +230,15 @@ class AppRouter {
       RoomController.getRoomById
     );
     this.router.get(
-      addUUIDRegexToRoute(environment.apiRoutes.rooms.getTimeslot),
+      addUUIDRegexToRoute(environment.apiRoutes.rooms.getRoomCalendar),
       AuthController.checkAuthenticationMiddleware,
-      AuthController.checkAdminMiddleware,
-      RoomController.getTimeslotById
+      RoomController.getRoomCalendar
     );
     this.router.post(
       environment.apiRoutes.rooms.createRoom,
       AuthController.checkAuthenticationMiddleware,
       AuthController.checkAdminMiddleware,
       RoomController.createRoom
-    );
-    this.router.get(
-      addUUIDRegexToRoute(environment.apiRoutes.rooms.getRoomCalendar),
-      AuthController.checkAuthenticationMiddleware,
-      RoomController.getRoomCalendar
-    );
-    this.router.get(
-      addUUIDRegexToRoute(environment.apiRoutes.rooms.getAvailabilityCalendar),
-      AuthController.checkAuthenticationMiddleware,
-      RoomController.getAvailabilityCalendar
     );
     this.router.patch(
       addUUIDRegexToRoute(environment.apiRoutes.rooms.updateRoom),
@@ -278,6 +267,17 @@ class AppRouter {
       AuthController.checkAuthenticationMiddleware,
       AuthController.checkAdminMiddleware,
       RoomController.getAllUnavailableTimeslotsForRoom
+    );
+    this.router.get(
+      addUUIDRegexToRoute(environment.apiRoutes.rooms.getAvailabilityCalendar),
+      AuthController.checkAuthenticationMiddleware,
+      RoomController.getAvailabilityCalendar
+    );
+    this.router.get(
+      addUUIDRegexToRoute(environment.apiRoutes.rooms.getTimeslot),
+      AuthController.checkAuthenticationMiddleware,
+      AuthController.checkAdminMiddleware,
+      RoomController.getTimeslotById
     );
     this.router.post(
       addUUIDRegexToRoute(environment.apiRoutes.rooms.createTimeslot),

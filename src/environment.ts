@@ -88,9 +88,7 @@ const environment = {
     rooms: {
       getAllRooms: '/rooms',
       getSingleRoom: '/rooms/:id',
-      getTimeslot: '/rooms/:id/timeslot/:timeslotId',
       getRoomCalendar: '/rooms/:id/calendar',
-      getAvailabilityCalendar: '/rooms/:id/availability-calendar',
 
       createRoom: '/rooms',
       updateRoom: '/rooms/:id',
@@ -98,6 +96,8 @@ const environment = {
 
       getAllAvailableTimeslotsForRoom: '/rooms/:roomId/timeslots/available',
       getAllUnavailableTimeslotsForRoom: '/rooms/:roomId/timeslots/unavailable',
+      getAvailabilityCalendar: '/rooms/:id/availability-calendar',
+      getTimeslot: '/rooms/:id/timeslot/:timeslotId',
 
       createTimeslot: '/rooms/:roomId/timeslots',
       createTimeslotSeries: '/rooms/:roomId/timeslots/series',
