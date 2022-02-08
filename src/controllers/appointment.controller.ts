@@ -907,6 +907,22 @@ export class AppointmentController {
         { confirmationStatus }
       );
       res.json(updatedAppointments);
+
+      await MessagingController.sendMessage(
+        user,
+        'Appointment Edited',
+        'Your appointment series at ' +
+          moment(first.start).format('DD.MM.YY') +
+          ' from ' +
+          moment(first.start).format('HH:mm') +
+          ' to ' +
+          moment(first.end).format('HH:mm') +
+          ' in room ' +
+          room.name +
+          ' was edited by an admin.',
+        'View Appointments',
+        '/appointments/series/:id'.replace(':id', user.id)
+      );
       return;
     }
 
