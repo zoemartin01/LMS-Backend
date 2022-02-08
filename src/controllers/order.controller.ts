@@ -18,20 +18,60 @@ import { MessagingController } from './messaging.controller';
  */
 export class OrderController {
   /**
-   * Returns the data of all orders
+   * Returns the data of all pending orders
    *
-   * @route {GET} /orders
-   * @param {Request} req frontend request to get data of all orders
-   * @param {Response} res backend response with data of all orders
+   * @route {GET} /orders/pending
+   * @param {Request} req frontend request to get data of all pending orders
+   * @param {Response} res backend response with data of all pending orders
    */
-  public static async getAllOrders(req: Request, res: Response) {
+  public static async getAllPendingOrders(req: Request, res: Response) {
     const { offset, limit } = req.query;
     const repository = getRepository(Order);
 
-    const total = await repository.count();
+    const total = await repository.count({
+      where: {
+        status: OrderStatus.pending,
+      },
+    });
 
     repository
       .find({
+        where: { status: OrderStatus.pending },
+        relations: ['user', 'item'],
+        order: { updatedAt: 'DESC' },
+        skip: offset ? +offset : 0,
+        take: limit ? +limit : 0,
+      })
+      .then((orders) => {
+        res.json({ total, data: orders });
+      });
+  }
+  /**
+   * Returns the data of all accepted orders
+   *
+   * @route {GET} /orders/accepted
+   * @param {Request} req frontend request to get data of all accepted orders
+   * @param {Response} res backend response with data of all accepted orders
+   */
+  public static async getAllAcceptedOrders(req: Request, res: Response) {
+    const { offset, limit } = req.query;
+    const repository = getRepository(Order);
+
+    const total = await repository.count({
+      where: [
+        { status: OrderStatus.ordered },
+        { status: OrderStatus.inventoried },
+        { status: OrderStatus.sent_back },
+      ],
+    });
+
+    repository
+      .find({
+        where: [
+          { status: OrderStatus.ordered },
+          { status: OrderStatus.inventoried },
+          { status: OrderStatus.sent_back },
+        ],
         relations: ['user', 'item'],
         order: { updatedAt: 'DESC' },
         skip: offset ? +offset : 0,
@@ -43,13 +83,46 @@ export class OrderController {
   }
 
   /**
-   * Returns all orders related to the current user
+   * Returns the data of all declined orders
    *
-   * @route {GET} /user/orders
-   * @param {Request} req frontend request to get data of all orders for the current user
-   * @param {Response} res backend response with data of all orders for the current user
+   * @route {GET} /orders/declined
+   * @param {Request} req frontend request to get data of all declined orders
+   * @param {Response} res backend response with data of all declined orders
    */
-  public static async getOrdersForCurrentUser(req: Request, res: Response) {
+  public static async getAllDeclinedOrders(req: Request, res: Response) {
+    const { offset, limit } = req.query;
+    const repository = getRepository(Order);
+
+    const total = await repository.count({
+      where: {
+        status: OrderStatus.declined,
+      },
+    });
+
+    repository
+      .find({
+        where: { status: OrderStatus.declined },
+        relations: ['user', 'item'],
+        order: { updatedAt: 'DESC' },
+        skip: offset ? +offset : 0,
+        take: limit ? +limit : 0,
+      })
+      .then((orders) => {
+        res.json({ total, data: orders });
+      });
+  }
+
+  /**
+   * Returns all pending orders related to the current user
+   *
+   * @route {GET} /user/orders/pending
+   * @param {Request} req frontend request to get data of all pending orders for the current user
+   * @param {Response} res backend response with data of all pending orders for the current user
+   */
+  public static async getPendingOrdersForCurrentUser(
+    req: Request,
+    res: Response
+  ) {
     const currentUser: User | null = await AuthController.getCurrentUser(req);
 
     if (currentUser === null) {
@@ -62,12 +135,102 @@ export class OrderController {
     const repository = getRepository(Order);
 
     const total = await repository.count({
-      where: { user: currentUser },
+      where: { user: currentUser, status: OrderStatus.pending },
     });
 
     repository
       .find({
-        where: { user: currentUser },
+        where: { user: currentUser, status: OrderStatus.pending },
+        relations: ['user', 'item'],
+        order: {
+          updatedAt: 'DESC',
+        },
+        skip: offset ? +offset : 0,
+        take: limit ? +limit : 0,
+      })
+      .then((orders) => {
+        res.json({ total, data: orders });
+      });
+  }
+
+  /**
+   * Returns all accepted orders related to the current user
+   *
+   * @route {GET} /user/orders/accepted
+   * @param {Request} req frontend request to get data of all accepted orders for the current user
+   * @param {Response} res backend response with data of all accepted orders for the current user
+   */
+  public static async getAcceptedOrdersForCurrentUser(
+    req: Request,
+    res: Response
+  ) {
+    const currentUser: User | null = await AuthController.getCurrentUser(req);
+
+    if (currentUser === null) {
+      res.status(404).json({
+        message: 'User not found.',
+      });
+    }
+
+    const { offset, limit } = req.query;
+    const repository = getRepository(Order);
+
+    const total = await repository.count({
+      where: [
+        { user: currentUser, status: OrderStatus.ordered },
+        { user: currentUser, status: OrderStatus.inventoried },
+        { user: currentUser, status: OrderStatus.sent_back },
+      ],
+    });
+
+    repository
+      .find({
+        where: [
+          { user: currentUser, status: OrderStatus.ordered },
+          { user: currentUser, status: OrderStatus.inventoried },
+          { user: currentUser, status: OrderStatus.sent_back },
+        ],
+        relations: ['user', 'item'],
+        order: {
+          updatedAt: 'DESC',
+        },
+        skip: offset ? +offset : 0,
+        take: limit ? +limit : 0,
+      })
+      .then((orders) => {
+        res.json({ total, data: orders });
+      });
+  }
+
+  /**
+   * Returns all declined orders related to the current user
+   *
+   * @route {GET} /user/orders/declined
+   * @param {Request} req frontend request to get data of all declined orders for the current user
+   * @param {Response} res backend response with data of all declined orders for the current user
+   */
+  public static async getDeclinedOrdersForCurrentUser(
+    req: Request,
+    res: Response
+  ) {
+    const currentUser: User | null = await AuthController.getCurrentUser(req);
+
+    if (currentUser === null) {
+      res.status(404).json({
+        message: 'User not found.',
+      });
+    }
+
+    const { offset, limit } = req.query;
+    const repository = getRepository(Order);
+
+    const total = await repository.count({
+      where: { user: currentUser, status: OrderStatus.declined },
+    });
+
+    repository
+      .find({
+        where: { user: currentUser, status: OrderStatus.declined },
         relations: ['user', 'item'],
         order: {
           updatedAt: 'DESC',
@@ -197,9 +360,10 @@ export class OrderController {
    * @param {Response} res backend response with changed data of the order
    */
   public static async updateOrder(req: Request, res: Response) {
-    const repository = getRepository(Order);
+    const orderRepository = getRepository(Order);
+    const inventoryRepository = getRepository(InventoryItem);
 
-    let order: Order | undefined = await repository.findOne({
+    let order: Order | undefined = await orderRepository.findOne({
       where: { id: req.params.id },
       relations: ['user', 'item'],
     });
@@ -230,40 +394,67 @@ export class OrderController {
       res.status(403);
       return;
     }
-    // check if item and itemName have been sent
-    if ('item' in req.body && 'itemName' in req.body) {
-      res.status(400).json({
-        message: 'Item and itemName cannot both be set',
-      });
-      return;
+
+    // case: item name should not be updated
+    if (!('itemName' in req.body)) {
+      try {
+        await orderRepository.update(
+          { id: order.id },
+          orderRepository.create(<DeepPartial<Order>>{
+            ...order,
+            ...req.body,
+          })
+        );
+      } catch (err) {
+        res.status(400).json(err);
+        return;
+      }
+    } //case: itemName should be updated
+    else {
+      const inventoryItem: InventoryItem | undefined =
+        await inventoryRepository.findOne({
+          where: { name: req.params.itemName },
+        });
+      // case: existing inventory item for updated order item
+      if (inventoryItem === undefined) {
+        try {
+          await orderRepository.update(
+            { id: order.id },
+            orderRepository.create(<DeepPartial<Order>>{
+              ...order,
+              ...req.body,
+            })
+          );
+        } catch (err) {
+          res.status(400).json(err);
+          return;
+        }
+      } // case: no existing inventory item for updated order item
+      else {
+        try {
+          await orderRepository.update(
+            { id: order.id },
+            orderRepository.create(<DeepPartial<Order>>{
+              ...order,
+              ...req.body,
+              item: inventoryItem,
+              itemName: undefined,
+            })
+          );
+        } catch (err) {
+          res.status(400).json(err);
+          return;
+        }
+      }
     }
 
-    //check if (admin) user tried to change the order status to pending
-    if (req.body.status === OrderStatus.pending) {
-      res.status(400).json({
-        message: 'Order status cannot be set back to pending',
-      });
-      return;
-    }
-
-    try {
-      await repository.update(
-        { id: order.id },
-        repository.create(<DeepPartial<Order>>{
-          ...order,
-          ...req.body,
-        })
-      );
-    } catch (err) {
-      res.status(400).json(err);
-      return;
-    }
-
-    order = await repository.findOne({
+    // find order to return for order view page
+    order = await orderRepository.findOne({
       where: { id: req.params.id },
       relations: ['user', 'item'],
     });
 
+    // should not happen
     if (order === undefined) {
       res.status(404).json({
         message: 'Order not found.',

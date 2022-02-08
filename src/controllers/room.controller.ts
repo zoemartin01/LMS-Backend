@@ -342,9 +342,7 @@ export class RoomController {
 
     //initialise array (timeslot, days, parallel bookings)
     let availableTimespan, unavailableTimeSlot, timespanStart, timespanEnd;
-    const calendar: string[][] = [
-      ...Array(24),
-    ].map(() => [...Array(7)]);
+    const calendar: string[][] = [...Array(24)].map(() => [...Array(7)]);
 
     //set available timeslots
     for (availableTimespan of availableTimeSlots) {
@@ -358,8 +356,8 @@ export class RoomController {
         i++
       ) {
         calendar[i][
-        (+moment(availableTimespan.start).format('e') + 6) % 7
-          ] = `available ${availableTimespan.id}`;
+          (+moment(availableTimespan.start).format('e') + 6) % 7
+        ] = `available ${availableTimespan.id}`;
       }
     }
 
@@ -378,8 +376,8 @@ export class RoomController {
         i++
       ) {
         calendar[i][
-        (+moment(unavailableTimeSlot.start).format('e') + 6) % 7
-          ] = `unavailable ${unavailableTimeSlot.id}`;
+          (+moment(unavailableTimeSlot.start).format('e') + 6) % 7
+        ] = `unavailable ${unavailableTimeSlot.id}`;
       }
     }
 
@@ -932,7 +930,7 @@ export class RoomController {
         room,
       });
 
-      await validateOrReject(timeslot);
+      await validateOrReject(newTimeslot);
     } catch (err) {
       res.status(400).json(err);
       return;
@@ -990,6 +988,181 @@ export class RoomController {
   }
 
   /**
+   * Updates a timeslot
+   *
+   * @route {PATCH} /rooms/:roomId/timeslots/series/:seriesId
+   * @routeParam {string} roomId - id of the room
+   * @routeParam {string} seriesId - id of the series
+   * @bodyParam {Date [Optional]} start - The start time of the time slot.
+   * @bodyParam {Date [Optional]} end - The end time of the time slot.
+   * @bodyParam {Room [Optional]} room - The room the time slot belongs to.
+   * @bodyParam {TimeSlotRecurrence [Optional]} timeSlotRecurrence - The recurrence of the time slot.
+   * @bodyParam {number [Optional]} amount - The amount of the time slot.
+   * @param {Request} req frontend request to create a new available timeslot of a room
+   * @param {Response} res backend response creation of a new available timeslot of a room
+   */
+  public static async updateTimeslotSeries(req: Request, res: Response) {
+    const room = await getRepository(Room).findOne(req.params.roomId);
+    const seriesId = req.params.seriesId;
+
+    if (room === undefined) {
+      res.status(404).json({ message: 'Room not found' });
+      return;
+    }
+
+    const first = await getRepository(TimeSlot).findOneOrFail({
+      where: { seriesId, isDirty: false },
+      order: { start: 'ASC' },
+    });
+
+    const type = first.type;
+
+    if (type === TimeSlotType.booked) {
+      res.status(400).json({ message: 'Type appointment is illegal here' });
+      return;
+    }
+
+    const originalTimeslots =
+      type === TimeSlotType.available
+        ? await getRepository(AvailableTimeslot).find({
+            where: { seriesId: first.seriesId, room: { id: room.id } },
+            withDeleted: true,
+          })
+        : await getRepository(UnavailableTimeslot).find({
+            where: { seriesId: first.seriesId, room: { id: room.id } },
+            withDeleted: true,
+          });
+
+    if (originalTimeslots.length === 0) {
+      res.status(404).json({ message: 'no appointments for series found' });
+      return;
+    }
+
+    const start = req.body.start || first.start;
+    const end = req.body.end || first.end;
+    const timeSlotRecurrence =
+      req.body.timeSlotRecurrence || first.timeSlotRecurrence;
+    const amount = req.body.amount || first.amount;
+
+    const repository =
+      type === TimeSlotType.available
+        ? getRepository(AvailableTimeslot)
+        : getRepository(UnavailableTimeslot);
+
+    if (timeSlotRecurrence === TimeSlotRecurrence.single) {
+      res.status(400).json({ message: 'Series can only be recurring' });
+      return;
+    }
+
+    if (amount <= 1) {
+      res
+        .status(400)
+        .json({ message: 'Series needs to have at least 2 appointments' });
+      return;
+    }
+
+    const mStart = moment(start);
+    const mEnd = moment(end);
+    let recurrence: DurationConstructor;
+
+    // parse recurrence
+
+    switch (timeSlotRecurrence) {
+      case TimeSlotRecurrence.daily:
+        recurrence = 'days';
+        break;
+
+      case TimeSlotRecurrence.weekly:
+        recurrence = 'weeks';
+        break;
+
+      case TimeSlotRecurrence.monthly:
+        recurrence = 'months';
+        break;
+
+      case TimeSlotRecurrence.yearly:
+        recurrence = 'years';
+        break;
+
+      default:
+        res.status(400).json({ message: 'Illegal recurrence' });
+        return;
+    }
+
+    const newTimeslots = [];
+
+    for (let i = 0; i < +amount; i++) {
+      let newTimeslot = repository.create({
+        room,
+        start: mStart.add(i > 0 ? 1 : 0, recurrence).toDate(),
+        end: mEnd.add(i > 0 ? 1 : 0, recurrence).toDate(),
+        timeSlotRecurrence,
+        seriesId,
+        amount,
+      });
+
+      try {
+        await validateOrReject(newTimeslot);
+      } catch (err) {
+        res.status(400).json(err);
+        return;
+      }
+
+      const mergables = await repository.findAndCount({
+        where: [
+          {
+            start: end,
+            type,
+            room,
+          },
+          {
+            end: start,
+            type,
+            room,
+          },
+          {
+            start: LessThanOrEqual(start),
+            type,
+            room,
+          },
+          {
+            end: MoreThanOrEqual(end),
+            type,
+            room,
+          },
+          {
+            start: Between(start, end),
+            type,
+            room,
+          },
+          {
+            end: Between(start, end),
+            type,
+            room,
+          },
+        ],
+      });
+
+      if (mergables[1] > 0) {
+        const minStart = min(mergables[0].map((m) => moment(m.start)));
+        const maxEnd = max(mergables[0].map((m) => moment(m.end)));
+
+        newTimeslot = repository.create({
+          room,
+          start: minStart.toDate(),
+          end: maxEnd.toDate(),
+        });
+        await repository.remove(mergables[0]);
+      }
+
+      newTimeslots.push(newTimeslot);
+    }
+
+    await repository.remove(originalTimeslots);
+    res.json(await repository.save(newTimeslots));
+  }
+
+  /**
    * Deletes one timeslot
    *
    * @route {DELETE} /rooms/:roomId/timeslots/:timeslotId
@@ -1021,11 +1194,62 @@ export class RoomController {
       (timeslot.type === TimeSlotType.unavailable &&
         (<UnavailableTimeslot>timeslot).room.id !== req.params.roomId)
     ) {
-      res.status(400).json({ message: 'Timeslot not found for this room' });
+      res.status(404).json({ message: 'Timeslot not found for this room' });
       return;
     }
 
-    await repository.delete(timeslot.id).then(() => {
+    repository.delete(timeslot.id).then(() => {
+      res.sendStatus(204);
+    });
+  }
+
+  /**
+   * Deletes a timeslot series
+   *
+   * @route {DELETE} /rooms/:roomId/timeslots/series/:seriesId
+   * @routeParam {string} roomId - id of the room
+   * @routeParam {string} seriesId - id of the series
+   * @param {Request} req frontend request to delete one room
+   * @param {Response} res backend response deletion
+   */
+  public static async deleteTimeslotSeries(req: Request, res: Response) {
+    const repository = getRepository(TimeSlot);
+
+    if ((await getRepository(Room).findOne(req.body.roomId)) === undefined) {
+      res.status(400).json({ message: 'Room not found' });
+      return;
+    }
+
+    const timeslot = await repository.findOne({
+      where: {
+        seriesId: req.params.seriesId,
+      },
+    });
+
+    if (timeslot === undefined) {
+      res.status(404).json({ message: 'Timeslot not found' });
+      return;
+    }
+
+    if (
+      (timeslot.type === TimeSlotType.booked &&
+        (<AppointmentTimeslot>timeslot).room.id !== req.params.roomId) ||
+      (timeslot.type === TimeSlotType.available &&
+        (<AvailableTimeslot>timeslot).room.id !== req.params.roomId) ||
+      (timeslot.type === TimeSlotType.unavailable &&
+        (<UnavailableTimeslot>timeslot).room.id !== req.params.roomId)
+    ) {
+      res.status(404).json({ message: 'Timeslot series found for this room' });
+      return;
+    }
+
+    const timeslots = await repository.find({
+      where: {
+        seriesId: timeslot.seriesId,
+      },
+    });
+
+    repository.remove(timeslots).then(() => {
       res.sendStatus(204);
     });
   }

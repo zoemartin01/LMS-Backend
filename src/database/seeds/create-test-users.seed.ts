@@ -88,9 +88,9 @@ export default class CreateTestUsers implements Seeder {
     //   faker.random.arrayElement(rooms)
     // );
 
-    await Promise.all(
-      rooms.map((room) => CreateTestUsers.createAppointments(admin, room))
-    );
+    // await Promise.all(
+    //   rooms.map((room) => CreateTestUsers.createAppointments(admin, room))
+    // );
   }
 
   private static async hashPassword(password: string): Promise<string> {
@@ -109,8 +109,8 @@ export default class CreateTestUsers implements Seeder {
       appointments.push(
         repo.create({
           ...appointment,
-          start: start.add(1, 'week').toISOString(),
-          end: end.add(1, 'week').toISOString(),
+          start: start.add(1, 'week').toDate(),
+          end: end.add(1, 'week').toDate(),
           amount: amount,
           timeSlotRecurrence: TimeSlotRecurrence.weekly,
         })

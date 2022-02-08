@@ -34,15 +34,15 @@ export async function createTimeslots(room: Room, weeks = 52) {
         })
       );
 
-      // timeslots.push(
-      //   getRepository(AvailableTimeslot).create({
-      //     start: uStart.add(1, 'weeks').toISOString(),
-      //     end: uEnd.add(1, 'weeks').toISOString(),
-      //     room,
-      //     amount: 52,
-      //     timeSlotRecurrence: TimeSlotRecurrence.weekly,
-      //   })
-      // );
+      timeslots.push(
+        getRepository(AvailableTimeslot).create({
+          start: uStart.add(1, 'weeks').toDate(),
+          end: uEnd.add(1, 'weeks').toDate(),
+          room,
+          amount: 52,
+          timeSlotRecurrence: TimeSlotRecurrence.weekly,
+        })
+      );
     }
   }
 

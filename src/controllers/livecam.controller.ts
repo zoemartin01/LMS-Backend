@@ -7,9 +7,6 @@ import { pipeline } from 'stream';
 import axios, { AxiosResponse } from 'axios';
 import { AuthController } from './auth.controller';
 import { WebSocket } from 'ws';
-import jsonwebtoken from 'jsonwebtoken';
-import { Token } from '../models/token.entity';
-import { TokenType } from '../types/enums/token-type';
 import { GlobalSetting } from '../models/global_settings.entity';
 
 /**
@@ -269,51 +266,18 @@ export class LivecamController {
    * @param {Request} req frontend request to get the live camera feed
    * @param {WebSocket} ws the websocket connection
    */
-  public static getLiveCameraFeed(ws: WebSocket, req: Request) {
-    const token = req.query.token;
-
-    if (token === undefined) {
-      ws.send('Invalid token');
-      ws.close();
+  public static async getLiveCameraFeed(ws: WebSocket, req: Request) {
+    if (LivecamController.ws === undefined) {
+      await LivecamController.initBackendConnection();
     }
 
-    jsonwebtoken.verify(
-      token as string,
-      environment.accessTokenSecret,
-      async (err) => {
-        if (err) {
-          ws.send('Invalid token');
-          ws.close();
-          return;
-        }
-
-        const tokenObject: Token | undefined = await getRepository(
-          Token
-        ).findOne({
-          where: {
-            token,
-            type: TokenType.authenticationToken,
-            expiresAt: MoreThan(new Date()),
-          },
-        });
-
-        if (tokenObject === undefined) {
-          ws.send('Invalid token');
-          ws.close();
-          return;
-        }
-
-        ws.send('ok');
-        LivecamController.wss.push(ws);
-
-        if (LivecamController.ws === undefined) {
-          await LivecamController.initBackendConnection();
-        }
-      }
-    );
-
     ws.on('close', () => {
-      delete LivecamController.wss[LivecamController.wss.indexOf(ws)];
+      const array = LivecamController.wss;
+
+      const index = array.indexOf(ws, 0);
+      if (index > -1) {
+        array.splice(index, 1);
+      }
     });
   }
 

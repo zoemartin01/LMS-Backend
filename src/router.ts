@@ -297,17 +297,23 @@ class AppRouter {
       AuthController.checkAdminMiddleware,
       RoomController.updateTimeslot
     );
-    // this.router.patch(
-    //   addUUIDRegexToRoute(environment.apiRoutes.rooms.updateTimeslotSeries),
-    //   AuthController.checkAuthenticationMiddleware,
-    //   AuthController.checkAdminMiddleware,
-    //   RoomController.updateTimeslotSeries
-    // );
+    this.router.patch(
+      addUUIDRegexToRoute(environment.apiRoutes.rooms.updateTimeslotSeries),
+      AuthController.checkAuthenticationMiddleware,
+      AuthController.checkAdminMiddleware,
+      RoomController.updateTimeslotSeries
+    );
     this.router.delete(
       addUUIDRegexToRoute(environment.apiRoutes.rooms.deleteTimeslot),
       AuthController.checkAuthenticationMiddleware,
       AuthController.checkAdminMiddleware,
       RoomController.deleteTimeslot
+    );
+    this.router.delete(
+      addUUIDRegexToRoute(environment.apiRoutes.rooms.deleteTimeslotSeries),
+      AuthController.checkAuthenticationMiddleware,
+      AuthController.checkAdminMiddleware,
+      RoomController.deleteTimeslotSeries
     );
 
     // Appointment Management
@@ -390,6 +396,11 @@ class AppRouter {
       AuthController.checkAuthenticationMiddleware,
       InventoryController.getInventoryItem
     );
+    this.router.get(
+      environment.apiRoutes.inventory_item.getByName,
+      AuthController.checkAuthenticationMiddleware,
+      InventoryController.getByName
+    );
     this.router.post(
       environment.apiRoutes.inventory_item.createItem,
       AuthController.checkAuthenticationMiddleware,
@@ -411,15 +422,37 @@ class AppRouter {
 
     // Order Management
     this.router.get(
-      environment.apiRoutes.orders.getAllOrders,
+      environment.apiRoutes.orders.getAllPendingOrders,
       AuthController.checkAuthenticationMiddleware,
       AuthController.checkAdminMiddleware,
-      OrderController.getAllOrders
+      OrderController.getAllPendingOrders
     );
     this.router.get(
-      environment.apiRoutes.orders.getCurrentUserOrders,
+      environment.apiRoutes.orders.getAllAcceptedOrders,
       AuthController.checkAuthenticationMiddleware,
-      OrderController.getOrdersForCurrentUser
+      AuthController.checkAdminMiddleware,
+      OrderController.getAllAcceptedOrders
+    );
+    this.router.get(
+      environment.apiRoutes.orders.getAllDeclinedOrders,
+      AuthController.checkAuthenticationMiddleware,
+      AuthController.checkAdminMiddleware,
+      OrderController.getAllDeclinedOrders
+    );
+    this.router.get(
+      environment.apiRoutes.orders.getCurrentUsersPendingOrders,
+      AuthController.checkAuthenticationMiddleware,
+      OrderController.getPendingOrdersForCurrentUser
+    );
+    this.router.get(
+      environment.apiRoutes.orders.getCurrentUsersAcceptedOrders,
+      AuthController.checkAuthenticationMiddleware,
+      OrderController.getAcceptedOrdersForCurrentUser
+    );
+    this.router.get(
+      environment.apiRoutes.orders.getCurrentUsersDeclinedOrders,
+      AuthController.checkAuthenticationMiddleware,
+      OrderController.getDeclinedOrdersForCurrentUser
     );
     this.router.get(
       addUUIDRegexToRoute(environment.apiRoutes.orders.getSingleOrder),
