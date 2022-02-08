@@ -341,7 +341,7 @@ export class MessagingController {
 
     try {
       const transporter = nodemailer.createTransport(environment.smtpConfig);
-      await transporter.sendMail(message);
+      console.log(await transporter.sendMail(message));
     } catch (e) {
       console.log(e);
     }
