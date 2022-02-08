@@ -271,7 +271,7 @@ export class LivecamController {
       await LivecamController.initBackendConnection();
     }
 
-    this.wss.push(ws);
+    LivecamController.wss.push(ws);
 
     ws.on('close', () => {
       const array = LivecamController.wss;
