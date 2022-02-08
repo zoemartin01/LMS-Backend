@@ -51,8 +51,8 @@ export default class CreateTestUsers implements Seeder {
         ? await getRepository(InventoryItem).find()
         : await factory(InventoryItem)().createMany(10);
 
-    await factory(Message)({ recipient: admin }).createMany(10);
-    await factory(Recording)({ user: admin }).createMany(10);
+    // await factory(Message)({ recipient: admin }).createMany(10);
+    await factory(Recording)({ user: admin }).createMany(4);
 
     for (let i = 0; i < 10; i++) {
       if (faker.random.boolean()) {
@@ -67,8 +67,8 @@ export default class CreateTestUsers implements Seeder {
       }
     }
 
-    await factory(Message)({ recipient: visitor }).createMany(10);
-    await factory(Recording)({ user: visitor }).createMany(10);
+    // await factory(Message)({ recipient: visitor }).createMany(10);
+    // await factory(Recording)({ user: visitor }).createMany(5);
 
     for (let i = 0; i < 10; i++) {
       if (faker.random.boolean()) {
