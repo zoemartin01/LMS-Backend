@@ -585,7 +585,7 @@ export class RoomController {
   }
 
   /**
-   * Creates a new available timeslot
+   * Creates a new timeslot
    *
    * @route {POST} /rooms/:roomId/timeslots
    * @routeParam {string} roomId - id of the room
@@ -597,16 +597,14 @@ export class RoomController {
    * @param {Response} res backend response creation of a new available timeslot of a room
    */
   public static async createTimeslot(req: Request, res: Response) {
-    const { roomId, start, end } = req.body;
+    const { start, end, type } = req.body;
 
-    const room = await getRepository(Room).findOne(roomId);
+    const room = await getRepository(Room).findOne(req.params.id);
 
     if (room === undefined) {
       res.status(404).json({ message: 'Room not found' });
       return;
     }
-
-    const type = req.body.type;
 
     if (type === undefined) {
       res.status(400).json({ message: 'No type specified' });
@@ -713,7 +711,6 @@ export class RoomController {
    * @routeParam {string} roomId - id of the room
    * @bodyParam {Date} start - The start time of the time slot.
    * @bodyParam {Date} end - The end time of the time slot.
-   * @bodyParam {Room} room - The room the time slot belongs to.
    * @bodyParam {TimeSlotType} type - The type of the time slot.
    * @bodyParam {TimeSlotRecurrence} timeSlotRecurrence - The recurrence of the time slot.
    * @bodyParam {number} amount - The amount of the time slot.
@@ -721,17 +718,15 @@ export class RoomController {
    * @param {Response} res backend response creation of a new available timeslot of a room
    */
   public static async createTimeslotSeries(req: Request, res: Response) {
-    const { roomId, start, end, timeSlotRecurrence, amount, force } = req.body;
+    const { start, end, type, timeSlotRecurrence, amount } = req.body;
     const seriesId = v4();
 
-    const room = await getRepository(Room).findOne(roomId);
+    const room = await getRepository(Room).findOne(req.params.id);
 
     if (room === undefined) {
       res.status(404).json({ message: 'Room not found' });
       return;
     }
-
-    const type = req.body.type;
 
     if (type === undefined) {
       res.status(400).json({ message: 'No type specified' });
@@ -871,7 +866,6 @@ export class RoomController {
    * @routeParam {string} timeslotId - id of the timeslot
    * @bodyParam {Date [Optional]} start - The start time of the time slot.
    * @bodyParam {Date [Optional]} end - The end time of the time slot.
-   * @bodyParam {Room [Optional]} room - The room the time slot belongs to.
    * @param {Request} req frontend request to create a new available timeslot of a room
    * @param {Response} res backend response creation of a new available timeslot of a room
    */
@@ -995,7 +989,6 @@ export class RoomController {
    * @routeParam {string} seriesId - id of the series
    * @bodyParam {Date [Optional]} start - The start time of the time slot.
    * @bodyParam {Date [Optional]} end - The end time of the time slot.
-   * @bodyParam {Room [Optional]} room - The room the time slot belongs to.
    * @bodyParam {TimeSlotRecurrence [Optional]} timeSlotRecurrence - The recurrence of the time slot.
    * @bodyParam {number [Optional]} amount - The amount of the time slot.
    * @param {Request} req frontend request to create a new available timeslot of a room
