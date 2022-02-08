@@ -18,7 +18,7 @@ const environment = {
     port: process.env.SMTP_POST ? +process.env.SMTP_POST : 25,
     secure: process.env.SMTP_SSL === 'true' || false,
   },
-  smtpSender: process.env.SMTP_SENDER || '',
+  smtpSender: process.env.SMTP_SENDER || 'noreply@pseteamtwo.dmz.teco.edu',
   livecam_server: {
     host: process.env.LIVECAM_HOST || 'localhost',
     port: process.env.LIVECAM_PORT || 7000,

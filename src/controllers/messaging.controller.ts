@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { getRepository } from 'typeorm';
+import { getRepository, Not } from 'typeorm';
 import nodemailer from 'nodemailer';
 import { AuthController } from './auth.controller';
 import { Message } from '../models/message.entity';
@@ -326,13 +326,13 @@ export class MessagingController {
     const message =
       linkText === null || linkUrl === null
         ? {
-            from: `"TECO HWLab System" <${environment.smtpSender}>`,
+            from: `TECO HWLab System <${environment.smtpSender}>`,
             to: recipient.email,
             subject: title,
             text: `${content}`,
           }
         : {
-            from: `"TECO HWLab System" <${environment.smtpSender}>`,
+            from: `TECO HWLab System <${environment.smtpSender}>`,
             to: recipient.email,
             subject: title,
             text: `${content}\n${linkText}: ${environment.frontendUrl}${linkUrl}`,
@@ -364,7 +364,7 @@ export class MessagingController {
     const userRepository = getRepository(User);
 
     const admins: User[] = await userRepository.find({
-      where: { role: UserRole.admin },
+      where: { role: UserRole.admin, email: Not('SYSTEM') },
     });
 
     for (const recipient of admins) {
