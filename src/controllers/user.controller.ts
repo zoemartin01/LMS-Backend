@@ -112,7 +112,7 @@ export class UserController {
           await MessagingController.sendMessage(
             user,
             'Account updated',
-            'Your account has been updated' + req.body
+            'Your account has been updated' + JSON.stringify(req.body)
           );
           res.json(await repository.findOne(user.id));
         }

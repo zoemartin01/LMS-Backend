@@ -85,7 +85,7 @@ describe('AdminController', () => {
         .end((err, res) => {
           expect(res.status).to.equal(200);
           expect(res.body).to.be.an('array');
-          expect(res.body.length).to.be.equal(6);
+          expect(res.body.length).to.be.equal(7);
           const keys = res.body.map((setting: GlobalSetting) => setting.key);
           expect(keys).to.have.members([
             'user.max_recordings',
@@ -94,6 +94,7 @@ describe('AdminController', () => {
             'static.safety_instructions',
             'static.lab_rules',
             'static.faq',
+            'static.faq_admin',
           ]);
           done();
         });

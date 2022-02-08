@@ -1,15 +1,10 @@
 import { Factory, Seeder } from 'typeorm-seeding';
 import { Connection } from 'typeorm';
 import { GlobalSetting } from '../../models/global_settings.entity';
-import axios from 'axios';
 
 export default class CreateGlobalSettings implements Seeder {
   public async run(factory: Factory, connection: Connection): Promise<void> {
     const repository = connection.getRepository(GlobalSetting);
-
-    const lorem_markdownum = (
-      await axios.get('https://jaspervdj.be/lorem-markdownum/markdown.txt')
-    ).data;
 
     await repository.upsert(
       {
@@ -32,7 +27,8 @@ export default class CreateGlobalSettings implements Seeder {
     await repository.upsert(
       {
         key: 'static.homepage',
-        value: lorem_markdownum,
+        value:
+          'Here could be the homepage, ask an admin to change the content of this page.',
         description: 'Homepage Content (in Markdown)',
       },
       ['key']
@@ -41,7 +37,8 @@ export default class CreateGlobalSettings implements Seeder {
     await repository.upsert(
       {
         key: 'static.lab_rules',
-        value: lorem_markdownum,
+        value:
+          'Here could be the lab rules, ask an admin to change the content of this page.',
         description: 'HWLab Rules (in Markdown)',
       },
       ['key']
@@ -50,7 +47,8 @@ export default class CreateGlobalSettings implements Seeder {
     await repository.upsert(
       {
         key: 'static.safety_instructions',
-        value: lorem_markdownum,
+        value:
+          'Here could be the safety instructions, ask an admin to change the content of this page.',
         description: 'Static Safety Instructions (in Markdown)',
       },
       ['key']
@@ -59,8 +57,19 @@ export default class CreateGlobalSettings implements Seeder {
     await repository.upsert(
       {
         key: 'static.faq',
-        value: lorem_markdownum,
+        value:
+          'Here could be the FAQ, ask an admin to change the content of this page.',
         description: 'FAQ (in Markdown)',
+      },
+      ['key']
+    );
+
+    await repository.upsert(
+      {
+        key: 'static.faq_admin',
+        value:
+          'Here could be the admin FAQ, ask an admin to change the content of this page.',
+        description: 'Admin FAQ (in Markdown)',
       },
       ['key']
     );
