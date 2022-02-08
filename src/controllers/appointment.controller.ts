@@ -729,7 +729,44 @@ export class AppointmentController {
 
     const user = await AuthController.getCurrentUser(req);
 
-    if (user === undefined) {
+    if (user === null) {
+      return;
+    }
+
+    const confirmationStatus =
+      req.body.confirmationStatus || appointment.confirmationStatus;
+    const onlyStatusPatch =
+      req.body.confirmationStatus !== undefined &&
+      Object.keys(req.body).length === 1;
+
+    if (
+      (appointment.user.id !== user.id || req.body.confirmationStatus) &&
+      !isAdmin
+    ) {
+      res.sendStatus(403);
+      return;
+    }
+
+    if (onlyStatusPatch) {
+      // @todo this might cause issues
+      await repository.update(appointment.id, { confirmationStatus });
+      res.json(await repository.findOne(appointment.id));
+
+      await MessagingController.sendMessage(
+        user,
+        'Appointment Edited',
+        'Your appointment series at ' +
+          moment(appointment.start).format('DD.MM.YY') +
+          ' from ' +
+          moment(appointment.start).format('HH:mm') +
+          ' to ' +
+          moment(appointment.end).format('HH:mm') +
+          ' in room ' +
+          appointment.room.name +
+          ' was edited by an admin.',
+        'View Appointments',
+        '/appointments/series/:id'.replace(':id', user.id)
+      );
       return;
     }
 
@@ -741,8 +778,6 @@ export class AppointmentController {
       return;
     }
 
-    const confirmationStatus =
-      req.body.confirmationStatus || appointment.confirmationStatus;
     const { start, end } = req.body;
 
     const newAppointment = repository.create(<DeepPartial<AppointmentTimeslot>>{
@@ -895,7 +930,10 @@ export class AppointmentController {
       Object.keys(req.body).length === 1;
     const isAdmin = await AuthController.checkAdmin(req);
 
-    if ((first.user !== user || req.body.confirmationStatus) && !isAdmin) {
+    if (
+      (first.user.id !== user.id || req.body.confirmationStatus) &&
+      !isAdmin
+    ) {
       res.sendStatus(403);
       return;
     }
