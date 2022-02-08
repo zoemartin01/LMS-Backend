@@ -304,7 +304,8 @@ export class AppointmentController {
 
     if (
       !(await AuthController.checkAdmin(req)) &&
-      appointment.user !== (await AuthController.getCurrentUser(req))
+      appointment.user.id !==
+        ((await AuthController.getCurrentUser(req))?.id ?? '')
     ) {
       res.sendStatus(403);
       return;
@@ -770,14 +771,6 @@ export class AppointmentController {
       return;
     }
 
-    if (
-      (appointment.user !== user || req.body.confirmationStatus) &&
-      !isAdmin
-    ) {
-      res.sendStatus(403);
-      return;
-    }
-
     const { start, end } = req.body;
 
     const newAppointment = repository.create(<DeepPartial<AppointmentTimeslot>>{
@@ -846,6 +839,7 @@ export class AppointmentController {
             moment(newAppointment.end).subtract(1, 'ms').toDate()
           ),
           confirmationStatus: Not(ConfirmationStatus.denied),
+          id: Not(appointment.id),
         },
         {
           room: appointment.room,
@@ -854,6 +848,7 @@ export class AppointmentController {
             moment(newAppointment.end).subtract(1, 'ms').toDate()
           ),
           confirmationStatus: Not(ConfirmationStatus.denied),
+          id: Not(appointment.id),
         },
       ],
     });
