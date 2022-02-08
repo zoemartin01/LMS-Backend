@@ -109,8 +109,6 @@ export class AuthController {
     const ad = new ActiveDirectory(environment.activeDirectoryConfig);
     const userRepository = getRepository(User);
 
-    console.log('test');
-
     ad.find(
       { filter: `(&(objectclass=tecoUser)(mail=${email}))` },
       async (err: boolean, obj: any) => {
