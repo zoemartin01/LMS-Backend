@@ -306,7 +306,7 @@ export class OrderController {
 
     const inventoryItem: InventoryItem | undefined =
       await inventoryRepository.findOne({
-        where: { name: req.params.itemName },
+        where: { name: req.body.itemName },
       });
 
     let order: Order;
@@ -327,8 +327,8 @@ export class OrderController {
             item: inventoryItem,
             itemName: undefined,
             user: user,
-            quantity: +req.params.quantity,
-            url: req.params.url,
+            quantity: +req.body.quantity,
+            url: req.body.url,
           })
         );
       } catch (err) {
