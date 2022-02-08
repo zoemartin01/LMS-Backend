@@ -164,7 +164,11 @@ export class UserController {
         { id: user.id },
         userRepository.create(<DeepPartial<User>>{
           ...user,
-          ...{ firstName: undefined, lastName: undefined, email: undefined },
+          ...{
+            firstName: 'strawberry',
+            lastName: 'mango',
+            email: 'raspberry@choco.late',
+          },
         })
       );
     } catch (err) {
