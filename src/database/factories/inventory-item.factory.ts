@@ -5,8 +5,8 @@ import { getRepository } from 'typeorm';
 
 define(InventoryItem, (faker: typeof Faker) => {
   const name = faker.commerce.productName();
-  const description = faker.lorem.sentence();
-  const quantity = faker.random.number();
+  const description = faker.commerce.productDescription();
+  const quantity = faker.random.number({ min: 1, max: 250 });
 
   const item = getRepository(InventoryItem).create({
     name,
