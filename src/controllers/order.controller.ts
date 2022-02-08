@@ -278,13 +278,6 @@ export class OrderController {
       res.sendStatus(403);
       return;
     }
-    /*if (
-      !(await AuthController.checkAdmin(req)) &&
-      (order.user !== (await AuthController.getCurrentUser(req)))
-    ) {
-      res.sendStatus(403);
-      return;
-    }*/
 
     res.json(order);
   }
