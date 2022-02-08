@@ -505,6 +505,7 @@ class AppRouter {
     );
     this.router.ws(
       environment.apiRoutes.livecam.streamFeed,
+      AuthController.checkWebSocketAuthenticationMiddleware,
       LivecamController.getLiveCameraFeed
     );
   }
