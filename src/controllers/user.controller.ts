@@ -112,7 +112,10 @@ export class UserController {
           await MessagingController.sendMessage(
             user,
             'Account updated',
-            'Your account has been updated' + JSON.stringify(req.body)
+            'Your account has been updated' +
+              Object.keys(req.body)
+                .map((e: string) => `${e}: ${req.body[e]}`)
+                .join(', ')
           );
           res.json(await repository.findOne(user.id));
         }
@@ -133,7 +136,10 @@ export class UserController {
       await MessagingController.sendMessage(
         user,
         'Account updated',
-        'Your account has been updated' + req.body
+        'Your account has been updated' +
+          Object.keys(req.body)
+            .map((e: string) => `${e}: ${req.body[e]}`)
+            .join(', ')
       );
       res.json(await repository.findOne(user.id));
     }
