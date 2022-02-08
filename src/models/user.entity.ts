@@ -52,6 +52,7 @@ export class User extends BaseEntity {
    * @type {string}
    */
   @Column()
+  @IsNotEmpty()
   firstName: string;
 
   /**
@@ -60,6 +61,7 @@ export class User extends BaseEntity {
    * @type {string}
    */
   @Column()
+  @IsNotEmpty()
   lastName: string;
 
   /**
@@ -68,7 +70,6 @@ export class User extends BaseEntity {
    * @type {string}
    */
   @Column()
-  @IsNotEmpty()
   password: string;
 
   /**
