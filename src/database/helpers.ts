@@ -7,7 +7,7 @@ import { Room } from '../models/room.entity';
 import { UnavailableTimeslot } from '../models/unavaliable.timeslot.entity';
 import { TimeSlotRecurrence } from '../types/enums/timeslot-recurrence';
 
-export async function createTimeslots(room: Room, weeks = 52) {
+export async function createTimeslots(room: Room, weeks = 6) {
   const aTimeslots: AvailableTimeslot[] = [];
   const uTimeslots: UnavailableTimeslot[] = [];
 
