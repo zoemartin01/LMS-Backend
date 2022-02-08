@@ -7,7 +7,10 @@ const environment = {
   apiKey: 'ZjVlOTk1YjEtNjIwOS00MDM4LWFiNTctZTI1Y2Q3MWIwNjZm',
   activeDirectoryConfig: {
     url: process.env.LDAP_URL || 'ldaps://ldap.teco.edu:636',
-    //baseDN: 'dc=',
+    baseDN: process.env.LDAP_BASEDN || 'dc=teco,dc=edu',
+    username:
+      process.env.LDAP_USERNAME || 'uid=pseteamtwo,ou=People,dc=teco,dc=edu',
+    password: process.env.LDAP_PASSWORD || 'asd3412090',
   },
   //@todo add SMTP credentials & sender email
   smtpConfig: {
