@@ -561,6 +561,19 @@ export class AdminController {
           'Account request accepted',
           'Your account request has been accepted. You can now login.'
         );
+        try {
+          await userRepository.update(
+            { id: user.id },
+            userRepository.create(<DeepPartial<User>>{
+              ...user,
+              ...req.body,
+            })
+          );
+        } catch (err) {
+          res.status(400).json(err);
+          return;
+        }
+        res.json(await userRepository.findOne(user.id));
         return;
       }
     }
