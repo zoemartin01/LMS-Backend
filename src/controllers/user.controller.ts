@@ -91,17 +91,52 @@ export class UserController {
       return;
     }
 
-    try {
-      await repository.update(
-        { id: user.id },
-        repository.create(<DeepPartial<User>>{ ...user, ...req.body })
+    if (req.body.password) {
+      bcrypt.hash(
+        req.body.password,
+        environment.pwHashSaltRound,
+        async (err: Error | undefined, hash) => {
+          try {
+            await repository.update(
+              { id: user.id },
+              repository.create(<DeepPartial<User>>{
+                ...user,
+                ...req.body,
+                password: hash,
+              })
+            );
+          } catch (err) {
+            res.status(400).json(err);
+            return;
+          }
+          await MessagingController.sendMessage(
+            user,
+            'Account updated',
+            'Your account has been updated' + JSON.stringify(req.body)
+          );
+          res.json(await repository.findOne(user.id));
+        }
       );
-    } catch (err) {
-      res.status(400).json(err);
-      return;
+    } else {
+      try {
+        await repository.update(
+          { id: user.id },
+          repository.create(<DeepPartial<User>>{
+            ...user,
+            ...req.body,
+          })
+        );
+      } catch (err) {
+        res.status(400).json(err);
+        return;
+      }
+      await MessagingController.sendMessage(
+        user,
+        'Account updated',
+        'Your account has been updated' + req.body
+      );
+      res.json(await repository.findOne(user.id));
     }
-
-    res.json(await repository.findOne(user.id));
   }
 
   /**
@@ -137,7 +172,11 @@ export class UserController {
         { id: user.id },
         userRepository.create(<DeepPartial<User>>{
           ...user,
-          ...{ firstName: undefined, lastName: undefined, email: undefined },
+          ...{
+            firstName: 'strawberry',
+            lastName: 'mango',
+            email: 'raspberry@choco.late',
+          },
         })
       );
     } catch (err) {
