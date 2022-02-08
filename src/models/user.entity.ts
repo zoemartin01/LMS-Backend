@@ -70,7 +70,6 @@ export class User extends BaseEntity {
    * @type {string}
    */
   @Column()
-  @IsNotEmpty()
   password: string;
 
   /**

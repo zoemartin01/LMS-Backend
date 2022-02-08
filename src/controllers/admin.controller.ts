@@ -5,6 +5,7 @@ import { Retailer } from '../models/retailer.entity';
 import { RetailerDomain } from '../models/retailer.domain.entity';
 import { User } from '../models/user.entity';
 import { UserRole } from '../types/enums/user-role';
+import { MessagingController } from './messaging.controller';
 
 /**
  * Controller for Admin Management
@@ -278,8 +279,8 @@ export class AdminController {
   /**
    * Changes one domain of whitelist retailer
    *
-   * @route {PATCH} /global-settings/whitelist-retailers/:retailerId/domains/:domainId
-   * @routeParam {string} retailerId - a retailer id
+   * @route {PATCH} /global-settings/whitelist-retailers/:id/domains/:domainId
+   * @routeParam {string} id - a retailer id
    * @routeParam {string} domainId - a domain id
    * @bodyParam {string} domain - the new value of the domain of the retailer
    * @param {Request} req frontend request to change one domain of a whitelist retailer
@@ -290,7 +291,7 @@ export class AdminController {
     res: Response
   ) {
     const retailer = await getRepository(Retailer).findOne({
-      where: { id: req.params.retailerId },
+      where: { id: req.params.id },
     });
 
     if (retailer === undefined) {
@@ -337,8 +338,8 @@ export class AdminController {
   /**
    * Deletes one domain of a whitelist retailer
    *
-   * @route {DELETE} /global-settings/whitelist-retailers/:retailerId/domains/:domainId
-   * @routeParam {string} retailerId - a retailer id
+   * @route {DELETE} /global-settings/whitelist-retailers/:id/domains/:domainId
+   * @routeParam {string} id - a retailer id
    * @routeParam {string} domainId - a domain id
    * @param {Request} req frontend request to delete one domain of a whitelist retailer
    * @param {Response} res backend response deletion
@@ -348,7 +349,8 @@ export class AdminController {
     res: Response
   ) {
     const retailer = await getRepository(Retailer).findOne({
-      where: { id: req.params.retailerId },
+      where: { id: req.params.id },
+      relations: ['domains'],
     });
 
     if (retailer === undefined) {
@@ -387,17 +389,14 @@ export class AdminController {
    * @param {Request} req frontend request to check a domain against whitelist
    * @param {Response} res backend response to check a domain against whitelist
    */
-  public static async checkDomainAgainstWhitelist(
-    req: Request,
-    res: Response
-  ): Promise<boolean> {
+  public static async checkDomainAgainstWhitelist(req: Request, res: Response) {
     const domainRepository = getRepository(RetailerDomain);
-
-    return (
-      (await domainRepository.findOne({
-        where: { domain: req.params.domain },
-      })) === undefined
-    );
+    res.json({
+      isWhitelisted:
+        (await domainRepository.findOne({
+          where: { domain: req.params.domain },
+        })) !== undefined,
+    });
   }
 
   /**
@@ -521,14 +520,15 @@ export class AdminController {
       return;
     }
 
+    //checking for user is last admin
     if (user.role === UserRole.admin) {
       const userCount = await userRepository.count({
         where: { role: UserRole.admin },
       });
       if (
         userCount === 1 &&
-        (+req.params.role === UserRole.pending ||
-          +req.params.role === UserRole.visitor)
+        (+req.body.role === UserRole.pending ||
+          +req.body.role === UserRole.visitor)
       ) {
         res.status(403).json({
           message: 'Not allowed to degrade last admin',
@@ -536,6 +536,18 @@ export class AdminController {
         return;
       }
     }
+
+    //checking for pending user is accepted
+    if (user.role === UserRole.pending) {
+      if (+req.body.role === UserRole.visitor) {
+        await MessagingController.sendMessageViaEmail(
+          user,
+          'Account request accepted',
+          'Your account request has been accepted. You can now login.'
+        );
+      }
+    }
+
     try {
       await userRepository.update(
         { id: user.id },

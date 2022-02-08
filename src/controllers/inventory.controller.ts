@@ -45,20 +45,18 @@ export class InventoryController {
    * @param {Response} res backend response with data of one inventory item
    */
   public static async getInventoryItem(req: Request, res: Response) {
-    getRepository(InventoryItem)
-      .findOne({
-        where: { id: req.params.id },
-      })
-      .then((inventoryItem) => {
-        if (inventoryItem === undefined) {
-          res.status(404).json({
-            message: 'Inventory item not found.',
-          });
-          return;
-        }
+    const inventoryItem = await getRepository(InventoryItem).findOne({
+      where: { id: req.params.id },
+    });
 
-        res.json(inventoryItem);
+    if (inventoryItem === undefined) {
+      res.status(404).json({
+        message: 'Inventory item not found.',
       });
+      return;
+    }
+
+    res.json(inventoryItem);
   }
 
   /**
@@ -128,7 +126,7 @@ export class InventoryController {
     }
 
     try {
-      repository.update(
+      await repository.update(
         { id: inventoryItem.id },
         repository.create(<DeepPartial<InventoryItem>>{
           ...inventoryItem,
@@ -173,5 +171,27 @@ export class InventoryController {
     await inventoryRepository.delete(inventoryItem.id).then(() => {
       res.sendStatus(204);
     });
+  }
+
+  /**
+   * Returns an existing inventory item or null
+   *
+   * @route {GET} /inventory-items/name/:name
+   * @routeParam {string} name - The name of the inventory item
+   * @param {Request} req frontend request to delete one inventory item
+   * @param {Response} res backend response deletion
+   */
+  public static async getByName(req: Request, res: Response) {
+    getRepository(InventoryItem)
+      .findOne({
+        where: { name: req.params.name },
+      })
+      .then((inventoryItem) => {
+        if (inventoryItem === undefined) {
+          res.sendStatus(404);
+          return;
+        }
+        res.json(inventoryItem);
+      });
   }
 }
