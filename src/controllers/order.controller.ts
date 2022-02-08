@@ -129,6 +129,7 @@ export class OrderController {
       res.status(404).json({
         message: 'User not found.',
       });
+      return;
     }
 
     const { offset, limit } = req.query;
@@ -170,6 +171,7 @@ export class OrderController {
       res.status(404).json({
         message: 'User not found.',
       });
+      return;
     }
 
     const { offset, limit } = req.query;
@@ -219,6 +221,7 @@ export class OrderController {
       res.status(404).json({
         message: 'User not found.',
       });
+      return;
     }
 
     const { offset, limit } = req.query;
@@ -301,6 +304,11 @@ export class OrderController {
     const inventoryRepository = getRepository(InventoryItem);
     const user = await AuthController.getCurrentUser(req);
     if (user === null) {
+      return;
+    }
+
+    if ('status' in req.body) {
+      res.sendStatus(403);
       return;
     }
 
@@ -387,12 +395,22 @@ export class OrderController {
     // check if user is visitor -> less rights to change stuff
     if (!(await AuthController.checkAdmin(req))) {
       // check if user matches user of order if user is no admin
+      const currentUser: User | null = await AuthController.getCurrentUser(req);
       if (
-        order.user !== (await AuthController.getCurrentUser(req)) ||
+        (currentUser !== null && order.user.id !== currentUser.id) ||
         // check if order status is still pending, visitors aren't allowed to change order after that
         order.status !== OrderStatus.pending ||
         // check if no admin user tried to change order status
         'status' in req.body
+      ) {
+        res.sendStatus(403);
+        return;
+      }
+    } else {
+      // check if order is inventoried or send back -> no changes allowed
+      if (
+        order.status === OrderStatus.inventoried ||
+        order.status === OrderStatus.sent_back
       ) {
         res.sendStatus(403);
         return;
@@ -457,7 +475,7 @@ export class OrderController {
       }
     }
 
-    // find updated order to return for order view page
+    // get updated data of order to return for order view page
     order = await orderRepository.findOne({
       where: { id: req.params.id },
       relations: ['user', 'item'],
@@ -536,9 +554,15 @@ export class OrderController {
       return;
     }
 
+    const currentUser = await AuthController.getCurrentUser(req);
+
     if (
       !(await AuthController.checkAdmin(req)) &&
-      order.user !== (await AuthController.getCurrentUser(req))
+      currentUser !== null &&
+      // check if non admin user tried to delete an other users order
+      order.user.id !== currentUser.id &&
+      // check if non admin user tried to delete an order that is not pending
+      order.status !== OrderStatus.pending
     ) {
       res.sendStatus(403);
       return;
@@ -553,7 +577,6 @@ export class OrderController {
       res.sendStatus(204);
     });
 
-    const currentUser = await AuthController.getCurrentUser(req);
     if (currentUser === null) {
       return;
     }
