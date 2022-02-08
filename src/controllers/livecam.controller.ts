@@ -285,7 +285,7 @@ export class LivecamController {
 
   private static async initBackendConnection() {
     LivecamController.ws = new WebSocket(
-      `${environment.livecam_server.ws_protocol}://${environment.host}:${environment.livecam_server.ws_port}${environment.livecam_server.ws_path}`
+      `${environment.livecam_server.ws_protocol}://${environment.livecam_server.host}:${environment.livecam_server.ws_port}${environment.livecam_server.ws_path}`
     );
 
     LivecamController.ws.onmessage = async (event) => {
