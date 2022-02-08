@@ -109,7 +109,11 @@ export class UserController {
             res.status(400).json(err);
             return;
           }
-
+          await MessagingController.sendMessage(
+            user,
+            'Account updated',
+            'Your account has been updated' + req.body
+          );
           res.json(await repository.findOne(user.id));
         }
       );
@@ -126,7 +130,11 @@ export class UserController {
         res.status(400).json(err);
         return;
       }
-
+      await MessagingController.sendMessage(
+        user,
+        'Account updated',
+        'Your account has been updated' + req.body
+      );
       res.json(await repository.findOne(user.id));
     }
   }

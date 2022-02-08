@@ -55,5 +55,14 @@ export default class CreateGlobalSettings implements Seeder {
       },
       ['key']
     );
+
+    await repository.upsert(
+      {
+        key: 'static.faq',
+        value: lorem_markdownum,
+        description: 'FAQ (in Markdown)',
+      },
+      ['key']
+    );
   }
 }
