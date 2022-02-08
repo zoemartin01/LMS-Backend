@@ -404,7 +404,7 @@ export class OrderController {
       return;
     }
 
-    // case: item name should not be updated
+    // case: item name not requested to be updated
     if (!('itemName' in req.body)) {
       try {
         await orderRepository.update(
@@ -418,11 +418,11 @@ export class OrderController {
         res.status(400).json(err);
         return;
       }
-    } //case: itemName should be updated
+    } //case: itemName requested to be updated
     else {
       const inventoryItem: InventoryItem | undefined =
         await inventoryRepository.findOne({
-          where: { name: req.params.itemName },
+          where: { name: req.body.itemName },
         });
       // case: existing inventory item for updated order item
       if (inventoryItem === undefined) {
@@ -457,7 +457,7 @@ export class OrderController {
       }
     }
 
-    // find order to return for order view page
+    // find updated order to return for order view page
     order = await orderRepository.findOne({
       where: { id: req.params.id },
       relations: ['user', 'item'],
