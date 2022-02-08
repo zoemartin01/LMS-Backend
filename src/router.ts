@@ -229,6 +229,12 @@ class AppRouter {
       AuthController.checkAuthenticationMiddleware,
       RoomController.getRoomById
     );
+    this.router.get(
+      addUUIDRegexToRoute(environment.apiRoutes.rooms.getTimeslot),
+      AuthController.checkAuthenticationMiddleware,
+      AuthController.checkAdminMiddleware,
+      RoomController.getTimeslotById
+    );
     this.router.post(
       environment.apiRoutes.rooms.createRoom,
       AuthController.checkAuthenticationMiddleware,

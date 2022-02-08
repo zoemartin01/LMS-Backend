@@ -1,11 +1,4 @@
-import {
-  Between,
-  DeepPartial,
-  getRepository,
-  LessThanOrEqual,
-  MoreThanOrEqual,
-  Not,
-} from 'typeorm';
+import { Between, DeepPartial, getRepository, LessThanOrEqual, MoreThanOrEqual, Not } from 'typeorm';
 import { Room } from '../models/room.entity';
 import { Request, Response } from 'express';
 import { TimeSlot } from '../models/timeslot.entity';
@@ -69,6 +62,37 @@ export class RoomController {
     }
 
     res.json(room);
+  }
+
+  /**
+   * Returns one timeslot with an id
+   *
+   * @route {GET} /rooms/:id/timeslot/:timeslotId
+   * @routeParam {string} id - id of the room
+   * @routeParam {string} timeslotId - id of the timeslot
+   * @param {Request} req frontend request to get data about one room
+   * @param {Response} res backend response with data about one room
+   */
+  public static async getTimeslotById(req: Request, res: Response) {
+    const room = await getRepository(Room).findOne(req.params.id);
+
+    if (room === undefined) {
+      res.status(404).json({ message: 'Room not found' });
+      return;
+    }
+    const timeslot = await getRepository(TimeSlot).findOne({
+      where: {
+        id: req.params.timeslotId,
+        room,
+      }
+    });
+
+    if (timeslot === undefined) {
+      res.status(404).json({ message: 'Timeslot not found' });
+      return;
+    }
+
+    res.json(timeslot);
   }
 
   /**

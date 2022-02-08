@@ -85,6 +85,7 @@ const environment = {
     rooms: {
       getAllRooms: '/rooms',
       getSingleRoom: '/rooms/:id',
+      getTimeslot: '/rooms/:id/timeslot/:timeslotId',
       getRoomCalendar: '/rooms/:id/calendar',
       getAvailabilityCalendar: '/rooms/:id/availability-calendar',
 
