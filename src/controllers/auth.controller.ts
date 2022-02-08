@@ -11,6 +11,7 @@ import { Token } from '../models/token.entity';
 import { TokenType } from '../types/enums/token-type';
 import { UserRole } from '../types/enums/user-role';
 import { WebSocket } from 'ws';
+import { MessagingController } from './messaging.controller';
 
 /**
  * Controller for Authentication
@@ -123,7 +124,15 @@ export class AuthController {
             isActiveDirectory: true,
             password: '',
           });
-          AuthController.loginCallback(user, res);
+
+          await MessagingController.sendMessageToAllAdmins(
+            'Accept User Registration',
+            'You have an open user registration request.',
+            'Accept User',
+            '/users'
+          );
+
+          await AuthController.loginCallback(user, res);
         } catch (err) {
           res.status(500).json(err);
         }
