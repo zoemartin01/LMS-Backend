@@ -85,7 +85,7 @@ describe('AdminController', () => {
         .end((err, res) => {
           expect(res.status).to.equal(200);
           expect(res.body).to.be.an('array');
-          expect(res.body.length).to.be.equal(5);
+          expect(res.body.length).to.be.equal(6);
           const keys = res.body.map((setting: GlobalSetting) => setting.key);
           expect(keys).to.have.members([
             'user.max_recordings',
