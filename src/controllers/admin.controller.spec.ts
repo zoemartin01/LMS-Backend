@@ -93,6 +93,7 @@ describe('AdminController', () => {
             'static.homepage',
             'static.safety_instructions',
             'static.lab_rules',
+            'static.faq',
           ]);
           done();
         });
