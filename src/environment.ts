@@ -86,13 +86,21 @@ const environment = {
       getAllRooms: '/rooms',
       getSingleRoom: '/rooms/:id',
       getRoomCalendar: '/rooms/:id/calendar',
+      getAvailabilityCalendar: '/rooms/:id/availability-calendar',
 
       createRoom: '/rooms',
       updateRoom: '/rooms/:id',
       deleteRoom: '/rooms/:id',
 
+      getAllAvailableTimeslotsForRoom: '/rooms/:roomId/timeslots/available',
+      getAllUnavailableTimeslotsForRoom: '/rooms/:roomId/timeslots/unavailable',
+
       createTimeslot: '/rooms/:roomId/timeslots',
+      createTimeslotSeries: '/rooms/:roomId/timeslots/series',
+      updateTimeslot: '/rooms/:roomId/timeslots/:timeslotId',
+      updateTimeslotSeries: '/rooms/:roomId/timeslots/series/:seriesId',
       deleteTimeslot: '/rooms/:roomId/timeslots/:timeslotId',
+      deleteTimeslotSeries: '/rooms/:roomId/timeslots/series/:seriesId',
     },
     appointments: {
       getCurrentUserAppointments: '/user/appointments',
