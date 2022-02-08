@@ -3,6 +3,7 @@ import { BaseEntity } from './base.entity';
 import { TimeSlotType } from '../types/enums/timeslot-type';
 import { TimeSlotRecurrence } from '../types/enums/timeslot-recurrence';
 import { IsDate } from 'class-validator';
+import { Room } from './room.entity';
 
 /**
  * A model for a time slot.
@@ -87,4 +88,6 @@ export class TimeSlot extends BaseEntity {
    */
   @Column({ default: false })
   isDirty: boolean;
+
+  room: Room;
 }

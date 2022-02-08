@@ -1,4 +1,11 @@
-import { Between, DeepPartial, getRepository, LessThanOrEqual, MoreThanOrEqual, Not } from 'typeorm';
+import {
+  Between,
+  DeepPartial,
+  getRepository,
+  LessThan,
+  MoreThan,
+  Not,
+} from 'typeorm';
 import { Room } from '../models/room.entity';
 import { Request, Response } from 'express';
 import { TimeSlot } from '../models/timeslot.entity';
@@ -84,7 +91,7 @@ export class RoomController {
       where: {
         id: req.params.timeslotId,
         room,
-      }
+      },
     });
 
     if (timeslot === undefined) {
@@ -599,7 +606,7 @@ export class RoomController {
   public static async createTimeslot(req: Request, res: Response) {
     const { start, end, type } = req.body;
 
-    const room = await getRepository(Room).findOne(req.params.id);
+    const room = await getRepository(Room).findOne(req.params.roomId);
 
     if (room === undefined) {
       res.status(404).json({ message: 'Room not found' });
@@ -638,12 +645,15 @@ export class RoomController {
         ? getRepository(AvailableTimeslot)
         : getRepository(UnavailableTimeslot);
 
+    const mStart = moment(start).toDate();
+    const mEnd = moment(end).toDate();
+
     let timeslot;
 
     try {
       timeslot = repository.create({
-        start: moment(start).toDate(),
-        end: moment(end).toDate(),
+        start: moment(mStart).toDate(),
+        end: moment(mEnd).toDate(),
         room,
       });
 
@@ -653,54 +663,79 @@ export class RoomController {
       return;
     }
 
-    const mergables = await repository.findAndCount({
+    let mergables = await repository.find({
       where: [
         {
-          start: end,
+          start: mEnd, //1
           type,
           room,
         },
         {
-          end: start,
+          end: mStart, //2
           type,
           room,
         },
         {
-          start: LessThanOrEqual(start),
+          start: mStart, //3
           type,
           room,
         },
         {
-          end: MoreThanOrEqual(end),
+          end: mEnd, //4
           type,
           room,
         },
         {
-          start: Between(start, end),
+          start: LessThan(mStart), //5
+          end: MoreThan(mStart),
           type,
           room,
         },
         {
-          end: Between(start, end),
+          start: LessThan(mEnd), //6
+          end: MoreThan(mEnd),
+          type,
+          room,
+        },
+        {
+          start: Between(mStart, mEnd), //7
+          end: MoreThan(mEnd),
+          type,
+          room,
+        },
+        {
+          start: LessThan(mStart), //8
+          end: Between(mStart, mEnd),
+          type,
+          room,
+        },
+        {
+          start: Between(mStart, mEnd), //9
+          end: Between(mStart, mEnd),
           type,
           room,
         },
       ],
     });
 
-    if (mergables[1] > 0) {
-      const minStart = min(mergables[0].map((m) => moment(m.start)));
-      const maxEnd = max(mergables[0].map((m) => moment(m.end)));
+    mergables = mergables.filter((mergable) =>
+      moment(mergable.start).isSame(mStart, 'day')
+    );
+    mergables.push(timeslot);
+
+    if (mergables.length > 1) {
+      const minStart = min(mergables.map((m) => moment(m.start)));
+      const maxEnd = max(mergables.map((m) => moment(m.end)));
 
       timeslot = repository.create({
         room,
         start: minStart.toDate(),
         end: maxEnd.toDate(),
       });
-      await repository.remove(mergables[0]);
+      await repository.remove(mergables);
     }
 
-    await repository.save(timeslot);
+    console.log(await repository.save(timeslot));
     res.status(201).json(timeslot);
   }
 
@@ -721,7 +756,7 @@ export class RoomController {
     const { start, end, type, timeSlotRecurrence, amount } = req.body;
     const seriesId = v4();
 
-    const room = await getRepository(Room).findOne(req.params.id);
+    const room = await getRepository(Room).findOne(req.params.roomId);
 
     if (room === undefined) {
       res.status(404).json({ message: 'Room not found' });
@@ -804,51 +839,76 @@ export class RoomController {
         return;
       }
 
-      const mergables = await repository.findAndCount({
+      let mergables = await repository.find({
         where: [
           {
-            start: end,
+            start: mEnd.toDate(), //1
             type,
             room,
           },
           {
-            end: start,
+            end: mStart.toDate(), //2
             type,
             room,
           },
           {
-            start: LessThanOrEqual(start),
+            start: mStart.toDate(), //3
             type,
             room,
           },
           {
-            end: MoreThanOrEqual(end),
+            end: mEnd.toDate(), //4
             type,
             room,
           },
           {
-            start: Between(start, end),
+            start: LessThan(mStart.toDate()), //5
+            end: MoreThan(mStart.toDate()),
             type,
             room,
           },
           {
-            end: Between(start, end),
+            start: LessThan(mEnd.toDate()), //6
+            end: MoreThan(mEnd.toDate()),
+            type,
+            room,
+          },
+          {
+            start: Between(mStart.toDate(), mEnd.toDate()), //7
+            end: MoreThan(mEnd.toDate()),
+            type,
+            room,
+          },
+          {
+            start: LessThan(mStart.toDate()), //8
+            end: Between(mStart.toDate(), mEnd.toDate()),
+            type,
+            room,
+          },
+          {
+            start: Between(mStart.toDate(), mEnd.toDate()), //9
+            end: Between(mStart.toDate(), mEnd.toDate()),
             type,
             room,
           },
         ],
       });
 
-      if (mergables[1] > 0) {
-        const minStart = min(mergables[0].map((m) => moment(m.start)));
-        const maxEnd = max(mergables[0].map((m) => moment(m.end)));
+      mergables = mergables.filter((mergable) =>
+        moment(mergable.start).isSame(mStart, 'day')
+      );
+      mergables.push(timeslot);
+
+      if (mergables.length > 1) {
+        const minStart = min(mergables.map((m) => moment(m.start)));
+        const maxEnd = max(mergables.map((m) => moment(m.end)));
 
         timeslot = repository.create({
           room,
           start: minStart.toDate(),
           end: maxEnd.toDate(),
         });
-        await repository.remove(mergables[0]);
+        await repository.remove(mergables);
       }
 
       timeslots.push(timeslot);
@@ -896,7 +956,7 @@ export class RoomController {
       repository = getRepository(AvailableTimeslot);
       const availableTimeslot = await repository.findOneOrFail(timeslot.id);
 
-      if (availableTimeslot.room !== room) {
+      if (availableTimeslot.room.id !== room.id) {
         res.sendStatus(404);
         return;
       }
@@ -905,7 +965,7 @@ export class RoomController {
       repository = getRepository(UnavailableTimeslot);
       const unavailableTimeslot = await repository.findOneOrFail(timeslot.id);
 
-      if (unavailableTimeslot.room !== room) {
+      if (unavailableTimeslot.room.id !== room.id) {
         res.sendStatus(404);
         return;
       }
@@ -915,12 +975,14 @@ export class RoomController {
     }
 
     const { start, end } = req.body;
+    const mStart = moment(start);
+    const mEnd = moment(end);
     let newTimeslot;
 
     try {
       newTimeslot = repository.create({
-        start: moment(start).toDate(),
-        end: moment(end).toDate(),
+        start: mStart.toDate(),
+        end: mEnd.toDate(),
         room,
       });
 
@@ -930,51 +992,79 @@ export class RoomController {
       return;
     }
 
-    const mergables = await repository.findAndCount({
+    let mergables = await repository.find({
       where: [
         {
-          start: end,
+          start: mEnd.toDate(), //1
           type,
           room,
         },
         {
-          end: start,
+          end: mStart.toDate(), //2
           type,
           room,
         },
         {
-          start: LessThanOrEqual(start),
+          start: mStart.toDate(), //3
           type,
           room,
         },
         {
-          end: MoreThanOrEqual(end),
+          end: mEnd.toDate(), //4
           type,
           room,
         },
         {
-          start: Between(start, end),
+          start: LessThan(mStart.toDate()), //5
+          end: MoreThan(mStart.toDate()),
           type,
           room,
         },
         {
-          end: Between(start, end),
+          start: LessThan(mEnd.toDate()), //6
+          end: MoreThan(mEnd.toDate()),
+          type,
+          room,
+        },
+        {
+          start: Between(mStart.toDate(), mEnd.toDate()), //7
+          end: MoreThan(mEnd.toDate()),
+          type,
+          room,
+        },
+        {
+          start: LessThan(mStart.toDate()), //8
+          end: Between(mStart.toDate(), mEnd.toDate()),
+          type,
+          room,
+        },
+        {
+          start: Between(mStart.toDate(), mEnd.toDate()), //9
+          end: Between(mStart.toDate(), mEnd.toDate()),
           type,
           room,
         },
       ],
     });
 
-    if (mergables[1] > 0) {
-      const minStart = min(mergables[0].map((m) => moment(m.start)));
-      const maxEnd = max(mergables[0].map((m) => moment(m.end)));
+    mergables = mergables.filter((mergable) =>
+      moment(mergable.start).isSame(mStart, 'day')
+    );
+    mergables = mergables.filter(
+      (mergable) => mergable.id !== timeslot?.id ?? ''
+    );
+    mergables.push({ ...timeslot, room } as AvailableTimeslot);
+
+    if (mergables.length > 1) {
+      const minStart = min(mergables.map((m) => moment(m.start)));
+      const maxEnd = max(mergables.map((m) => moment(m.end)));
 
       newTimeslot = repository.create({
         room,
         start: minStart.toDate(),
         end: maxEnd.toDate(),
       });
-      await repository.remove(mergables[0]);
+      await repository.remove(mergables);
     }
 
     await repository.update(timeslot.id, newTimeslot);
@@ -1101,51 +1191,80 @@ export class RoomController {
         return;
       }
 
-      const mergables = await repository.findAndCount({
+      let mergables = await repository.find({
         where: [
           {
-            start: end,
+            start: mEnd.toDate(), //1
             type,
             room,
           },
           {
-            end: start,
+            end: mStart.toDate(), //2
             type,
             room,
           },
           {
-            start: LessThanOrEqual(start),
+            start: mStart.toDate(), //3
             type,
             room,
           },
           {
-            end: MoreThanOrEqual(end),
+            end: mEnd.toDate(), //4
             type,
             room,
           },
           {
-            start: Between(start, end),
+            start: LessThan(mStart.toDate()), //5
+            end: MoreThan(mStart.toDate()),
             type,
             room,
           },
           {
-            end: Between(start, end),
+            start: LessThan(mEnd.toDate()), //6
+            end: MoreThan(mEnd.toDate()),
+            type,
+            room,
+          },
+          {
+            start: Between(mStart.toDate(), mEnd.toDate()), //7
+            end: MoreThan(mEnd.toDate()),
+            type,
+            room,
+          },
+          {
+            start: LessThan(mStart.toDate()), //8
+            end: Between(mStart.toDate(), mEnd.toDate()),
+            type,
+            room,
+          },
+          {
+            start: Between(mStart.toDate(), mEnd.toDate()), //9
+            end: Between(mStart.toDate(), mEnd.toDate()),
             type,
             room,
           },
         ],
       });
 
-      if (mergables[1] > 0) {
-        const minStart = min(mergables[0].map((m) => moment(m.start)));
-        const maxEnd = max(mergables[0].map((m) => moment(m.end)));
+      mergables = mergables.filter((mergable) =>
+        moment(mergable.start).isSame(mStart, 'day')
+      );
+      mergables = mergables.filter(
+        (mergable) => mergable.seriesId !== first.seriesId
+      );
+      mergables.push(newTimeslot);
+
+      if (mergables.length > 1) {
+        const minStart = min(mergables.map((m) => moment(m.start)));
+        const maxEnd = max(mergables.map((m) => moment(m.end)));
+
+        await repository.remove(mergables.filter((m) => m !== newTimeslot));
 
         newTimeslot = repository.create({
           room,
           start: minStart.toDate(),
           end: maxEnd.toDate(),
         });
-        await repository.remove(mergables[0]);
       }
 
       newTimeslots.push(newTimeslot);
