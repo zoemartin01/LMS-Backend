@@ -745,32 +745,92 @@ export class AppointmentController {
       req.body.confirmationStatus || appointment.confirmationStatus;
     const { start, end } = req.body;
 
+    const newAppointment = repository.create(<DeepPartial<AppointmentTimeslot>>{
+      ...appointment,
+      start: moment(start).toDate(),
+      end: moment(end).toDate(),
+      isDirty: isSeries ? true : undefined,
+      confirmationStatus: isAdmin
+        ? confirmationStatus
+        : appointment.room.autoAcceptBookings
+        ? ConfirmationStatus.accepted
+        : ConfirmationStatus.pending,
+    });
+
     try {
-      await repository.update(
-        { id: appointment.id },
-        repository.create(<DeepPartial<AppointmentTimeslot>>{
-          ...appointment,
-          start: moment(start).toDate(),
-          end: moment(end).toDate(),
-          isDirty: isSeries ? true : undefined,
-          confirmationStatus: isAdmin
-            ? confirmationStatus
-            : appointment.room.autoAcceptBookings
-            ? ConfirmationStatus.accepted
-            : ConfirmationStatus.pending,
-        })
-      );
+      await validateOrReject(newAppointment);
     } catch (err) {
       res.status(400).json(err);
       return;
     }
 
-    appointment = await repository.findOne(req.params.id);
+    const availableConflict =
+      (await getRepository(AvailableTimeslot).findOne({
+        where: {
+          room: appointment.room,
+          start: LessThanOrEqual(newAppointment.start),
+          end: MoreThanOrEqual(newAppointment.end),
+        },
+      })) === undefined;
 
-    if (appointment === undefined) {
-      throw Error("Can't be reached!");
+    if (availableConflict) {
+      res
+        .status(409)
+        .json({ message: 'Appointment conflicts with available timeslot' });
+      return;
     }
 
+    const unavailableConflict =
+      (await getRepository(UnavailableTimeslot).findOne({
+        where: [
+          {
+            room: appointment.room,
+            end: Between(newAppointment.start, newAppointment.end),
+          },
+          {
+            room: appointment.room,
+            start: Between(newAppointment.start, newAppointment.end),
+          },
+        ],
+      })) !== undefined;
+
+    if (unavailableConflict) {
+      res
+        .status(409)
+        .json({ message: 'Appointment conflicts with unavailable timeslot' });
+      return;
+    }
+
+    const conflictingBookings = await getRepository(AppointmentTimeslot).count({
+      where: [
+        {
+          room: appointment.room,
+          // @todo is there a better solution to this?
+          start: Between(
+            moment(newAppointment.start).add(1, 'ms').toDate(),
+            moment(newAppointment.end).subtract(1, 'ms').toDate()
+          ),
+          confirmationStatus: Not(ConfirmationStatus.denied),
+        },
+        {
+          room: appointment.room,
+          end: Between(
+            moment(newAppointment.start).add(1, 'ms').toDate(),
+            moment(newAppointment.end).subtract(1, 'ms').toDate()
+          ),
+          confirmationStatus: Not(ConfirmationStatus.denied),
+        },
+      ],
+    });
+
+    if (conflictingBookings >= appointment.room.maxConcurrentBookings) {
+      res.status(409).json({ message: 'Too many concurrent bookings' });
+      return;
+    }
+
+    await repository.update({ id: appointment.id }, newAppointment);
+
+    appointment = await repository.findOneOrFail(req.params.id);
     res.json(appointment);
 
     await MessagingController.sendMessage(
