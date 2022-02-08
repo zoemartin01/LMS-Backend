@@ -67,20 +67,6 @@ class AppRouter {
       MessagingController.updateMessage
     );
 
-    // Admin (General Settings & User Management)
-    this.router.get(
-      environment.apiRoutes.admin_settings.getGlobalSettings,
-      AuthController.checkAuthenticationMiddleware,
-      AuthController.checkAdminMiddleware,
-      AdminController.getGlobalSettings
-    );
-    this.router.patch(
-      environment.apiRoutes.admin_settings.updateGlobalSettings,
-      AuthController.checkAuthenticationMiddleware,
-      AuthController.checkAdminMiddleware,
-      AdminController.updateGlobalSettings
-    );
-
     // Personal User Settings
     this.router.get(
       environment.apiRoutes.user_settings.getCurrentUser,
@@ -109,7 +95,6 @@ class AppRouter {
     // Admin (General Settings & User Management)
     this.router.get(
       environment.apiRoutes.admin_settings.getGlobalSettings,
-      AuthController.checkAuthenticationMiddleware,
       AdminController.getGlobalSettings
     );
     this.router.patch(
