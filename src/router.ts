@@ -214,16 +214,16 @@ class AppRouter {
       AuthController.checkAuthenticationMiddleware,
       RoomController.getRoomById
     );
+    this.router.get(
+      addUUIDRegexToRoute(environment.apiRoutes.rooms.getRoomCalendar),
+      AuthController.checkAuthenticationMiddleware,
+      RoomController.getRoomCalendar
+    );
     this.router.post(
       environment.apiRoutes.rooms.createRoom,
       AuthController.checkAuthenticationMiddleware,
       AuthController.checkAdminMiddleware,
       RoomController.createRoom
-    );
-    this.router.get(
-      addUUIDRegexToRoute(environment.apiRoutes.rooms.getRoomCalendar),
-      AuthController.checkAuthenticationMiddleware,
-      RoomController.getRoomCalendar
     );
     this.router.patch(
       addUUIDRegexToRoute(environment.apiRoutes.rooms.updateRoom),
@@ -237,17 +237,68 @@ class AppRouter {
       AuthController.checkAdminMiddleware,
       RoomController.deleteRoom
     );
+    this.router.get(
+      addUUIDRegexToRoute(
+        environment.apiRoutes.rooms.getAllAvailableTimeslotsForRoom
+      ),
+      AuthController.checkAuthenticationMiddleware,
+      AuthController.checkAdminMiddleware,
+      RoomController.getAllAvailableTimeslotsForRoom
+    );
+    this.router.get(
+      addUUIDRegexToRoute(
+        environment.apiRoutes.rooms.getAllUnavailableTimeslotsForRoom
+      ),
+      AuthController.checkAuthenticationMiddleware,
+      AuthController.checkAdminMiddleware,
+      RoomController.getAllUnavailableTimeslotsForRoom
+    );
+    this.router.get(
+      addUUIDRegexToRoute(environment.apiRoutes.rooms.getAvailabilityCalendar),
+      AuthController.checkAuthenticationMiddleware,
+      RoomController.getAvailabilityCalendar
+    );
+    this.router.get(
+      addUUIDRegexToRoute(environment.apiRoutes.rooms.getTimeslot),
+      AuthController.checkAuthenticationMiddleware,
+      AuthController.checkAdminMiddleware,
+      RoomController.getTimeslotById
+    );
     this.router.post(
-      environment.apiRoutes.rooms.createTimeslot,
+      addUUIDRegexToRoute(environment.apiRoutes.rooms.createTimeslot),
       AuthController.checkAuthenticationMiddleware,
       AuthController.checkAdminMiddleware,
       RoomController.createTimeslot
+    );
+    this.router.post(
+      addUUIDRegexToRoute(environment.apiRoutes.rooms.createTimeslotSeries),
+      AuthController.checkAuthenticationMiddleware,
+      AuthController.checkAdminMiddleware,
+      RoomController.createTimeslotSeries
+    );
+    this.router.patch(
+      addUUIDRegexToRoute(environment.apiRoutes.rooms.updateTimeslot),
+      AuthController.checkAuthenticationMiddleware,
+      AuthController.checkAdminMiddleware,
+      RoomController.updateTimeslot
+    );
+    this.router.patch(
+      addUUIDRegexToRoute(environment.apiRoutes.rooms.updateTimeslotSeries),
+      AuthController.checkAuthenticationMiddleware,
+      AuthController.checkAdminMiddleware,
+      RoomController.updateTimeslotSeries
     );
     this.router.delete(
       addUUIDRegexToRoute(environment.apiRoutes.rooms.deleteTimeslot),
       AuthController.checkAuthenticationMiddleware,
       AuthController.checkAdminMiddleware,
       RoomController.deleteTimeslot
+    );
+    this.router.delete(
+      addUUIDRegexToRoute(environment.apiRoutes.rooms.deleteTimeslotSeries),
+      AuthController.checkAuthenticationMiddleware,
+      AuthController.checkAdminMiddleware,
+      RoomController.deleteTimeslotSeries
     );
 
     // Appointment Management
@@ -296,15 +347,13 @@ class AppRouter {
     this.router.patch(
       addUUIDRegexToRoute(environment.apiRoutes.appointments.updateAppointment),
       AuthController.checkAuthenticationMiddleware,
-      AuthController.checkAdminMiddleware,
       AppointmentController.updateAppointment
     );
-    this.router.put(
+    this.router.patch(
       addUUIDRegexToRoute(
         environment.apiRoutes.appointments.updateAppointmentSeries
       ),
       AuthController.checkAuthenticationMiddleware,
-      AuthController.checkAdminMiddleware,
       AppointmentController.updateAppointmentSeries
     );
     this.router.delete(

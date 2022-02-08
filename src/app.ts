@@ -2,6 +2,7 @@ import bodyParser from 'body-parser';
 import cookieParser from 'cookie-parser';
 import express from 'express';
 import expressWs from 'express-ws';
+import moment from 'moment-timezone';
 import { Job } from './jobs/job';
 import { RecordingAutoDeleteJob } from './jobs/recording_delete.job';
 import AppRouter from './router';
@@ -13,6 +14,8 @@ class App {
   public jobs: Job[] = [];
 
   constructor(port: number) {
+    moment.tz.setDefault('Europe/Berlin');
+
     const _expressWs = expressWs(express());
     this.router.init(_expressWs);
     this.app = _expressWs.app;

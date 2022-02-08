@@ -11,6 +11,7 @@ import chaiHttp from 'chai-http';
 import environment from '../environment';
 import { v4 as uuidv4 } from 'uuid';
 import CreateTestUsers from '../database/seeds/create-test-users.seed';
+import CreateRooms from '../database/seeds/create-rooms.seed';
 import { Helpers } from '../test.spec';
 import { User } from '../models/user.entity';
 import { Room } from '../models/room.entity';
@@ -37,6 +38,7 @@ describe('RoomController', () => {
     connection = await useRefreshDatabase({ connection: 'default' });
     await useSeeding();
 
+    await runSeeder(CreateRooms);
     await runSeeder(CreateTestUsers);
 
     // Authentifivation
@@ -64,29 +66,18 @@ describe('RoomController', () => {
         });
     });
 
-    it('should get initial 3 rooms', (done) => {
-      // Seeding doesn't create any rooms
-      chai
-        .request(app.app)
-        .get(uri)
-        .set('Authorization', adminHeader)
-        .end((err, res) => {
-          expect(res.status).to.equal(200);
-          expect(res.body.data).to.be.an('array');
-          expect(res.body.data.length).to.be.equal(3);
-          done();
-        });
-    });
+    it('should get all rooms', async () => {
+      const expected = await getRepository(Room).count();
 
-    it('should get 3 more rooms', async () => {
-      const rooms = await factory(Room)().createMany(3);
       const res = await chai
         .request(app.app)
         .get(uri)
         .set('Authorization', adminHeader);
+
       expect(res.status).to.equal(200);
+      expect(res.body.total).to.equal(expected);
       expect(res.body.data).to.be.an('array');
-      expect(res.body.data.length).to.be.equal(6);
+      expect(res.body.data.length).to.be.equal(expected);
     });
   });
 
@@ -282,10 +273,10 @@ describe('RoomController', () => {
     });
 
     it('should fail as non-admin', async () => {
-      const room = await factory(Room)().create();
+      const room = await getRepository(Room).findOneOrFail();
       const res = await chai
         .request(app.app)
-        .post(uri)
+        .post(uri.replace(':roomId', room.id))
         .set('Authorization', visitorHeader);
       expect(res.status).to.equal(403);
     });

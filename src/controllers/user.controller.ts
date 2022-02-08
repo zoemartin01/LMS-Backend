@@ -112,7 +112,10 @@ export class UserController {
           await MessagingController.sendMessage(
             user,
             'Account updated',
-            'Your account has been updated' + JSON.stringify(req.body)
+            'Your account has been updated' +
+              Object.keys(req.body)
+                .map((e: string) => `${e}: ${req.body[e]}`)
+                .join(', ')
           );
           res.json(await repository.findOne(user.id));
         }
@@ -133,7 +136,10 @@ export class UserController {
       await MessagingController.sendMessage(
         user,
         'Account updated',
-        'Your account has been updated' + req.body
+        'Your account has been updated' +
+          Object.keys(req.body)
+            .map((e: string) => `${e}: ${req.body[e]}`)
+            .join(', ')
       );
       res.json(await repository.findOne(user.id));
     }
@@ -147,7 +153,13 @@ export class UserController {
    * @param {Response} res backend response deletion
    */
   public static async deleteUser(req: Request, res: Response) {
-    const user = await AuthController.getCurrentUser(req);
+    const user = await AuthController.getCurrentUser(req, [
+      'bookings',
+      'messages',
+      'tokens',
+      'orders',
+      'recordings',
+    ]);
 
     if (user === null) {
       res.status(404).json({
@@ -167,23 +179,17 @@ export class UserController {
       'Account deleted',
       'Your account has been deleted. Bye!'
     );
-    try {
-      await userRepository.update(
-        { id: user.id },
-        userRepository.create(<DeepPartial<User>>{
-          ...user,
-          ...{
-            firstName: 'strawberry',
-            lastName: 'mango',
-            email: 'raspberry@choco.late',
-          },
-        })
-      );
-    } catch (err) {
-      res.status(400).json(err);
-      return;
-    }
-    await userRepository.softDelete(user.id);
+
+    await userRepository.update(
+      { id: user.id },
+      {
+        firstName: 'strawberry',
+        lastName: 'mango',
+        email: 'raspberry@choco.late',
+        password: '',
+      }
+    );
+    await userRepository.softRemove(user);
 
     res.sendStatus(204);
   }
