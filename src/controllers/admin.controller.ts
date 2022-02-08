@@ -581,7 +581,7 @@ export class AdminController {
     await MessagingController.sendMessage(
       user,
       'Account updated',
-      'Your account has been updated by an admin.' + req.body
+      'Your account has been updated by an admin.' + JSON.stringify(req.body)
     );
 
     if (req.body.password) {
