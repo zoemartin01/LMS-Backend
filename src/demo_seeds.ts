@@ -10,7 +10,7 @@ import CreateSystemUser from './database/seeds/create-system-user.seed';
 import { Recording } from './models/recording.entity';
 import { Order } from './models/order.entity';
 import { InventoryItem } from './models/inventory-item.entity';
-import Faker from 'faker';
+import * as faker from 'faker';
 
 const initDB = async () => {
   const connection = await createConnection();
@@ -42,7 +42,7 @@ const initDB = async () => {
   await factory(Recording)({ user }).createMany(6);
   await factory(Order)({
     user,
-    item: Faker.random.arrayElement(items),
+    item: faker.random.arrayElement(items),
   }).createMany(6);
 
   console.log('Done initializing database');
