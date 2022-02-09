@@ -466,8 +466,6 @@ export class AppointmentController {
       ],
     });
 
-    console.log(conflictingBookings);
-
     if (conflictingBookings >= room.maxConcurrentBookings) {
       res.status(409).json({ message: 'Too many concurrent bookings' });
       return;
