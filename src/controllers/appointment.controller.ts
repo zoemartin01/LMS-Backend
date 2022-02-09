@@ -778,7 +778,7 @@ export class AppointmentController {
           appointment.room.name +
           ' was edited by an admin.',
         'View Appointments',
-        '/appointments/series/:id'.replace(':id', user.id)
+        '/appointments'
       );
       return;
     }
@@ -894,7 +894,7 @@ export class AppointmentController {
         appointment.room.name +
         ' was edited by an admin.',
       'View Appointment',
-      '/appointments/:id'.replace(':id', appointment.user.id)
+      '/appointments'
     );
   }
 
@@ -972,7 +972,7 @@ export class AppointmentController {
           room.name +
           ' was edited by an admin.',
         'View Appointments',
-        '/appointments/series/:id'.replace(':id', user.id)
+        '/appointments'
       );
       return;
     }
@@ -1163,7 +1163,7 @@ export class AppointmentController {
         room.name +
         ' was edited by an admin.',
       'View Appointments',
-      '/appointments/series/:id'.replace(':id', user.id)
+      '/appointments'
     );
   }
 
@@ -1248,8 +1248,10 @@ export class AppointmentController {
           ' ' +
           appointment.user.lastName +
           '.',
-        'View user',
-        '/users/:id'.replace(':id', appointment.user.id)
+        'View calendar',
+        `/room-overview;id=${appointment.room.id};date=${moment(
+          appointment.start
+        ).toISOString()}`
       );
     }
   }
@@ -1339,8 +1341,10 @@ export class AppointmentController {
           ' ' +
           appointments[0].user.lastName +
           '.',
-        'View user',
-        '/users/:id'.replace(':id', appointments[0].user.id)
+        'View Calendar',
+        `/room-overview;id=${appointments[0].room.id};date=${moment(
+          appointments[0].start
+        ).toISOString()}`
       );
     }
   }
