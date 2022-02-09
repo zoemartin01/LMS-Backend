@@ -236,7 +236,7 @@ export class MessagingController {
       NotificationChannel.emailAndMessageBox ||
       NotificationChannel.messageBoxOnly
     ) {
-      MessagingController.sendMessageViaMessageBox(
+      await MessagingController.sendMessageViaMessageBox(
         recipient,
         title,
         content,
@@ -249,7 +249,7 @@ export class MessagingController {
       NotificationChannel.emailAndMessageBox ||
       NotificationChannel.emailOnly
     ) {
-      MessagingController.sendMessageViaEmail(
+      await MessagingController.sendMessageViaEmail(
         recipient,
         title,
         content,
