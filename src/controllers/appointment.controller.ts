@@ -1192,7 +1192,7 @@ export class AppointmentController {
 
     if (
       !(await AuthController.checkAdmin(req)) &&
-      appointment.user !== currentUser
+      appointment.user.id !== currentUser.id
     ) {
       res.sendStatus(403);
       return;
@@ -1283,7 +1283,7 @@ export class AppointmentController {
 
     if (
       !(await AuthController.checkAdmin(req)) &&
-      appointments[0].user !== currentUser
+      appointments[0].user.id !== currentUser.id
     ) {
       res.sendStatus(403);
       return;
