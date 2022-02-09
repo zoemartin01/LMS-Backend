@@ -43,14 +43,7 @@ export class MessagingController {
     res.json({ total, data: messages });
   }
 
-  /**
-   * Returns the amounts of unread messages for current user
-   *
-   * @route {GET} /user/messages/unread-amounts
-   * @param {Request} req frontend request to get data of one inventory item
-   * @param {Response} res backend response with data of one inventory item
-   */
-  private static async getUnreadMessagesAmounts(user: User): Promise<{
+  private static async getUnreadMessagesAmountsUtil(user: User): Promise<{
     sum: number;
     appointments: number;
     orders: number;
@@ -85,6 +78,23 @@ export class MessagingController {
   }
 
   /**
+   * Returns the amounts of unread messages for current user
+   *
+   * @route {GET} /user/messages/unread-amounts
+   * @param {Request} req frontend request to get data of one inventory item
+   * @param {Response} res backend response with data of one inventory item
+   */
+  public static async getUnreadMessagesAmounts(req: Request, res: Response) {
+    const user = await AuthController.getCurrentUser(req);
+
+    if (user === null) {
+      return;
+    }
+
+    res.json(await MessagingController.getUnreadMessagesAmountsUtil(user));
+  }
+
+  /**
    * { userId: WebSocket }
    */
   static messageSockets: { [key: string]: WebSocket[] } = {};
@@ -101,7 +111,7 @@ export class MessagingController {
 
     ws.send(
       JSON.stringify(
-        await MessagingController.getUnreadMessagesAmounts(req.body.user)
+        await MessagingController.getUnreadMessagesAmountsUtil(req.body.user)
       )
     );
 
@@ -150,7 +160,7 @@ export class MessagingController {
       ws.forEach(async (ws) => {
         ws.send(
           JSON.stringify(
-            await MessagingController.getUnreadMessagesAmounts(
+            await MessagingController.getUnreadMessagesAmountsUtil(
               message.recipient
             )
           )
@@ -207,7 +217,7 @@ export class MessagingController {
       ws.forEach(async (ws) => {
         ws.send(
           JSON.stringify(
-            await MessagingController.getUnreadMessagesAmounts(
+            await MessagingController.getUnreadMessagesAmountsUtil(
               message.recipient
             )
           )
@@ -264,7 +274,7 @@ export class MessagingController {
       ws.forEach(async (ws) => {
         ws.send(
           JSON.stringify(
-            await MessagingController.getUnreadMessagesAmounts(recipient)
+            await MessagingController.getUnreadMessagesAmountsUtil(recipient)
           )
         );
       });
