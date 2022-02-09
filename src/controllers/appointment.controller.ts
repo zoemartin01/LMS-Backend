@@ -411,11 +411,17 @@ export class AppointmentController {
         where: [
           {
             room,
-            end: Between(appointment.start, appointment.end),
+            end: Between(
+              moment(appointment.start).add(1, 'ms').toDate(),
+              moment(appointment.end).subtract(1, 'ms').toDate()
+            ),
           },
           {
             room,
-            start: Between(appointment.start, appointment.end),
+            start: Between(
+              moment(appointment.start).add(1, 'ms').toDate(),
+              moment(appointment.end).subtract(1, 'ms').toDate()
+            ),
           },
         ],
       })) !== undefined;
@@ -613,11 +619,17 @@ export class AppointmentController {
           where: [
             {
               room,
-              end: Between(appointment.start, appointment.end),
+              end: Between(
+                moment(appointment.start).add(1, 'ms').toDate(),
+                moment(appointment.end).subtract(1, 'ms').toDate()
+              ),
             },
             {
               room,
-              start: Between(appointment.start, appointment.end),
+              start: Between(
+                moment(appointment.start).add(1, 'ms').toDate(),
+                moment(appointment.end).subtract(1, 'ms').toDate()
+              ),
             },
           ],
         })) !== undefined;
@@ -813,11 +825,17 @@ export class AppointmentController {
         where: [
           {
             room: appointment.room,
-            end: Between(newAppointment.start, newAppointment.end),
+            end: Between(
+              moment(newAppointment.start).add(1, 'ms').toDate(),
+              moment(newAppointment.end).subtract(1, 'ms').toDate()
+            ),
           },
           {
             room: appointment.room,
-            start: Between(newAppointment.start, newAppointment.end),
+            start: Between(
+              moment(newAppointment.start).add(1, 'ms').toDate(),
+              moment(newAppointment.end).subtract(1, 'ms').toDate()
+            ),
           },
         ],
       })) !== undefined;
@@ -1052,11 +1070,17 @@ export class AppointmentController {
           where: [
             {
               room,
-              end: Between(appointment.start, appointment.end),
+              end: Between(
+                moment(appointment.start).add(1, 'ms').toDate(),
+                moment(appointment.end).subtract(1, 'ms').toDate()
+              ),
             },
             {
               room,
-              start: Between(appointment.start, appointment.end),
+              start: Between(
+                moment(appointment.start).add(1, 'ms').toDate(),
+                moment(appointment.end).subtract(1, 'ms').toDate()
+              ),
             },
           ],
         })) !== undefined;
