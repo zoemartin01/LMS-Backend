@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import {
   Between,
   DeepPartial,
+  Equal,
   getRepository,
   LessThanOrEqual,
   MoreThanOrEqual,
@@ -452,8 +453,20 @@ export class AppointmentController {
           ),
           confirmationStatus: Not(ConfirmationStatus.denied),
         },
+        {
+          room,
+          start: Equal(moment(appointment.start).toDate()),
+          confirmationStatus: Not(ConfirmationStatus.denied),
+        },
+        {
+          room,
+          end: Equal(moment(appointment.end).toDate()),
+          confirmationStatus: Not(ConfirmationStatus.denied),
+        },
       ],
     });
+
+    console.log(conflictingBookings);
 
     if (conflictingBookings >= room.maxConcurrentBookings) {
       res.status(409).json({ message: 'Too many concurrent bookings' });
@@ -662,6 +675,16 @@ export class AppointmentController {
             ),
             confirmationStatus: Not(ConfirmationStatus.denied),
           },
+          {
+            room,
+            start: Equal(moment(appointment.start).toDate()),
+            confirmationStatus: Not(ConfirmationStatus.denied),
+          },
+          {
+            room,
+            end: Equal(moment(appointment.end).toDate()),
+            confirmationStatus: Not(ConfirmationStatus.denied),
+          },
         ],
       });
 
@@ -837,6 +860,16 @@ export class AppointmentController {
               moment(newAppointment.end).subtract(1, 'ms').toDate()
             ),
           },
+          {
+            room: appointment.room,
+            start: Equal(moment(newAppointment.start).toDate()),
+            confirmationStatus: Not(ConfirmationStatus.denied),
+          },
+          {
+            room: appointment.room,
+            end: Equal(moment(newAppointment.end).toDate()),
+            confirmationStatus: Not(ConfirmationStatus.denied),
+          },
         ],
       })) !== undefined;
 
@@ -867,6 +900,16 @@ export class AppointmentController {
           ),
           confirmationStatus: Not(ConfirmationStatus.denied),
           id: Not(appointment.id),
+        },
+        {
+          room: appointment.room,
+          start: Equal(moment(newAppointment.start).toDate()),
+          confirmationStatus: Not(ConfirmationStatus.denied),
+        },
+        {
+          room: appointment.room,
+          end: Equal(moment(newAppointment.end).toDate()),
+          confirmationStatus: Not(ConfirmationStatus.denied),
         },
       ],
     });
