@@ -258,10 +258,6 @@ export class UserController {
           `/register/verify-email/${user.id}/${token.token}`
         );
 
-        console.log(
-          `https://${environment.frontendUrl}/register/verify-email/${user.id}/${token.token} | userid: ${user.id} token: ${token.token}`
-        );
-
         res.status(201).json(user);
       }
     );
