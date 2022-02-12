@@ -11,6 +11,7 @@ import chaiHttp from 'chai-http';
 import environment from '../environment';
 import { v4 as uuidv4 } from 'uuid';
 import CreateTestUsers from '../database/seeds/create-test-users.seed';
+import CreateRooms from '../database/seeds/create-rooms.seed';
 import { Helpers } from '../test.spec';
 import { User } from '../models/user.entity';
 import { Room } from '../models/room.entity';
@@ -37,6 +38,7 @@ describe('RoomController', () => {
     connection = await useRefreshDatabase({ connection: 'default' });
     await useSeeding();
 
+    await runSeeder(CreateRooms);
     await runSeeder(CreateTestUsers);
 
     // Authentifivation
@@ -271,10 +273,10 @@ describe('RoomController', () => {
     });
 
     it('should fail as non-admin', async () => {
-      const room = await factory(Room)().create();
+      const room = await getRepository(Room).findOneOrFail();
       const res = await chai
         .request(app.app)
-        .post(uri)
+        .post(uri.replace(':roomId', room.id))
         .set('Authorization', visitorHeader);
       expect(res.status).to.equal(403);
     });

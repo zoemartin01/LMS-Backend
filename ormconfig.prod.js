@@ -8,4 +8,6 @@ module.exports = {
   port: process.env.DB_PORT || 5432,
   synchronize: "true",
   entities: ["models/!(*.spec).js"],
+  seeds: ["database/seeds/**/*.js}"],
+  factories: ["database/factories/**/*.js"],
 };

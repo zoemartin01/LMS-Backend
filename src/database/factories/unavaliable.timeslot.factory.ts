@@ -13,8 +13,8 @@ define(UnavailableTimeslot, (faker: typeof Faker, context?: { room: Room }) => {
   const room = context.room;
 
   return getRepository(UnavailableTimeslot).create({
-    start: start.toISOString(),
-    end: end.toISOString(),
+    start: start.toDate(),
+    end: end.toDate(),
     room,
   });
 });

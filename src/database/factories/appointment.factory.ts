@@ -59,9 +59,6 @@ define(
 
     // console.log(`avaStart: ${availableTimeSlot.start.toISOString()}, start: ${start.toISOString()}, end: ${end.toISOString()}, minEnd: ${minEnd.toISOString()}, span: ${span.hours()}, diff: ${moment.duration(end.diff(start)).asHours()}`);
 
-    if (moment.duration(end.diff(start)).asHours() < 1)
-      throw new Error('Too short');
-
     const room = context.room;
     const user = context.user;
     const confirmationStatus = faker.random.arrayElement([
@@ -72,16 +69,16 @@ define(
 
     if (context.seriesId === undefined) {
       return getRepository(AppointmentTimeslot).create({
-        start,
-        end,
+        start: start.toDate(),
+        end: end.toDate(),
         room,
         user,
         confirmationStatus,
       });
     }
     return getRepository(AppointmentTimeslot).create({
-      start,
-      end,
+      start: start.toDate(),
+      end: end.toDate(),
       room,
       user,
       confirmationStatus,

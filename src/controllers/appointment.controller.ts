@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import {
   Between,
   DeepPartial,
+  Equal,
   getRepository,
   LessThanOrEqual,
   MoreThanOrEqual,
@@ -304,7 +305,8 @@ export class AppointmentController {
 
     if (
       !(await AuthController.checkAdmin(req)) &&
-      appointment.user !== (await AuthController.getCurrentUser(req))
+      appointment.user.id !==
+        ((await AuthController.getCurrentUser(req))?.id ?? '')
     ) {
       res.sendStatus(403);
       return;
@@ -410,11 +412,17 @@ export class AppointmentController {
         where: [
           {
             room,
-            end: Between(appointment.start, appointment.end),
+            end: Between(
+              moment(appointment.start).add(1, 'ms').toDate(),
+              moment(appointment.end).subtract(1, 'ms').toDate()
+            ),
           },
           {
             room,
-            start: Between(appointment.start, appointment.end),
+            start: Between(
+              moment(appointment.start).add(1, 'ms').toDate(),
+              moment(appointment.end).subtract(1, 'ms').toDate()
+            ),
           },
         ],
       })) !== undefined;
@@ -443,6 +451,16 @@ export class AppointmentController {
             moment(appointment.start).add(1, 'ms').toDate(),
             moment(appointment.end).subtract(1, 'ms').toDate()
           ),
+          confirmationStatus: Not(ConfirmationStatus.denied),
+        },
+        {
+          room,
+          start: Equal(moment(appointment.start).toDate()),
+          confirmationStatus: Not(ConfirmationStatus.denied),
+        },
+        {
+          room,
+          end: Equal(moment(appointment.end).toDate()),
           confirmationStatus: Not(ConfirmationStatus.denied),
         },
       ],
@@ -612,11 +630,17 @@ export class AppointmentController {
           where: [
             {
               room,
-              end: Between(appointment.start, appointment.end),
+              end: Between(
+                moment(appointment.start).add(1, 'ms').toDate(),
+                moment(appointment.end).subtract(1, 'ms').toDate()
+              ),
             },
             {
               room,
-              start: Between(appointment.start, appointment.end),
+              start: Between(
+                moment(appointment.start).add(1, 'ms').toDate(),
+                moment(appointment.end).subtract(1, 'ms').toDate()
+              ),
             },
           ],
         })) !== undefined;
@@ -649,12 +673,18 @@ export class AppointmentController {
             ),
             confirmationStatus: Not(ConfirmationStatus.denied),
           },
+          {
+            room,
+            start: Equal(moment(appointment.start).toDate()),
+            confirmationStatus: Not(ConfirmationStatus.denied),
+          },
+          {
+            room,
+            end: Equal(moment(appointment.end).toDate()),
+            confirmationStatus: Not(ConfirmationStatus.denied),
+          },
         ],
       });
-
-      console.log(
-        `conflicting bookings: ${conflictingBookings}, force: ${force}, max: ${room.maxConcurrentBookings}`
-      );
 
       if (conflictingBookings >= room.maxConcurrentBookings) {
         if (force) continue;
@@ -729,48 +759,163 @@ export class AppointmentController {
 
     const user = await AuthController.getCurrentUser(req);
 
-    if (user === undefined) {
+    if (user === null) {
       return;
     }
 
+    const confirmationStatus =
+      req.body.confirmationStatus || appointment.confirmationStatus;
+    const onlyStatusPatch =
+      req.body.confirmationStatus !== undefined &&
+      Object.keys(req.body).length === 1;
+
     if (
-      (appointment.user !== user || req.body.confirmationStatus) &&
+      (appointment.user.id !== user.id || req.body.confirmationStatus) &&
       !isAdmin
     ) {
       res.sendStatus(403);
       return;
     }
 
-    const confirmationStatus =
-      req.body.confirmationStatus || appointment.confirmationStatus;
+    if (onlyStatusPatch) {
+      // @todo this might cause issues
+      await repository.update(appointment.id, { confirmationStatus });
+      res.json(await repository.findOne(appointment.id));
+
+      await MessagingController.sendMessage(
+        user,
+        'Appointment Edited',
+        'Your appointment series at ' +
+          moment(appointment.start).format('DD.MM.YY') +
+          ' from ' +
+          moment(appointment.start).format('HH:mm') +
+          ' to ' +
+          moment(appointment.end).format('HH:mm') +
+          ' in room ' +
+          appointment.room.name +
+          ' was edited by an admin.',
+        'View Appointments',
+        '/appointments'
+      );
+      return;
+    }
+
     const { start, end } = req.body;
 
+    const newAppointment = repository.create(<DeepPartial<AppointmentTimeslot>>{
+      ...appointment,
+      start: moment(start).toDate(),
+      end: moment(end).toDate(),
+      isDirty: isSeries ? true : undefined,
+      confirmationStatus: isAdmin
+        ? confirmationStatus
+        : appointment.room.autoAcceptBookings
+        ? ConfirmationStatus.accepted
+        : ConfirmationStatus.pending,
+    });
+
     try {
-      await repository.update(
-        { id: appointment.id },
-        repository.create(<DeepPartial<AppointmentTimeslot>>{
-          ...appointment,
-          start: moment(start).toDate(),
-          end: moment(end).toDate(),
-          isDirty: isSeries ? true : undefined,
-          confirmationStatus: isAdmin
-            ? confirmationStatus
-            : appointment.room.autoAcceptBookings
-            ? ConfirmationStatus.accepted
-            : ConfirmationStatus.pending,
-        })
-      );
+      await validateOrReject(newAppointment);
     } catch (err) {
       res.status(400).json(err);
       return;
     }
 
-    appointment = await repository.findOne(req.params.id);
+    const availableConflict =
+      (await getRepository(AvailableTimeslot).findOne({
+        where: {
+          room: appointment.room,
+          start: LessThanOrEqual(newAppointment.start),
+          end: MoreThanOrEqual(newAppointment.end),
+        },
+      })) === undefined;
 
-    if (appointment === undefined) {
-      throw Error("Can't be reached!");
+    if (availableConflict) {
+      res
+        .status(409)
+        .json({ message: 'Appointment conflicts with available timeslot' });
+      return;
     }
 
+    const unavailableConflict =
+      (await getRepository(UnavailableTimeslot).findOne({
+        where: [
+          {
+            room: appointment.room,
+            end: Between(
+              moment(newAppointment.start).add(1, 'ms').toDate(),
+              moment(newAppointment.end).subtract(1, 'ms').toDate()
+            ),
+          },
+          {
+            room: appointment.room,
+            start: Between(
+              moment(newAppointment.start).add(1, 'ms').toDate(),
+              moment(newAppointment.end).subtract(1, 'ms').toDate()
+            ),
+          },
+          {
+            room: appointment.room,
+            start: Equal(moment(newAppointment.start).toDate()),
+            confirmationStatus: Not(ConfirmationStatus.denied),
+          },
+          {
+            room: appointment.room,
+            end: Equal(moment(newAppointment.end).toDate()),
+            confirmationStatus: Not(ConfirmationStatus.denied),
+          },
+        ],
+      })) !== undefined;
+
+    if (unavailableConflict) {
+      res
+        .status(409)
+        .json({ message: 'Appointment conflicts with unavailable timeslot' });
+      return;
+    }
+
+    const conflictingBookings = await getRepository(AppointmentTimeslot).count({
+      where: [
+        {
+          room: appointment.room,
+          // @todo is there a better solution to this?
+          start: Between(
+            moment(newAppointment.start).add(1, 'ms').toDate(),
+            moment(newAppointment.end).subtract(1, 'ms').toDate()
+          ),
+          confirmationStatus: Not(ConfirmationStatus.denied),
+          id: Not(appointment.id),
+        },
+        {
+          room: appointment.room,
+          end: Between(
+            moment(newAppointment.start).add(1, 'ms').toDate(),
+            moment(newAppointment.end).subtract(1, 'ms').toDate()
+          ),
+          confirmationStatus: Not(ConfirmationStatus.denied),
+          id: Not(appointment.id),
+        },
+        {
+          room: appointment.room,
+          start: Equal(moment(newAppointment.start).toDate()),
+          confirmationStatus: Not(ConfirmationStatus.denied),
+        },
+        {
+          room: appointment.room,
+          end: Equal(moment(newAppointment.end).toDate()),
+          confirmationStatus: Not(ConfirmationStatus.denied),
+        },
+      ],
+    });
+
+    if (conflictingBookings >= appointment.room.maxConcurrentBookings) {
+      res.status(409).json({ message: 'Too many concurrent bookings' });
+      return;
+    }
+
+    await repository.update({ id: appointment.id }, newAppointment);
+
+    appointment = await repository.findOneOrFail(req.params.id);
     res.json(appointment);
 
     await MessagingController.sendMessage(
@@ -786,7 +931,7 @@ export class AppointmentController {
         appointment.room.name +
         ' was edited by an admin.',
       'View Appointment',
-      '/appointments/:id'.replace(':id', appointment.user.id)
+      '/appointments'
     );
   }
 
@@ -835,7 +980,10 @@ export class AppointmentController {
       Object.keys(req.body).length === 1;
     const isAdmin = await AuthController.checkAdmin(req);
 
-    if ((first.user !== user || req.body.confirmationStatus) && !isAdmin) {
+    if (
+      (first.user.id !== user.id || req.body.confirmationStatus) &&
+      !isAdmin
+    ) {
       res.sendStatus(403);
       return;
     }
@@ -847,6 +995,22 @@ export class AppointmentController {
         { confirmationStatus }
       );
       res.json(updatedAppointments);
+
+      await MessagingController.sendMessage(
+        user,
+        'Appointment Edited',
+        'Your appointment series at ' +
+          moment(first.start).format('DD.MM.YY') +
+          ' from ' +
+          moment(first.start).format('HH:mm') +
+          ' to ' +
+          moment(first.end).format('HH:mm') +
+          ' in room ' +
+          room.name +
+          ' was edited by an admin.',
+        'View Appointments',
+        '/appointments'
+      );
       return;
     }
 
@@ -943,11 +1107,17 @@ export class AppointmentController {
           where: [
             {
               room,
-              end: Between(appointment.start, appointment.end),
+              end: Between(
+                moment(appointment.start).add(1, 'ms').toDate(),
+                moment(appointment.end).subtract(1, 'ms').toDate()
+              ),
             },
             {
               room,
-              start: Between(appointment.start, appointment.end),
+              start: Between(
+                moment(appointment.start).add(1, 'ms').toDate(),
+                moment(appointment.end).subtract(1, 'ms').toDate()
+              ),
             },
           ],
         })) !== undefined;
@@ -1030,7 +1200,7 @@ export class AppointmentController {
         room.name +
         ' was edited by an admin.',
       'View Appointments',
-      '/appointments/series/:id'.replace(':id', user.id)
+      '/appointments'
     );
   }
 
@@ -1059,7 +1229,7 @@ export class AppointmentController {
 
     if (
       !(await AuthController.checkAdmin(req)) &&
-      appointment.user !== currentUser
+      appointment.user.id !== currentUser.id
     ) {
       res.sendStatus(403);
       return;
@@ -1115,8 +1285,10 @@ export class AppointmentController {
           ' ' +
           appointment.user.lastName +
           '.',
-        'View user',
-        '/users/:id'.replace(':id', appointment.user.id)
+        'View calendar',
+        `/room-overview;id=${appointment.room.id};date=${moment(
+          appointment.start
+        ).toISOString()}`
       );
     }
   }
@@ -1148,7 +1320,7 @@ export class AppointmentController {
 
     if (
       !(await AuthController.checkAdmin(req)) &&
-      appointments[0].user !== currentUser
+      appointments[0].user.id !== currentUser.id
     ) {
       res.sendStatus(403);
       return;
@@ -1206,8 +1378,10 @@ export class AppointmentController {
           ' ' +
           appointments[0].user.lastName +
           '.',
-        'View user',
-        '/users/:id'.replace(':id', appointments[0].user.id)
+        'View Calendar',
+        `/room-overview;id=${appointments[0].room.id};date=${moment(
+          appointments[0].start
+        ).toISOString()}`
       );
     }
   }

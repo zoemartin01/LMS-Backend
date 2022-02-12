@@ -6,7 +6,7 @@ import environment from '../../environment';
 
 import { AppointmentTimeslot } from '../../models/appointment.timeslot.entity';
 import { InventoryItem } from '../../models/inventory-item.entity';
-import { Message } from '../../models/message.entity';
+// import { Message } from '../../models/message.entity';
 import { Order } from '../../models/order.entity';
 import { Recording } from '../../models/recording.entity';
 import { Room } from '../../models/room.entity';
@@ -51,8 +51,8 @@ export default class CreateTestUsers implements Seeder {
         ? await getRepository(InventoryItem).find()
         : await factory(InventoryItem)().createMany(10);
 
-    await factory(Message)({ recipient: admin }).createMany(10);
-    await factory(Recording)({ user: admin }).createMany(10);
+    // await factory(Message)({ recipient: admin }).createMany(10);
+    await factory(Recording)({ user: admin }).createMany(4);
 
     for (let i = 0; i < 10; i++) {
       if (faker.random.boolean()) {
@@ -67,8 +67,8 @@ export default class CreateTestUsers implements Seeder {
       }
     }
 
-    await factory(Message)({ recipient: visitor }).createMany(10);
-    await factory(Recording)({ user: visitor }).createMany(10);
+    // await factory(Message)({ recipient: visitor }).createMany(10);
+    // await factory(Recording)({ user: visitor }).createMany(5);
 
     for (let i = 0; i < 10; i++) {
       if (faker.random.boolean()) {
@@ -88,9 +88,9 @@ export default class CreateTestUsers implements Seeder {
     //   faker.random.arrayElement(rooms)
     // );
 
-    await Promise.all(
-      rooms.map((room) => CreateTestUsers.createAppointments(admin, room))
-    );
+    // await Promise.all(
+    //   rooms.map((room) => CreateTestUsers.createAppointments(admin, room))
+    // );
   }
 
   private static async hashPassword(password: string): Promise<string> {
@@ -109,8 +109,8 @@ export default class CreateTestUsers implements Seeder {
       appointments.push(
         repo.create({
           ...appointment,
-          start: start.add(1, 'week').toISOString(),
-          end: end.add(1, 'week').toISOString(),
+          start: start.add(1, 'week').toDate(),
+          end: end.add(1, 'week').toDate(),
           amount: amount,
           timeSlotRecurrence: TimeSlotRecurrence.weekly,
         })

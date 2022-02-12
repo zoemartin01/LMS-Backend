@@ -56,6 +56,11 @@ class AppRouter {
       AuthController.checkWebSocketAuthenticationMiddleware,
       MessagingController.registerUnreadMessagesSocket
     );
+    this.router.get(
+      environment.apiRoutes.messages.getCurrentUserUnreadMessagesAmounts,
+      AuthController.checkAuthenticationMiddleware,
+      MessagingController.getUnreadMessagesAmounts
+    );
     this.router.delete(
       addUUIDRegexToRoute(environment.apiRoutes.messages.deleteMessage),
       AuthController.checkAuthenticationMiddleware,
@@ -65,20 +70,6 @@ class AppRouter {
       addUUIDRegexToRoute(environment.apiRoutes.messages.updateMessage),
       AuthController.checkAuthenticationMiddleware,
       MessagingController.updateMessage
-    );
-
-    // Admin (General Settings & User Management)
-    this.router.get(
-      environment.apiRoutes.admin_settings.getGlobalSettings,
-      AuthController.checkAuthenticationMiddleware,
-      AuthController.checkAdminMiddleware,
-      AdminController.getGlobalSettings
-    );
-    this.router.patch(
-      environment.apiRoutes.admin_settings.updateGlobalSettings,
-      AuthController.checkAuthenticationMiddleware,
-      AuthController.checkAdminMiddleware,
-      AdminController.updateGlobalSettings
     );
 
     // Personal User Settings
@@ -109,7 +100,6 @@ class AppRouter {
     // Admin (General Settings & User Management)
     this.router.get(
       environment.apiRoutes.admin_settings.getGlobalSettings,
-      AuthController.checkAuthenticationMiddleware,
       AdminController.getGlobalSettings
     );
     this.router.patch(
@@ -229,21 +219,16 @@ class AppRouter {
       AuthController.checkAuthenticationMiddleware,
       RoomController.getRoomById
     );
-    this.router.post(
-      environment.apiRoutes.rooms.createRoom,
-      AuthController.checkAuthenticationMiddleware,
-      AuthController.checkAdminMiddleware,
-      RoomController.createRoom
-    );
     this.router.get(
       addUUIDRegexToRoute(environment.apiRoutes.rooms.getRoomCalendar),
       AuthController.checkAuthenticationMiddleware,
       RoomController.getRoomCalendar
     );
-    this.router.get(
-      addUUIDRegexToRoute(environment.apiRoutes.rooms.getAvailabilityCalendar),
+    this.router.post(
+      environment.apiRoutes.rooms.createRoom,
       AuthController.checkAuthenticationMiddleware,
-      RoomController.getAvailabilityCalendar
+      AuthController.checkAdminMiddleware,
+      RoomController.createRoom
     );
     this.router.patch(
       addUUIDRegexToRoute(environment.apiRoutes.rooms.updateRoom),
@@ -272,6 +257,17 @@ class AppRouter {
       AuthController.checkAuthenticationMiddleware,
       AuthController.checkAdminMiddleware,
       RoomController.getAllUnavailableTimeslotsForRoom
+    );
+    this.router.get(
+      addUUIDRegexToRoute(environment.apiRoutes.rooms.getAvailabilityCalendar),
+      AuthController.checkAuthenticationMiddleware,
+      RoomController.getAvailabilityCalendar
+    );
+    this.router.get(
+      addUUIDRegexToRoute(environment.apiRoutes.rooms.getTimeslot),
+      AuthController.checkAuthenticationMiddleware,
+      AuthController.checkAdminMiddleware,
+      RoomController.getTimeslotById
     );
     this.router.post(
       addUUIDRegexToRoute(environment.apiRoutes.rooms.createTimeslot),
@@ -390,6 +386,11 @@ class AppRouter {
       AuthController.checkAuthenticationMiddleware,
       InventoryController.getInventoryItem
     );
+    this.router.get(
+      environment.apiRoutes.inventory_item.getByName,
+      AuthController.checkAuthenticationMiddleware,
+      InventoryController.getByName
+    );
     this.router.post(
       environment.apiRoutes.inventory_item.createItem,
       AuthController.checkAuthenticationMiddleware,
@@ -411,15 +412,37 @@ class AppRouter {
 
     // Order Management
     this.router.get(
-      environment.apiRoutes.orders.getAllOrders,
+      environment.apiRoutes.orders.getAllPendingOrders,
       AuthController.checkAuthenticationMiddleware,
       AuthController.checkAdminMiddleware,
-      OrderController.getAllOrders
+      OrderController.getAllPendingOrders
     );
     this.router.get(
-      environment.apiRoutes.orders.getCurrentUserOrders,
+      environment.apiRoutes.orders.getAllAcceptedOrders,
       AuthController.checkAuthenticationMiddleware,
-      OrderController.getOrdersForCurrentUser
+      AuthController.checkAdminMiddleware,
+      OrderController.getAllAcceptedOrders
+    );
+    this.router.get(
+      environment.apiRoutes.orders.getAllDeclinedOrders,
+      AuthController.checkAuthenticationMiddleware,
+      AuthController.checkAdminMiddleware,
+      OrderController.getAllDeclinedOrders
+    );
+    this.router.get(
+      environment.apiRoutes.orders.getCurrentUsersPendingOrders,
+      AuthController.checkAuthenticationMiddleware,
+      OrderController.getPendingOrdersForCurrentUser
+    );
+    this.router.get(
+      environment.apiRoutes.orders.getCurrentUsersAcceptedOrders,
+      AuthController.checkAuthenticationMiddleware,
+      OrderController.getAcceptedOrdersForCurrentUser
+    );
+    this.router.get(
+      environment.apiRoutes.orders.getCurrentUsersDeclinedOrders,
+      AuthController.checkAuthenticationMiddleware,
+      OrderController.getDeclinedOrdersForCurrentUser
     );
     this.router.get(
       addUUIDRegexToRoute(environment.apiRoutes.orders.getSingleOrder),
@@ -487,6 +510,7 @@ class AppRouter {
     );
     this.router.ws(
       environment.apiRoutes.livecam.streamFeed,
+      AuthController.checkWebSocketAuthenticationMiddleware,
       LivecamController.getLiveCameraFeed
     );
   }

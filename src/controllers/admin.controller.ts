@@ -6,6 +6,8 @@ import { RetailerDomain } from '../models/retailer.domain.entity';
 import { User } from '../models/user.entity';
 import { UserRole } from '../types/enums/user-role';
 import { MessagingController } from './messaging.controller';
+import bcrypt from 'bcrypt';
+import environment from '../environment';
 
 /**
  * Controller for Admin Management
@@ -20,7 +22,7 @@ export class AdminController {
   /**
    * Returns global settings
    *
-   * @route {GET} /global-settings
+   * @route {GET} /application-settings
    * @param {Request} req frontend request to get data about global settings
    * @param {Response} res backend response with data about global settings
    */
@@ -34,7 +36,7 @@ export class AdminController {
   /**
    * Updates global settings
    *
-   * @route {PATCH} /global-settings
+   * @route {PATCH} /application-settings
    * @bodyParam {GlobalSetting[]} globalSettings new values for global settings
    * @param {Request} req frontend request to change data about global settings
    * @param {Response} res backend response with data change of one global settings
@@ -63,6 +65,16 @@ export class AdminController {
         });
         return;
       }
+      if (
+        (globalSettings[globalSetting].key === 'user.max_recordings' ||
+          globalSettings[globalSetting].key === 'recording.auto_delete') &&
+        +globalSettings[globalSetting].value < 1
+      ) {
+        res.status(404).json({
+          message: `Can't set those settings on negative values`,
+        });
+        return;
+      }
     }
 
     for (const globalSetting in globalSettings) {
@@ -82,7 +94,7 @@ export class AdminController {
   /**
    * Returns whitelist retailer data
    *
-   * @route {GET} /global-settings/whitelist-retailers/:id
+   * @route {GET} /application-settings/whitelist-retailers/:id
    * @routeParam {string} id - a retailer id
    * @param {Request} req frontend request to get data about one whitelist retailer
    * @param {Response} res backend response with data about one whitelist retailer
@@ -106,7 +118,7 @@ export class AdminController {
   /**
    * Returns all whitelist retailers
    *
-   * @route {GET} /global-settings/whitelist-retailers
+   * @route {GET} /application-settings/whitelist-retailers
    * @param {Request} req frontend request to get data about all whitelist retailers
    * @param {Response} res backend response with data about all whitelist retailers
    */
@@ -131,7 +143,7 @@ export class AdminController {
   /**
    * Creates whitelist retailer with data
    *
-   * @route {POST} /global-settings/whitelist-retailers
+   * @route {POST} /application-settings/whitelist-retailers
    * @bodyParam {string} name - a name of the retailer
    * @bodyParam {string[] [Optional]} domains - one or more domains of the retailer
    * @param {Request} req frontend request to create a new retailer
@@ -174,7 +186,7 @@ export class AdminController {
   /**
    * Changes data of whitelist retailer
    *
-   * @route {PATCH} /global-settings/whitelist-retailers/:id
+   * @route {PATCH} /application-settings/whitelist-retailers/:id
    * @routeParam {string} id - a retailer id
    * @bodyParam {string [Optional]} name - a new name of the retailer
    * @param {Request} req frontend request to change data about one whitelist retailer
@@ -210,7 +222,7 @@ export class AdminController {
   /**
    * Deletes whitelist retailer
    *
-   * @route {DELETE} /global-settings/whitelist-retailers/:id
+   * @route {DELETE} /application-settings/whitelist-retailers/:id
    * @routeParam {string} id - a retailer id
    * @param {Request} req frontend request to delete one whitelist retailer
    * @param {Response} res backend response deletion
@@ -237,7 +249,7 @@ export class AdminController {
   /**
    * Adds domain to whitelist retailer
    *
-   * @route {POST} /global-settings/whitelist-retailers/:id/domains
+   * @route {POST} /application-settings/whitelist-retailers/:id/domains
    * @routeParam {string} id - a retailer id
    * @bodyParam {string} domain - an additional domain of the retailer
    * @param {Request} req frontend request to add a new domain to the retailer
@@ -279,7 +291,7 @@ export class AdminController {
   /**
    * Changes one domain of whitelist retailer
    *
-   * @route {PATCH} /global-settings/whitelist-retailers/:id/domains/:domainId
+   * @route {PATCH} /application-settings/whitelist-retailers/:id/domains/:domainId
    * @routeParam {string} id - a retailer id
    * @routeParam {string} domainId - a domain id
    * @bodyParam {string} domain - the new value of the domain of the retailer
@@ -338,7 +350,7 @@ export class AdminController {
   /**
    * Deletes one domain of a whitelist retailer
    *
-   * @route {DELETE} /global-settings/whitelist-retailers/:id/domains/:domainId
+   * @route {DELETE} /application-settings/whitelist-retailers/:id/domains/:domainId
    * @routeParam {string} id - a retailer id
    * @routeParam {string} domainId - a domain id
    * @param {Request} req frontend request to delete one domain of a whitelist retailer
@@ -383,7 +395,7 @@ export class AdminController {
   /**
    * Checks domain against a whitelist
    *
-   * @route {POST} /global-settings/whitelist-retailers/check
+   * @route {POST} /application-settings/whitelist-retailers/check
    *
    * @bodyParam {String} domain domain which is checked against whitelist
    * @param {Request} req frontend request to check a domain against whitelist
@@ -394,7 +406,7 @@ export class AdminController {
     res.json({
       isWhitelisted:
         (await domainRepository.findOne({
-          where: { domain: req.params.domain },
+          where: { domain: req.body.domain },
         })) !== undefined,
     });
   }
@@ -501,7 +513,7 @@ export class AdminController {
    * @bodyParam {string [Optional]} lastname - a new lastname
    * @bodyParam {string [Optional]} email - a new email address
    * @bodyParam {string [Optional]} password - a new password
-   * @bodyParam {UserRole [Optional]} userRole - a new user role
+   * @bodyParam {UserRole [Optional]} role - a new user role
    * @bodyParam {boolean [Optional]} emailVerification - a new email verification status
    * @param {Request} req frontend request to change data about one user
    * @param {Response} res backend response with data change of one user
@@ -522,11 +534,15 @@ export class AdminController {
 
     //checking for user is last admin
     if (user.role === UserRole.admin) {
-      const userCount = await userRepository.count({
-        where: { role: UserRole.admin },
+      const adminCount = await userRepository.count({
+        where: {
+          role: UserRole.admin,
+          emailVerification: true,
+          email: Not('SYSTEM'),
+        },
       });
       if (
-        userCount === 1 &&
+        adminCount <= 1 &&
         (+req.body.role === UserRole.pending ||
           +req.body.role === UserRole.visitor)
       ) {
@@ -545,23 +561,70 @@ export class AdminController {
           'Account request accepted',
           'Your account request has been accepted. You can now login.'
         );
+        try {
+          await userRepository.update(
+            { id: user.id },
+            userRepository.create(<DeepPartial<User>>{
+              ...user,
+              ...req.body,
+            })
+          );
+        } catch (err) {
+          res.status(400).json(err);
+          return;
+        }
+        res.json(await userRepository.findOne(user.id));
+        return;
       }
     }
 
-    try {
-      await userRepository.update(
-        { id: user.id },
-        userRepository.create(<DeepPartial<User>>{
-          ...user,
-          ...req.body,
-        })
-      );
-    } catch (err) {
-      res.status(400).json(err);
-      return;
-    }
+    await MessagingController.sendMessage(
+      user,
+      'Account updated',
+      'Your account has been updated by an admin. ' +
+        Object.keys(req.body)
+          .map((e: string) => `${e}: ${req.body[e]}`)
+          .join(', ')
+    );
 
-    res.json(await userRepository.findOne(user.id));
+    if (req.body.password) {
+      bcrypt.hash(
+        req.body.password,
+        environment.pwHashSaltRound,
+        async (err: Error | undefined, hash) => {
+          try {
+            await userRepository.update(
+              { id: user.id },
+              userRepository.create(<DeepPartial<User>>{
+                ...user,
+                ...req.body,
+                password: hash,
+              })
+            );
+          } catch (err) {
+            res.status(400).json(err);
+            return;
+          }
+
+          res.json(await userRepository.findOne(user.id));
+        }
+      );
+    } else {
+      try {
+        await userRepository.update(
+          { id: user.id },
+          userRepository.create(<DeepPartial<User>>{
+            ...user,
+            ...req.body,
+          })
+        );
+      } catch (err) {
+        res.status(400).json(err);
+        return;
+      }
+
+      res.json(await userRepository.findOne(user.id));
+    }
   }
 
   /**
@@ -587,10 +650,15 @@ export class AdminController {
     }
 
     if (user.role === UserRole.admin) {
-      const userCount = await userRepository.count({
-        where: { role: UserRole.admin },
+      const adminCount = await userRepository.count({
+        where: {
+          role: UserRole.admin,
+          emailVerification: true,
+          email: Not('SYSTEM'),
+        },
       });
-      if (userCount == 1) {
+
+      if (adminCount <= 1) {
         res.status(403).json({
           message: 'Not allowed to delete last admin',
         });
@@ -598,23 +666,29 @@ export class AdminController {
       }
     }
 
-    /*    await MessagingController.sendMessage(
-       user,
-       'Account deletion',
-       'Your account has been deleted by an admin. Bye!'
-    );*/
+    await MessagingController.sendMessageViaEmail(
+      user,
+      'Account deletion',
+      'Your account has been deleted by an admin. Bye!'
+    );
+
     try {
       await userRepository.update(
         { id: user.id },
         userRepository.create(<DeepPartial<User>>{
           ...user,
-          ...{ firstName: undefined, lastName: undefined, email: undefined },
+          ...{
+            firstName: 'strawberry',
+            lastName: 'mango',
+            email: 'raspberry@choco.late',
+          },
         })
       );
     } catch (err) {
       res.status(400).json(err);
       return;
     }
+
     await userRepository.softDelete(user.id);
 
     res.sendStatus(204);

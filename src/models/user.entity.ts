@@ -70,7 +70,6 @@ export class User extends BaseEntity {
    * @type {string}
    */
   @Column()
-  @IsNotEmpty()
   password: string;
 
   /**
@@ -129,7 +128,9 @@ export class User extends BaseEntity {
    *
    * @type {AppointmentTimeslot[]}
    */
-  @OneToMany(() => AppointmentTimeslot, (timeSlot) => timeSlot.user)
+  @OneToMany(() => AppointmentTimeslot, (timeSlot) => timeSlot.user, {
+    cascade: true,
+  })
   bookings: AppointmentTimeslot[];
 
   /**
@@ -137,7 +138,7 @@ export class User extends BaseEntity {
    *
    * @type {Order[]}
    */
-  @OneToMany(() => Order, (order) => order.user)
+  @OneToMany(() => Order, (order) => order.user, { cascade: true })
   orders: Order[];
 
   /**
@@ -145,7 +146,7 @@ export class User extends BaseEntity {
    *
    * @type {Message[]}
    */
-  @OneToMany(() => Message, (message) => message.recipient)
+  @OneToMany(() => Message, (message) => message.recipient, { cascade: true })
   messages: Message[];
 
   /**
@@ -153,7 +154,7 @@ export class User extends BaseEntity {
    *
    * @type {Recording[]}
    */
-  @OneToMany(() => Recording, (recording) => recording.user)
+  @OneToMany(() => Recording, (recording) => recording.user, { cascade: true })
   recordings: Recording[];
 
   /**
@@ -161,6 +162,6 @@ export class User extends BaseEntity {
    *
    * @type {Token[]}
    */
-  @OneToMany(() => Token, (token) => token.user)
+  @OneToMany(() => Token, (token) => token.user, { cascade: true })
   tokens: Token[];
 }

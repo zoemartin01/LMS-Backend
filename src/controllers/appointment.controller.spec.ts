@@ -240,7 +240,7 @@ describe('AppointmentController', () => {
       const id = uuidv4();
       const appointment = await factory(AppointmentTimeslot)({
         room,
-        user: visitor,
+        user: admin,
       }).make();
       const appointments = await getRepository(AppointmentTimeslot).save(
         createSeries(appointment, id)
@@ -249,7 +249,7 @@ describe('AppointmentController', () => {
       const res = await chai
         .request(app.app)
         .get(uri.replace(':id', id))
-        .set('Authorization', visitorHeader);
+        .set('Authorization', adminHeader);
       expect(res.status).to.equal(200);
       expect(res.body.data.length).to.be.equal(appointments.length);
     });
@@ -300,8 +300,8 @@ function createSeries(appointment: AppointmentTimeslot, id: string) {
       repo.create({
         ...appointment,
         seriesId: id,
-        start: start.add(1, 'week').toISOString(),
-        end: end.add(1, 'week').toISOString(),
+        start: start.add(1, 'week').toDate(),
+        end: end.add(1, 'week').toDate(),
         amount: amount,
         timeSlotRecurrence: TimeSlotRecurrence.weekly,
       })

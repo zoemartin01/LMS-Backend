@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { getRepository } from 'typeorm';
+import { getRepository, Not } from 'typeorm';
 import nodemailer from 'nodemailer';
 import { AuthController } from './auth.controller';
 import { Message } from '../models/message.entity';
@@ -43,14 +43,7 @@ export class MessagingController {
     res.json({ total, data: messages });
   }
 
-  /**
-   * Returns the amounts of unread messages for current user
-   *
-   * @route {GET} /user/messages/unread-amounts
-   * @param {Request} req frontend request to get data of one inventory item
-   * @param {Response} res backend response with data of one inventory item
-   */
-  private static async getUnreadMessagesAmounts(user: User): Promise<{
+  private static async getUnreadMessagesAmountsUtil(user: User): Promise<{
     sum: number;
     appointments: number;
     orders: number;
@@ -85,6 +78,23 @@ export class MessagingController {
   }
 
   /**
+   * Returns the amounts of unread messages for current user
+   *
+   * @route {GET} /user/messages/unread-amounts
+   * @param {Request} req frontend request to get data of one inventory item
+   * @param {Response} res backend response with data of one inventory item
+   */
+  public static async getUnreadMessagesAmounts(req: Request, res: Response) {
+    const user = await AuthController.getCurrentUser(req);
+
+    if (user === null) {
+      return;
+    }
+
+    res.json(await MessagingController.getUnreadMessagesAmountsUtil(user));
+  }
+
+  /**
    * { userId: WebSocket }
    */
   static messageSockets: { [key: string]: WebSocket[] } = {};
@@ -101,7 +111,7 @@ export class MessagingController {
 
     ws.send(
       JSON.stringify(
-        await MessagingController.getUnreadMessagesAmounts(req.body.user)
+        await MessagingController.getUnreadMessagesAmountsUtil(req.body.user)
       )
     );
 
@@ -150,7 +160,7 @@ export class MessagingController {
       ws.forEach(async (ws) => {
         ws.send(
           JSON.stringify(
-            await MessagingController.getUnreadMessagesAmounts(
+            await MessagingController.getUnreadMessagesAmountsUtil(
               message.recipient
             )
           )
@@ -207,7 +217,7 @@ export class MessagingController {
       ws.forEach(async (ws) => {
         ws.send(
           JSON.stringify(
-            await MessagingController.getUnreadMessagesAmounts(
+            await MessagingController.getUnreadMessagesAmountsUtil(
               message.recipient
             )
           )
@@ -236,7 +246,7 @@ export class MessagingController {
       NotificationChannel.emailAndMessageBox ||
       NotificationChannel.messageBoxOnly
     ) {
-      MessagingController.sendMessageViaMessageBox(
+      await MessagingController.sendMessageViaMessageBox(
         recipient,
         title,
         content,
@@ -249,7 +259,7 @@ export class MessagingController {
       NotificationChannel.emailAndMessageBox ||
       NotificationChannel.emailOnly
     ) {
-      MessagingController.sendMessageViaEmail(
+      await MessagingController.sendMessageViaEmail(
         recipient,
         title,
         content,
@@ -264,7 +274,7 @@ export class MessagingController {
       ws.forEach(async (ws) => {
         ws.send(
           JSON.stringify(
-            await MessagingController.getUnreadMessagesAmounts(recipient)
+            await MessagingController.getUnreadMessagesAmountsUtil(recipient)
           )
         );
       });
@@ -326,13 +336,13 @@ export class MessagingController {
     const message =
       linkText === null || linkUrl === null
         ? {
-            from: `"TECO HWLab System" <${environment.smtpSender}>`,
+            from: `TECO HWLab System <${environment.smtpSender}>`,
             to: recipient.email,
             subject: title,
             text: `${content}`,
           }
         : {
-            from: `"TECO HWLab System" <${environment.smtpSender}>`,
+            from: `TECO HWLab System <${environment.smtpSender}>`,
             to: recipient.email,
             subject: title,
             text: `${content}\n${linkText}: ${environment.frontendUrl}${linkUrl}`,
@@ -341,7 +351,7 @@ export class MessagingController {
 
     try {
       const transporter = nodemailer.createTransport(environment.smtpConfig);
-      await transporter.sendMail(message);
+      console.log(await transporter.sendMail(message));
     } catch (e) {
       console.log(e);
     }
@@ -364,7 +374,7 @@ export class MessagingController {
     const userRepository = getRepository(User);
 
     const admins: User[] = await userRepository.find({
-      where: { role: UserRole.admin },
+      where: { role: UserRole.admin, email: Not('SYSTEM') },
     });
 
     for (const recipient of admins) {
