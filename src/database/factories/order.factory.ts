@@ -12,7 +12,7 @@ define(
     if (!context || !context.user)
       throw new Error('Factory Order requires user');
     const itemName = faker.commerce.productName();
-    const quantity = faker.random.number();
+    const quantity = faker.random.number({ min: 1 });
     const status = faker.random.arrayElement([
       OrderStatus.declined,
       OrderStatus.pending,
