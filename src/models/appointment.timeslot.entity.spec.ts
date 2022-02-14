@@ -50,6 +50,10 @@ describe('Appointment Entity', () => {
 
       expect(a).to.deep.include(appointment);
       expect(a).to.have.a.property('type', TimeSlotType.booked);
+
+      expect(a).to.include.all.keys('room', 'user', 'confirmationStatus');
+
+      // Base Entity keys
       expect(a).to.include.all.keys(
         'id',
         'createdAt',
