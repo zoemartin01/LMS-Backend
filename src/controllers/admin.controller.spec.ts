@@ -99,217 +99,217 @@ describe('AdminController', () => {
           done();
         });
     });
+  });
 
-    describe('PATCH /application-settings', () => {
-      const uri = `${environment.apiRoutes.base}${environment.apiRoutes.admin_settings.updateGlobalSettings}`;
+  describe('PATCH /application-settings', () => {
+    const uri = `${environment.apiRoutes.base}${environment.apiRoutes.admin_settings.updateGlobalSettings}`;
 
-      it('should fail without authentification', (done) => {
-        chai
-          .request(app.app)
-          .patch(uri)
-          .end((err, res) => {
-            expect(res.status).to.equal(401);
-            done();
-          });
-      });
-      it('should fail as non-admin', (done) => {
-        chai
-          .request(app.app)
-          .patch(uri)
-          .set('Authorization', visitorHeader)
-          .end((err, res) => {
-            expect(res.status).to.equal(403);
-            done();
-          });
-      });
-
-      it('should update global settings', async () => {
-        const res = await chai
-          .request(app.app)
-          .patch(uri)
-          .set('Authorization', adminHeader)
-          .send([{ key: 'user.max_recordings', value: 50 }]);
-
-        expect(res.status).to.equal(200);
-        const maxRecordings = res.body.filter(
-          (setting: GlobalSetting) => setting.key === 'user.max_recordings'
-        );
-        expect(maxRecordings.length).to.be.equal(1);
-        expect(+maxRecordings[0].value).to.equal(50);
-      });
-    });
-
-    describe('GET /application-settings/whitelist-retailers', () => {
-      const uri = `${environment.apiRoutes.base}${environment.apiRoutes.admin_settings.getWhitelistRetailers}`;
-
-      it('should fail without authentification', (done) => {
-        chai
-          .request(app.app)
-          .get(uri)
-          .end((err, res) => {
-            expect(res.status).to.equal(401);
-            done();
-          });
-      });
-
-      it('should fail as non-admin', (done) => {
-        chai
-          .request(app.app)
-          .get(uri)
-          .set('Authorization', visitorHeader)
-          .end((err, res) => {
-            expect(res.status).to.equal(403);
-            done();
-          });
-      });
-
-      it('should get all initial whitelist retailers', (done) => {
-        chai
-          .request(app.app)
-          .get(uri)
-          .set('Authorization', adminHeader)
-          .end((err, res) => {
-            expect(res.status).to.equal(200);
-            expect(res.body.data).to.be.an('array');
-            expect(res.body.data.length).to.be.equal(0);
-            done();
-          });
-      });
-      it('should get 3 more retailers', async () => {
-        const retailers = await factory(Retailer)().createMany(3);
-        const res = await chai
-          .request(app.app)
-          .get(uri)
-          .set('Authorization', adminHeader);
-        expect(res.status).to.equal(200);
-        expect(res.body.data).to.be.an('array');
-        expect(res.body.data.length).to.be.equal(3);
-      });
-    });
-
-    describe('GET /application-settings/whitelist-retailers', () => {
-      const uri = `${environment.apiRoutes.base}${environment.apiRoutes.admin_settings.getWhitelistRetailer}`;
-
-      it('should fail without authentification', (done) => {
-        chai
-          .request(app.app)
-          .get(uri.replace(':id', uuidv4()))
-          .end((err, res) => {
-            expect(res.status).to.equal(401);
-            done();
-          });
-      });
-
-      it('should fail as non-admin', (done) => {
-        chai
-          .request(app.app)
-          .get(uri.replace(':id', uuidv4()))
-          .set('Authorization', visitorHeader)
-          .end((err, res) => {
-            expect(res.status).to.equal(403);
-            done();
-          });
-      });
-
-      it('should fail with invalid id', (done) => {
-        chai
-          .request(app.app)
-          .get(uri.replace(':id', 'invalid'))
-          .set('Authorization', adminHeader)
-          .end((err, res) => {
-            expect(res.status).to.equal(404);
-            done();
-          });
-      });
-
-      it('should get whitelist retailer with specific id', async () => {
-        const retailer = await factory(Retailer)().create();
-        const res = await chai
-          .request(app.app)
-          .get(uri.replace(':id', retailer.id))
-          .set('Authorization', adminHeader)
-          .send({ size: 1 });
-        expect(res.status).to.equal(200);
-        expect(res.body.name).to.exist;
-        expect(res.body.domains).to.exist;
-        expect(res.body.id).to.equal(retailer.id);
-      });
-    });
-
-    describe('POST /application-settings/whitelist-retailers', () => {
-      const uri = `${environment.apiRoutes.base}${environment.apiRoutes.admin_settings.createWhitelistRetailer}`;
-
-      it('should fail without authentification', (done) => {
-        chai
-          .request(app.app)
-          .post(uri)
-          .end((err, res) => {
-            expect(res.status).to.equal(401);
-            done();
-          });
-      });
-
-      it('should fail as non-admin', (done) => {
-        chai
-          .request(app.app)
-          .post(uri)
-          .set('Authorization', visitorHeader)
-          .end((err, res) => {
-            expect(res.status).to.equal(403);
-            done();
-          });
-      });
-
-      it('should successfully create a new retailer', async () => {
-        const retailer = await factory(Retailer)().make();
-        const repository = getRepository(Retailer);
-
-        const res = await chai
-          .request(app.app)
-          .post(uri)
-          .set('Authorization', adminHeader)
-          .send(retailer);
-        expect(res.status).to.equal(201);
-        repository.findOne({ name: retailer.name }).then((retailer) => {
-          expect(retailer).to.exist;
+    it('should fail without authentification', (done) => {
+      chai
+        .request(app.app)
+        .patch(uri)
+        .end((err, res) => {
+          expect(res.status).to.equal(401);
+          done();
         });
-      });
+    });
+    it('should fail as non-admin', (done) => {
+      chai
+        .request(app.app)
+        .patch(uri)
+        .set('Authorization', visitorHeader)
+        .end((err, res) => {
+          expect(res.status).to.equal(403);
+          done();
+        });
     });
 
-    describe('PATCH /application-settings/whitelist-retailers/:id', () => {
-      const uri = `${environment.apiRoutes.base}${environment.apiRoutes.admin_settings.updateWhitelistRetailer}`;
+    it('should update global settings', async () => {
+      const res = await chai
+        .request(app.app)
+        .patch(uri)
+        .set('Authorization', adminHeader)
+        .send([{ key: 'user.max_recordings', value: 50 }]);
 
-      it('should fail without authentification', (done) => {
-        chai
-          .request(app.app)
-          .patch(uri.replace(':id', uuidv4()))
-          .end((err, res) => {
-            expect(res.status).to.equal(401);
-            done();
-          });
-      });
-      it('should fail as non-admin', (done) => {
-        chai
-          .request(app.app)
-          .patch(uri.replace(':id', uuidv4()))
-          .set('Authorization', visitorHeader)
-          .end((err, res) => {
-            expect(res.status).to.equal(403);
-            done();
-          });
-      });
+      expect(res.status).to.equal(200);
+      const maxRecordings = res.body.filter(
+        (setting: GlobalSetting) => setting.key === 'user.max_recordings'
+      );
+      expect(maxRecordings.length).to.be.equal(1);
+      expect(+maxRecordings[0].value).to.equal(50);
+    });
+  });
 
-      it('should update a specific retailer', async () => {
-        const retailer = await factory(Retailer)().create();
-        const res = await chai
-          .request(app.app)
-          .patch(uri.replace(':id', retailer.id))
-          .set('Authorization', adminHeader)
-          .send({ name: 'newRetailerName' });
+  describe('GET /application-settings/whitelist-retailers', () => {
+    const uri = `${environment.apiRoutes.base}${environment.apiRoutes.admin_settings.getWhitelistRetailers}`;
 
-        expect(res.status).to.equal(200);
-        expect(res.body.name).to.equal('newRetailerName');
+    it('should fail without authentification', (done) => {
+      chai
+        .request(app.app)
+        .get(uri)
+        .end((err, res) => {
+          expect(res.status).to.equal(401);
+          done();
+        });
+    });
+
+    it('should fail as non-admin', (done) => {
+      chai
+        .request(app.app)
+        .get(uri)
+        .set('Authorization', visitorHeader)
+        .end((err, res) => {
+          expect(res.status).to.equal(403);
+          done();
+        });
+    });
+
+    it('should get all initial whitelist retailers', (done) => {
+      chai
+        .request(app.app)
+        .get(uri)
+        .set('Authorization', adminHeader)
+        .end((err, res) => {
+          expect(res.status).to.equal(200);
+          expect(res.body.data).to.be.an('array');
+          expect(res.body.data.length).to.be.equal(0);
+          done();
+        });
+    });
+    it('should get 3 more retailers', async () => {
+      const retailers = await factory(Retailer)().createMany(3);
+      const res = await chai
+        .request(app.app)
+        .get(uri)
+        .set('Authorization', adminHeader);
+      expect(res.status).to.equal(200);
+      expect(res.body.data).to.be.an('array');
+      expect(res.body.data.length).to.be.equal(3);
+    });
+  });
+
+  describe('GET /application-settings/whitelist-retailers', () => {
+    const uri = `${environment.apiRoutes.base}${environment.apiRoutes.admin_settings.getWhitelistRetailer}`;
+
+    it('should fail without authentification', (done) => {
+      chai
+        .request(app.app)
+        .get(uri.replace(':id', uuidv4()))
+        .end((err, res) => {
+          expect(res.status).to.equal(401);
+          done();
+        });
+    });
+
+    it('should fail as non-admin', (done) => {
+      chai
+        .request(app.app)
+        .get(uri.replace(':id', uuidv4()))
+        .set('Authorization', visitorHeader)
+        .end((err, res) => {
+          expect(res.status).to.equal(403);
+          done();
+        });
+    });
+
+    it('should fail with invalid id', (done) => {
+      chai
+        .request(app.app)
+        .get(uri.replace(':id', 'invalid'))
+        .set('Authorization', adminHeader)
+        .end((err, res) => {
+          expect(res.status).to.equal(404);
+          done();
+        });
+    });
+
+    it('should get whitelist retailer with specific id', async () => {
+      const retailer = await factory(Retailer)().create();
+      const res = await chai
+        .request(app.app)
+        .get(uri.replace(':id', retailer.id))
+        .set('Authorization', adminHeader)
+        .send({ size: 1 });
+      expect(res.status).to.equal(200);
+      expect(res.body.name).to.exist;
+      expect(res.body.domains).to.exist;
+      expect(res.body.id).to.equal(retailer.id);
+    });
+  });
+
+  describe('POST /application-settings/whitelist-retailers', () => {
+    const uri = `${environment.apiRoutes.base}${environment.apiRoutes.admin_settings.createWhitelistRetailer}`;
+
+    it('should fail without authentification', (done) => {
+      chai
+        .request(app.app)
+        .post(uri)
+        .end((err, res) => {
+          expect(res.status).to.equal(401);
+          done();
+        });
+    });
+
+    it('should fail as non-admin', (done) => {
+      chai
+        .request(app.app)
+        .post(uri)
+        .set('Authorization', visitorHeader)
+        .end((err, res) => {
+          expect(res.status).to.equal(403);
+          done();
+        });
+    });
+
+    it('should successfully create a new retailer', async () => {
+      const retailer = await factory(Retailer)().make();
+      const repository = getRepository(Retailer);
+
+      const res = await chai
+        .request(app.app)
+        .post(uri)
+        .set('Authorization', adminHeader)
+        .send(retailer);
+      expect(res.status).to.equal(201);
+      repository.findOne({ name: retailer.name }).then((retailer) => {
+        expect(retailer).to.exist;
       });
+    });
+  });
+
+  describe('PATCH /application-settings/whitelist-retailers/:id', () => {
+    const uri = `${environment.apiRoutes.base}${environment.apiRoutes.admin_settings.updateWhitelistRetailer}`;
+
+    it('should fail without authentification', (done) => {
+      chai
+        .request(app.app)
+        .patch(uri.replace(':id', uuidv4()))
+        .end((err, res) => {
+          expect(res.status).to.equal(401);
+          done();
+        });
+    });
+    it('should fail as non-admin', (done) => {
+      chai
+        .request(app.app)
+        .patch(uri.replace(':id', uuidv4()))
+        .set('Authorization', visitorHeader)
+        .end((err, res) => {
+          expect(res.status).to.equal(403);
+          done();
+        });
+    });
+
+    it('should update a specific retailer', async () => {
+      const retailer = await factory(Retailer)().create();
+      const res = await chai
+        .request(app.app)
+        .patch(uri.replace(':id', retailer.id))
+        .set('Authorization', adminHeader)
+        .send({ name: 'newRetailerName' });
+
+      expect(res.status).to.equal(200);
+      expect(res.body.name).to.equal('newRetailerName');
     });
   });
 
