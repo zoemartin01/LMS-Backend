@@ -5,14 +5,15 @@
     ".ts"
   ],
   "include": [
-    "**/*.js",
-    "**/*.ts"
+    "src/**/*.js",
+    "src/**/*.ts"
   ],
   "exclude": [
     "coverage/**",
     "node_modules/**",
     "**/*.d.ts",
-    "**/*.spec.ts"
+    "**/*.spec.ts",
+    "src/database/**/*"
   ],
   "sourceMap": true,
   "reporter": [
