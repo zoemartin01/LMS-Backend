@@ -559,7 +559,9 @@ export class AdminController {
         await MessagingController.sendMessageViaEmail(
           user,
           'Account request accepted',
-          'Your account request has been accepted. You can now login.'
+          'Your account request has been accepted. You can now login.',
+          'User Login',
+          '/login'
         );
         try {
           await userRepository.update(
@@ -584,7 +586,9 @@ export class AdminController {
       'Your account has been updated by an admin. ' +
         Object.keys(req.body)
           .map((e: string) => `${e}: ${req.body[e]}`)
-          .join(', ')
+          .join(', '),
+      'User Settings',
+      '/settings'
     );
 
     if (req.body.password) {

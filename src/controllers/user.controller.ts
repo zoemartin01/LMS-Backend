@@ -116,7 +116,7 @@ export class UserController {
               Object.keys(req.body)
                 .map((e: string) => `${e}: ${req.body[e]}`)
                 .join(', '),
-            'User',
+            'User Settings',
             '/settings'
           );
           res.json(await repository.findOne(user.id));
@@ -142,7 +142,7 @@ export class UserController {
           Object.keys(req.body)
             .map((e: string) => `${e}: ${req.body[e]}`)
             .join(', '),
-        'User',
+        'User Settings',
         '/settings'
       );
       res.json(await repository.findOne(user.id));
