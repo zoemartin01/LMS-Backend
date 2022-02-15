@@ -56,15 +56,10 @@ describe('RoomController', () => {
   describe('GET /rooms', () => {
     const uri = `${environment.apiRoutes.base}${environment.apiRoutes.rooms.getAllRooms}`;
 
-    it('should fail without authentification', (done) => {
-      chai
-        .request(app.app)
-        .get(uri)
-        .end((err, res) => {
-          expect(res.status).to.equal(401);
-          done();
-        });
-    });
+    it(
+      'should fail without authentification',
+      Helpers.checkAuthentication('GET', 'fails', app, uri)
+    );
 
     it('should get all rooms', async () => {
       const expected = await getRepository(Room).count();
@@ -84,15 +79,15 @@ describe('RoomController', () => {
   describe('GET /rooms/:id', () => {
     const uri = `${environment.apiRoutes.base}${environment.apiRoutes.rooms.getSingleRoom}`;
 
-    it('should fail without authentification', (done) => {
-      chai
-        .request(app.app)
-        .get(uri.replace(':id', uuidv4()))
-        .end((err, res) => {
-          expect(res.status).to.equal(401);
-          done();
-        });
-    });
+    it(
+      'should fail without authentification',
+      Helpers.checkAuthentication(
+        'GET',
+        'fails',
+        app,
+        uri.replace(':id', uuidv4())
+      )
+    );
 
     it('should fail with invalid id', (done) => {
       chai
@@ -121,15 +116,15 @@ describe('RoomController', () => {
   describe('PATCH /rooms/:id', () => {
     const uri = `${environment.apiRoutes.base}${environment.apiRoutes.rooms.updateRoom}`;
 
-    it('should fail without authentification', (done) => {
-      chai
-        .request(app.app)
-        .patch(uri.replace(':id', uuidv4()))
-        .end((err, res) => {
-          expect(res.status).to.equal(401);
-          done();
-        });
-    });
+    it(
+      'should fail without authentification',
+      Helpers.checkAuthentication(
+        'PATCH',
+        'fails',
+        app,
+        uri.replace(':id', uuidv4())
+      )
+    );
 
     it('should fail as non-admin', (done) => {
       chai
@@ -169,15 +164,10 @@ describe('RoomController', () => {
   describe('POST /rooms', () => {
     const uri = `${environment.apiRoutes.base}${environment.apiRoutes.rooms.createRoom}`;
 
-    it('should fail without authentification', (done) => {
-      chai
-        .request(app.app)
-        .post(uri.replace(':id', uuidv4()))
-        .end((err, res) => {
-          expect(res.status).to.equal(401);
-          done();
-        });
-    });
+    it(
+      'should fail without authentification',
+      Helpers.checkAuthentication('POST', 'fails', app, uri)
+    );
 
     it('should fail as non-admin', (done) => {
       chai
@@ -209,15 +199,15 @@ describe('RoomController', () => {
   describe('DELETE /rooms/:id', () => {
     const uri = `${environment.apiRoutes.base}${environment.apiRoutes.rooms.deleteRoom}`;
 
-    it('should fail without authentification', (done) => {
-      chai
-        .request(app.app)
-        .delete(uri.replace(':id', uuidv4()))
-        .end((err, res) => {
-          expect(res.status).to.equal(401);
-          done();
-        });
-    });
+    it(
+      'should fail without authentification',
+      Helpers.checkAuthentication(
+        'DELETE',
+        'fails',
+        app,
+        uri.replace(':id', uuidv4())
+      )
+    );
 
     it('should fail with invalid id', (done) => {
       chai
@@ -264,13 +254,15 @@ describe('RoomController', () => {
   describe('POST /rooms/:roomId/timeslots', () => {
     const uri = `${environment.apiRoutes.base}${environment.apiRoutes.rooms.createTimeslot}`;
 
-    it('should fail without authentification', async () => {
-      const room = await factory(Room)().create();
-      const res = await chai
-        .request(app.app)
-        .post(uri.replace(':roomId', room.id));
-      expect(res.status).to.equal(401);
-    });
+    it(
+      'should fail without authentification',
+      Helpers.checkAuthentication(
+        'POST',
+        'fails',
+        app,
+        uri.replace(':roomId', uuidv4())
+      )
+    );
 
     it('should fail as non-admin', async () => {
       const room = await getRepository(Room).findOneOrFail();
@@ -301,15 +293,15 @@ describe('RoomController', () => {
   describe('DELETE /rooms/:roomId/timeslots/:timeslotId', () => {
     const uri = `${environment.apiRoutes.base}${environment.apiRoutes.rooms.deleteTimeslot}`;
 
-    it('should fail without authentification', async () => {
-      const room = await factory(Room)().create();
-      const res = await chai
-        .request(app.app)
-        .delete(
-          uri.replace(':roomId', room.id).replace(':timeslotId', uuidv4())
-        );
-      expect(res.status).to.equal(401);
-    });
+    it(
+      'should fail without authentification',
+      Helpers.checkAuthentication(
+        'DELETE',
+        'fails',
+        app,
+        uri.replace(':roomId', uuidv4()).replace(':timeslotId', uuidv4())
+      )
+    );
 
     it('should fail with invalid id', async () => {
       const room = await factory(Room)().create();
