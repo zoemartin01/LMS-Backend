@@ -49,10 +49,10 @@ describe('AppointmentController', () => {
 
     visitorHeader = await Helpers.getAuthHeader(false);
     visitor = await Helpers.getCurrentUser(visitorHeader);
-    room = await getRepository(Room).findOne();
+    room = await getRepository(Room).findOneOrFail();
 
     await createTimeslots(room, 10);
-    room = await getRepository(Room).findOne(room.id, {
+    room = await getRepository(Room).findOneOrFail(room.id, {
       relations: ['availableTimeSlots', 'unavailableTimeSlots'],
     });
   });

@@ -1,4 +1,4 @@
-import { Connection, Repository } from 'typeorm';
+import { Connection, DeepPartial, Repository } from 'typeorm';
 import { factory, useRefreshDatabase, useSeeding } from 'typeorm-seeding';
 import chai, { expect } from 'chai';
 import chaiAsPromised from 'chai-as-promised';
@@ -70,10 +70,10 @@ describe('Available Timeslot Entity', () => {
       await expect(
         (async () =>
           await repository.save(
-            repository.create({
+            repository.create(<DeepPartial<AvailableTimeslot>>{
               ...validTimeslot,
               room: undefined,
-            } as AvailableTimeslot)
+            })
           ))()
       ).to.be.rejected;
 
@@ -81,10 +81,10 @@ describe('Available Timeslot Entity', () => {
       await expect(
         (async () =>
           await repository.save(
-            repository.create({
+            repository.create(<DeepPartial<AvailableTimeslot>>{
               ...validTimeslot,
               start: undefined,
-            } as AvailableTimeslot)
+            })
           ))()
       ).to.be.rejected;
 
@@ -92,10 +92,10 @@ describe('Available Timeslot Entity', () => {
       await expect(
         (async () =>
           await repository.save(
-            repository.create({
+            repository.create(<DeepPartial<AvailableTimeslot>>{
               ...validTimeslot,
               end: undefined,
-            } as AvailableTimeslot)
+            })
           ))()
       ).to.be.rejected;
     });

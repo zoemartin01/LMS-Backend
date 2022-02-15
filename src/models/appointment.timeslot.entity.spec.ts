@@ -1,4 +1,4 @@
-import { Connection, Repository } from 'typeorm';
+import { Connection, DeepPartial, Repository } from 'typeorm';
 import { factory, useRefreshDatabase, useSeeding } from 'typeorm-seeding';
 import chai, { expect } from 'chai';
 import chaiAsPromised from 'chai-as-promised';
@@ -78,10 +78,10 @@ describe('Appointment Entity', () => {
       await expect(
         (async () =>
           await repository.save(
-            repository.create({
+            repository.create(<DeepPartial<AppointmentTimeslot>>{
               ...validAppointment,
               room: undefined,
-            } as AppointmentTimeslot)
+            })
           ))()
       ).to.be.rejected;
 
@@ -89,10 +89,10 @@ describe('Appointment Entity', () => {
       await expect(
         (async () =>
           await repository.save(
-            repository.create({
+            repository.create(<DeepPartial<AppointmentTimeslot>>{
               ...validAppointment,
               user: undefined,
-            } as AppointmentTimeslot)
+            })
           ))()
       ).to.be.rejected;
 
@@ -100,10 +100,10 @@ describe('Appointment Entity', () => {
       await expect(
         (async () =>
           await repository.save(
-            repository.create({
+            repository.create(<DeepPartial<AppointmentTimeslot>>{
               ...validAppointment,
               start: undefined,
-            } as AppointmentTimeslot)
+            })
           ))()
       ).to.be.rejected;
 
@@ -111,10 +111,10 @@ describe('Appointment Entity', () => {
       await expect(
         (async () =>
           await repository.save(
-            repository.create({
+            repository.create(<DeepPartial<AppointmentTimeslot>>{
               ...validAppointment,
               end: undefined,
-            } as AppointmentTimeslot)
+            })
           ))()
       ).to.be.rejected;
     });
