@@ -243,8 +243,8 @@ export class MessagingController {
     linkUrl: string | null = null
   ): Promise<void> {
     if (
-      NotificationChannel.emailAndMessageBox ||
-      NotificationChannel.messageBoxOnly
+      recipient.notificationChannel === NotificationChannel.emailAndMessageBox ||
+      recipient.notificationChannel === NotificationChannel.messageBoxOnly
     ) {
       await MessagingController.sendMessageViaMessageBox(
         recipient,
@@ -256,8 +256,8 @@ export class MessagingController {
     }
 
     if (
-      NotificationChannel.emailAndMessageBox ||
-      NotificationChannel.emailOnly
+      recipient.notificationChannel === NotificationChannel.emailAndMessageBox ||
+      recipient.notificationChannel === NotificationChannel.emailOnly
     ) {
       await MessagingController.sendMessageViaEmail(
         recipient,
