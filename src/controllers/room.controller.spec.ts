@@ -32,15 +32,15 @@ describe('RoomController', () => {
     connection = await useRefreshDatabase({ connection: 'default' });
     await useSeeding();
 
-    await Helpers.createTestUsers();
+    const users = await Helpers.createTestUsers();
     repository = getRepository(Room);
 
     // Authentifivation
     adminHeader = await Helpers.getAuthHeader();
-    admin = await Helpers.getCurrentUser(adminHeader);
+    admin = users.admin;
 
     visitorHeader = await Helpers.getAuthHeader(false);
-    visitor = await Helpers.getCurrentUser(visitorHeader);
+    visitor = users.visitor;
   });
 
   afterEach(async () => {
@@ -50,6 +50,10 @@ describe('RoomController', () => {
   describe('GET /rooms', () => {
     const uri = `${environment.apiRoutes.base}${environment.apiRoutes.rooms.getAllRooms}`;
 
+    beforeEach(async () => {
+      await expect(repository.count()).to.eventually.equal(0);
+    });
+
     it(
       'should fail without authentification',
       Helpers.checkAuthentication('GET', 'fails', app, uri)
@@ -57,84 +61,62 @@ describe('RoomController', () => {
 
     it('should get all rooms without limit/offset', async () => {
       const count = 10;
-
-      let res = await chai
-        .request(app.app)
-        .get(uri)
-        .set('Authorization', adminHeader);
-
-      expect(res.status).to.equal(200);
-      expect(res.body.total).to.equal(0);
-      expect(res.body.data).to.be.an('array').that.has.length(0);
-
       const rooms = Helpers.JSONify(await factory(Room)().createMany(count));
 
-      res = await chai
+      const res = await chai
         .request(app.app)
         .get(uri)
         .set('Authorization', adminHeader);
 
       expect(res.status).to.equal(200);
       expect(res.body.total).to.equal(count);
-      expect(res.body.data).to.be.an('array').that.has.length(count);
-      expect(res.body.data).to.have.same.deep.members(rooms);
+      expect(res.body.data)
+        .to.be.an('array')
+        .that.has.a.lengthOf(count)
+        .and.that.has.same.deep.members(rooms);
     });
 
     it('should sort rooms by name in ascending order', async () => {
       const count = 10;
-
-      let res = await chai
-        .request(app.app)
-        .get(uri)
-        .set('Authorization', adminHeader);
-
-      expect(res.status).to.equal(200);
-      expect(res.body.total).to.equal(0);
-      expect(res.body.data).to.be.an('array').that.has.length(0);
-
       await factory(Room)().createMany(count);
       const rooms = Helpers.JSONify(
         await repository.find({ order: { name: 'ASC' } })
       );
 
-      res = await chai
+      const res = await chai
         .request(app.app)
         .get(uri)
         .set('Authorization', adminHeader);
 
       expect(res.status).to.equal(200);
       expect(res.body.total).to.equal(count);
-      expect(res.body.data).to.be.an('array').that.has.length(count);
-      expect(res.body.data).to.have.same.deep.ordered.members(rooms);
+      expect(res.body.data)
+        .to.be.an('array')
+        .that.has.a.lengthOf(count)
+        .and.that.has.same.deep.ordered.members(rooms);
     });
 
     it('should get correct rooms with limit', async () => {
       const count = 10;
       const limit = 3;
 
-      let res = await chai
-        .request(app.app)
-        .get(uri)
-        .set('Authorization', adminHeader);
-
-      expect(res.status).to.equal(200);
-      expect(res.body.total).to.equal(0);
-      expect(res.body.data).to.be.an('array').that.has.length(0);
-
       await factory(Room)().createMany(count);
       const rooms = Helpers.JSONify(
         await repository.find({ order: { name: 'ASC' }, take: limit })
       );
 
-      res = await chai
+      const res = await chai
         .request(app.app)
-        .get(`${uri}?limit=${limit}`)
+        .get(uri)
+        .query({ limit })
         .set('Authorization', adminHeader);
 
       expect(res.status).to.equal(200);
       expect(res.body.total).to.equal(count);
-      expect(res.body.data).to.be.an('array').that.has.length(limit);
-      expect(res.body.data).to.have.same.deep.members(rooms);
+      expect(res.body.data)
+        .to.be.an('array')
+        .that.has.a.lengthOf(limit)
+        .and.that.has.same.deep.members(rooms);
     });
 
     it('should get correct rooms with offset', async () => {
@@ -148,7 +130,7 @@ describe('RoomController', () => {
 
       expect(res.status).to.equal(200);
       expect(res.body.total).to.equal(0);
-      expect(res.body.data).to.be.an('array').that.has.length(0);
+      expect(res.body.data).to.be.an('array').that.is.empty;
 
       await factory(Room)().createMany(count);
       const rooms = Helpers.JSONify(
@@ -157,15 +139,16 @@ describe('RoomController', () => {
 
       res = await chai
         .request(app.app)
-        .get(`${uri}?offset=${offset}`)
+        .get(uri)
+        .query({ offset })
         .set('Authorization', adminHeader);
 
       expect(res.status).to.equal(200);
       expect(res.body.total).to.equal(count);
       expect(res.body.data)
         .to.be.an('array')
-        .that.has.length(count - offset);
-      expect(res.body.data).to.have.same.deep.members(rooms);
+        .that.has.a.lengthOf(count - offset)
+        .and.that.has.same.deep.members(rooms);
     });
   });
 
