@@ -1,26 +1,25 @@
 import { Connection, getRepository } from 'typeorm';
-import {
-  factory,
-  runSeeder,
-  useRefreshDatabase,
-  useSeeding,
-} from 'typeorm-seeding';
+import { factory, useRefreshDatabase, useSeeding } from 'typeorm-seeding';
 import App from '../app';
 import chai, { expect } from 'chai';
 import chaiHttp from 'chai-http';
+import chaiAsPromised from 'chai-as-promised';
+import sinonChai from 'sinon-chai';
 import environment from '../environment';
 import { v4 as uuidv4 } from 'uuid';
-import CreateTestUsers from '../database/seeds/create-test-users.seed';
-import { createTimeslots } from '../database/helpers';
 import { Helpers } from '../test.spec';
 import { User } from '../models/user.entity';
 import { AppointmentTimeslot } from '../models/appointment.timeslot.entity';
 import { Room } from '../models/room.entity';
 import moment from 'moment';
 import { TimeSlotRecurrence } from '../types/enums/timeslot-recurrence';
+import * as Sinon from 'sinon';
+import { MessagingController } from './messaging.controller';
 
-chai.use(chaiHttp);
 chai.should();
+chai.use(chaiHttp);
+chai.use(sinonChai);
+chai.use(chaiAsPromised);
 
 describe('AppointmentController', () => {
   const app: App = new App(3000);
@@ -40,8 +39,10 @@ describe('AppointmentController', () => {
     await useSeeding();
 
     // await runSeeder(CreateRooms);
-    await runSeeder(CreateTestUsers);
-    createTimeslots(room);
+    // await runSeeder(CreateTestUsers);
+    // createTimeslots(room);
+    await Helpers.createTestUsers();
+    await factory(Room)().createMany(2);
 
     // Authentifivation
     adminHeader = await Helpers.getAuthHeader();
@@ -51,10 +52,10 @@ describe('AppointmentController', () => {
     visitor = await Helpers.getCurrentUser(visitorHeader);
     room = await getRepository(Room).findOneOrFail();
 
-    await createTimeslots(room, 10);
-    room = await getRepository(Room).findOneOrFail(room.id, {
-      relations: ['availableTimeSlots', 'unavailableTimeSlots'],
-    });
+    // await createTimeslots(room, 10);
+    // room = await getRepository(Room).findOneOrFail(room.id, {
+    //   relations: ['availableTimeSlots', 'unavailableTimeSlots'],
+    // });
   });
 
   afterEach(async () => {
@@ -283,6 +284,48 @@ describe('AppointmentController', () => {
       expect(res.status).to.equal(200);
       expect(res.body.data).to.be.an('array');
       expect(res.body.data.length).to.be.equal(expected);
+    });
+  });
+
+  describe('DELETE /appointments/:id', () => {
+    const uri = `${environment.apiRoutes.base}${environment.apiRoutes.appointments.deleteAppointment}`;
+
+    it('should send a message to the user the appointment belongs to', async () => {
+      const spy = Sinon.spy(MessagingController, 'sendMessage');
+
+      const appointment = await getRepository(AppointmentTimeslot).save({
+        start: moment().toDate(),
+        end: moment().toDate(),
+        user: admin,
+        room,
+      });
+
+      const res = await chai
+        .request(app.app)
+        .delete(uri.replace(':id', appointment.id))
+        .set('Authorization', adminHeader);
+      res.should.have.status(204);
+
+      expect(spy).to.have.been.calledWith(appointment.user);
+    });
+
+    it('should send a message to all admins if a visitor cancels their appointment', async () => {
+      const spy = Sinon.spy(MessagingController, 'sendMessageToAllAdmins');
+
+      const appointment = await getRepository(AppointmentTimeslot).save({
+        start: moment().toDate(),
+        end: moment().toDate(),
+        user: visitor,
+        room,
+      });
+
+      const res = await chai
+        .request(app.app)
+        .delete(uri.replace(':id', appointment.id))
+        .set('Authorization', visitorHeader);
+      res.should.have.status(204);
+
+      expect(spy).to.have.been.called;
     });
   });
 });
