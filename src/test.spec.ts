@@ -1,4 +1,4 @@
-import { Connection, getRepository } from 'typeorm';
+import { Connection, DeepPartial, getRepository } from 'typeorm';
 import { useRefreshDatabase } from 'typeorm-seeding';
 import chai, { expect } from 'chai';
 import environment from './environment';
@@ -10,6 +10,9 @@ import jsonwebtoken from 'jsonwebtoken';
 import App from './app';
 import chaiHttp from 'chai-http';
 import chaiAsPromised from 'chai-as-promised';
+import { NotificationChannel } from './types/enums/notification-channel';
+import { UserRole } from './types/enums/user-role';
+import bcrypt from 'bcrypt';
 
 chai.should();
 chai.use(chaiHttp);
@@ -32,6 +35,37 @@ describe('Database', () => {
 });
 
 export class Helpers {
+  public static async createTestUsers(): Promise<{
+    admin: User;
+    visitor: User;
+  }> {
+    const admin = await getRepository(User).save(<DeepPartial<User>>{
+      firstName: 'Admin',
+      lastName: 'Admin',
+      email: 'admin@test.com',
+      password: await bcrypt.hash('admin', environment.pwHashSaltRound),
+      role: UserRole.admin,
+      emailVerification: true,
+      notificationChannel: NotificationChannel.messageBoxOnly,
+    });
+
+    const visitor = await getRepository(User).save(<DeepPartial<User>>{
+      firstName: 'Visitor',
+      lastName: 'Visitor',
+      email: 'visitor@test.com',
+      password: await bcrypt.hash('visitor', environment.pwHashSaltRound),
+      role: UserRole.visitor,
+      emailVerification: true,
+      notificationChannel: NotificationChannel.messageBoxOnly,
+    });
+
+    return { admin, visitor };
+  }
+
+  public static JSONify(obj: any) {
+    return JSON.parse(JSON.stringify(obj));
+  }
+
   public static async getAuthHeader(admin = true): Promise<string> {
     const { accessToken } = await this.genTokens(
       admin ? 'admin@test.com' : 'visitor@test.com'
