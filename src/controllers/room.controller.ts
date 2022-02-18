@@ -253,9 +253,11 @@ export class RoomController {
         i < +moment(unavailableTimeSlot.end).format('HH');
         i++
       ) {
-        calendar[i - minTimeslot][
+        if (i >= minTimeslot && i <= maxTimeslot) {
+          calendar[i - minTimeslot][
           (+moment(unavailableTimeSlot.start).format('e') + 6) % 7
-        ][0] = 'unavailable';
+            ][0] = 'unavailable';
+        }
       }
     }
 
@@ -270,11 +272,15 @@ export class RoomController {
         hour = +start.format('HH') - minTimeslot;
         day = (+start.format('e') + 6) % 7;
 
-        for (index = 0; calendar[hour][day][index] === null; index++) {
+        for (index = 0; calendar[hour][day][index] !== 'available'; index++) {
           //
         }
 
         calendar[hour][day][index] = appointment;
+
+        if (index < room.maxConcurrentBookings - 1) {
+          calendar[hour][day][index + 1] = 'available';
+        }
 
         for (
           let i = hour + 1;
