@@ -198,6 +198,10 @@ export class RoomController {
       }
 
       timespanEnd = +moment(availableTimespan.end).format('HH');
+      if (timespanEnd === 0) {
+        timespanEnd = 24;
+      }
+
       if (timespanEnd > maxTimeslot) {
         maxTimeslot = timespanEnd - 1;
       }
@@ -228,11 +232,12 @@ export class RoomController {
         continue;
       }
 
-      for (
-        let i = +moment(availableTimespan.start).format('HH');
-        i < +moment(availableTimespan.end).format('HH');
-        i++
-      ) {
+      timespanEnd = +moment(availableTimespan.end).format('HH');
+      if (timespanEnd === 0) {
+        timespanEnd = 24;
+      }
+
+      for (let i = +moment(availableTimespan.start).format('HH'); i < timespanEnd; i++) {
         calendar[i - minTimeslot][
           (+moment(availableTimespan.start).format('e') + 6) % 7
         ][0] = 'available';
@@ -241,22 +246,20 @@ export class RoomController {
 
     //set unavailable timeslots
     for (unavailableTimeSlot of unavailableTimeSlots) {
-      if (
-        unavailableTimeSlot.start == null ||
-        unavailableTimeSlot.end == null
-      ) {
+      if (unavailableTimeSlot.start == null || unavailableTimeSlot.end == null) {
         continue;
       }
 
-      for (
-        let i = +moment(unavailableTimeSlot.start).format('HH');
-        i < +moment(unavailableTimeSlot.end).format('HH');
-        i++
-      ) {
+      timespanEnd = +moment(unavailableTimeSlot.end).format('HH');
+      if (timespanEnd === 0) {
+        timespanEnd = 24;
+      }
+
+      for (let i = +moment(unavailableTimeSlot.start).format('HH'); i < timespanEnd; i++) {
         if (i >= minTimeslot && i <= maxTimeslot) {
           calendar[i - minTimeslot][
-          (+moment(unavailableTimeSlot.start).format('e') + 6) % 7
-            ][0] = 'unavailable';
+            (+moment(unavailableTimeSlot.start).format('e') + 6) % 7
+          ][0] = 'unavailable';
         }
       }
     }
@@ -282,11 +285,12 @@ export class RoomController {
           calendar[hour][day][index + 1] = 'available';
         }
 
-        for (
-          let i = hour + 1;
-          i <= +moment(appointment.end).format('HH') - minTimeslot - 1;
-          i++
-        ) {
+        timespanEnd = +moment(appointment.end).format('HH');
+        if (timespanEnd === 0) {
+          timespanEnd = 24;
+        }
+
+        for (let i = hour + 1; i <= timespanEnd - minTimeslot - 1; i++) {
           calendar[i][day][index] = null;
         }
       }
@@ -354,7 +358,7 @@ export class RoomController {
     });
 
     //initialise array (timeslot, days, parallel bookings)
-    let availableTimespan, unavailableTimeSlot, timespanStart, timespanEnd;
+    let availableTimespan, unavailableTimeSlot, timespanEnd;
     const calendar: string[][] = [...Array(24)].map(() => [...Array(7)]);
 
     //set available timeslots
@@ -363,11 +367,12 @@ export class RoomController {
         continue;
       }
 
-      for (
-        let i = +moment(availableTimespan.start).format('HH');
-        i < +moment(availableTimespan.end).format('HH');
-        i++
-      ) {
+      timespanEnd = +moment(availableTimespan.end).format('HH');
+      if (timespanEnd === 0) {
+        timespanEnd = 24;
+      }
+
+      for (let i = +moment(availableTimespan.start).format('HH'); i < timespanEnd; i++) {
         calendar[i][
           (+moment(availableTimespan.start).format('e') + 6) % 7
         ] = `available ${availableTimespan.id}`;
@@ -376,18 +381,16 @@ export class RoomController {
 
     //set unavailable timeslots
     for (unavailableTimeSlot of unavailableTimeSlots) {
-      if (
-        unavailableTimeSlot.start == null ||
-        unavailableTimeSlot.end == null
-      ) {
+      if (unavailableTimeSlot.start == null || unavailableTimeSlot.end == null) {
         continue;
       }
 
-      for (
-        let i = +moment(unavailableTimeSlot.start).format('HH');
-        i < +moment(unavailableTimeSlot.end).format('HH');
-        i++
-      ) {
+      timespanEnd = +moment(unavailableTimeSlot.end).format('HH');
+      if (timespanEnd === 0) {
+        timespanEnd = 24;
+      }
+
+      for (let i = +moment(unavailableTimeSlot.start).format('HH'); i < timespanEnd; i++) {
         calendar[i][
           (+moment(unavailableTimeSlot.start).format('e') + 6) % 7
         ] = `unavailable ${unavailableTimeSlot.id}`;
