@@ -253,9 +253,11 @@ export class RoomController {
         i < +moment(unavailableTimeSlot.end).format('HH');
         i++
       ) {
-        calendar[i - minTimeslot][
-          (+moment(unavailableTimeSlot.start).format('e') + 6) % 7
-        ][0] = 'unavailable';
+        if (minTimeslot <= i && i < maxTimeslot) {
+          calendar[i - minTimeslot][
+            (+moment(unavailableTimeSlot.start).format('e') + 6) % 7
+          ][0] = 'unavailable';
+        }
       }
     }
 
