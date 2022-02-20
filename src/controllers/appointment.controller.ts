@@ -102,6 +102,8 @@ export class AppointmentController {
    * Returns all appointments for the current user
    *
    * @route {GET} /user/appointments
+   * @queryParam {number} offset - offset for pagination
+   * @queryParam {number} limit - limit for pagination
    * @param {Request} req frontend request to get data about all appointments for the current user
    * @param {Response} res backend response with data about all appointments for the current user
    */
@@ -170,6 +172,8 @@ export class AppointmentController {
    *
    * @route {GET} /rooms/:id/appointments
    * @routeParam {string} id - id of the room
+   * @queryParam {number} offset - offset for pagination
+   * @queryParam {number} limit - limit for pagination
    * @param {Request} req frontend request to get data about all appointments for room
    * @param {Response} res backend response with data about all appointments for room
    */
@@ -243,6 +247,8 @@ export class AppointmentController {
    *
    * @route {GET} /appointments/series/:id
    * @routeParam {string} id - id of the series
+   * @queryParam {number} offset - offset for pagination
+   * @queryParam {number} limit - limit for pagination
    * @param {Request} req frontend request to get data about all appointments for a series
    * @param {Response} res backend response with data about all appointments for a series
    */
