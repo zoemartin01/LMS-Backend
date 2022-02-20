@@ -297,7 +297,7 @@ export class RoomController {
   /**
    * Returns available and unavailable timeslots as calendar for one room by its id
    *
-   * @route {GET} /rooms/:id/calendar
+   * @route {GET} /rooms/:id/availability-calendar
    * @routeParam {string} id - id of the room
    * @getParam {date} date
    * @param {Request} req frontend request to get data about one room
