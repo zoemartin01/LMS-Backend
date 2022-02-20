@@ -144,6 +144,7 @@ export class RoomController {
       ],
       order: {
         start: 'ASC',
+        end: 'DESC',
       },
     });
     const availableTimeSlots = await timeSlotRepository.find({
