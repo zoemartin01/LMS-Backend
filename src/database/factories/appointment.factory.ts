@@ -19,6 +19,7 @@ define(
       availableTimeSlot?: AvailableTimeslot;
       ignoreRules?: boolean;
       confirmationStatus?: ConfirmationStatus;
+      isDirty?: boolean;
     }
   ) => {
     if (!context || !context.user || !context.room)
@@ -40,6 +41,7 @@ define(
         confirmationStatus:
           context?.confirmationStatus ?? ConfirmationStatus.pending,
         seriesId: context.seriesId,
+        isDirty: context.isDirty,
       });
     }
 
@@ -97,6 +99,7 @@ define(
         room,
         user,
         confirmationStatus,
+        isDirty: context.isDirty,
       });
     }
     return getRepository(AppointmentTimeslot).create({
@@ -106,6 +109,7 @@ define(
       user,
       confirmationStatus,
       seriesId: context.seriesId,
+      isDirty: context.isDirty,
     });
   }
 );

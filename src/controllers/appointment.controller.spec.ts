@@ -1,4 +1,4 @@
-import { Connection, getRepository } from 'typeorm';
+import { Connection, getRepository, Repository } from 'typeorm';
 import { factory, useRefreshDatabase, useSeeding } from 'typeorm-seeding';
 import App from '../app';
 import chai, { expect } from 'chai';
@@ -14,6 +14,8 @@ import moment from 'moment';
 import { TimeSlotRecurrence } from '../types/enums/timeslot-recurrence';
 import * as Sinon from 'sinon';
 import { MessagingController } from './messaging.controller';
+import { v4 } from 'uuid';
+import { ConfirmationStatus } from '../types/enums/confirmation-status';
 
 chai.should();
 chai.use(chaiHttp);
@@ -23,6 +25,7 @@ chai.use(chaiAsPromised);
 describe('AppointmentController', () => {
   const app: App = new App(3000);
   let connection: Connection;
+  let repository: Repository<AppointmentTimeslot>;
   let adminHeader: string;
   let admin: User;
   let visitorHeader: string;
@@ -38,7 +41,7 @@ describe('AppointmentController', () => {
     await useSeeding();
 
     await Helpers.createTestUsers();
-    await factory(Room)().create();
+    repository = getRepository(AppointmentTimeslot);
 
     // Authentication
     adminHeader = await Helpers.getAuthHeader();
@@ -46,7 +49,8 @@ describe('AppointmentController', () => {
 
     visitorHeader = await Helpers.getAuthHeader(false);
     visitor = await Helpers.getCurrentUser(visitorHeader);
-    room = await getRepository(Room).findOneOrFail();
+
+    room = await factory(Room)().create();
   });
 
   afterEach(async () => {
@@ -55,6 +59,250 @@ describe('AppointmentController', () => {
 
   describe('GET /appointments', () => {
     const uri = `${environment.apiRoutes.base}${environment.apiRoutes.appointments.getAllAppointments}`;
+
+    beforeEach(async () => {
+      await expect(repository.count()).to.eventually.equal(0);
+    });
+
+    it(
+      'should return 401 if not authenticated',
+      Helpers.checkAuthentication('GET', 'fails', app, uri)
+    );
+
+    it('should return 403 as non-admin', async () => {
+      const response = await chai
+        .request(app.app)
+        .get(uri)
+        .set('Authorization', visitorHeader);
+
+      response.should.have.status(403);
+    });
+
+    it('should get all appointments without limit/offset', async () => {
+      const count = 10;
+      await factory(AppointmentTimeslot)({
+        room: room,
+        user: admin,
+        ignoreRules: true,
+      }).createMany(count);
+      const appointments = Helpers.JSONify(
+        (await repository.find()).map((appointment) => {
+          return { ...appointment, maxStart: null };
+        })
+      );
+
+      const res = await chai
+        .request(app.app)
+        .get(uri)
+        .set('Authorization', adminHeader);
+
+      expect(res.status).to.equal(200);
+      expect(res.body.total).to.equal(count);
+      expect(res.body.data)
+        .to.be.an('array')
+        .that.has.a.lengthOf(count)
+        .and.that.has.same.deep.members(appointments);
+    });
+
+    it('should get all appointments with confirmation status query parameter', async () => {
+      const count = 3;
+
+      await factory(AppointmentTimeslot)({
+        room: room,
+        user: admin,
+        ignoreRules: true,
+        confirmationStatus: ConfirmationStatus.accepted,
+      }).createMany(count);
+      await factory(AppointmentTimeslot)({
+        room: room,
+        user: admin,
+        ignoreRules: true,
+        confirmationStatus: ConfirmationStatus.denied,
+      }).createMany(count);
+
+      const appointments = Helpers.JSONify(
+        (
+          await repository.find({
+            where: { confirmationStatus: ConfirmationStatus.accepted },
+          })
+        ).map((appointment) => {
+          return { ...appointment, maxStart: null };
+        })
+      );
+
+      const res = await chai
+        .request(app.app)
+        .get(uri)
+        .query({ confirmationStatus: ConfirmationStatus.accepted })
+        .set('Authorization', adminHeader);
+
+      expect(res.status).to.equal(200);
+      expect(res.body.total).to.equal(count);
+      expect(res.body.data)
+        .to.be.an('array')
+        .that.has.a.lengthOf(count)
+        .and.that.has.same.deep.members(appointments);
+    });
+
+    it('should sort rooms by name in ascending order', async () => {
+      const count = 10;
+      await factory(AppointmentTimeslot)({
+        room: room,
+        user: admin,
+        ignoreRules: true,
+      }).createMany(count);
+      const appointments = Helpers.JSONify(
+        (await repository.find({ order: { start: 'ASC' } })).map(
+          (appointment) => {
+            return { ...appointment, maxStart: null };
+          }
+        )
+      );
+
+      const res = await chai
+        .request(app.app)
+        .get(uri)
+        .set('Authorization', adminHeader);
+
+      expect(res.status).to.equal(200);
+      expect(res.body.total).to.equal(count);
+      expect(res.body.data)
+        .to.be.an('array')
+        .that.has.a.lengthOf(count)
+        .and.that.has.same.deep.ordered.members(appointments);
+    });
+
+    it('should get correct rooms with limit', async () => {
+      const count = 10;
+      const limit = 3;
+
+      await factory(AppointmentTimeslot)({
+        room: room,
+        user: admin,
+        ignoreRules: true,
+      }).createMany(count);
+      const appointments = Helpers.JSONify(
+        (await repository.find({ order: { start: 'ASC' }, take: limit })).map(
+          (appointment) => {
+            return { ...appointment, maxStart: null };
+          }
+        )
+      );
+
+      const res = await chai
+        .request(app.app)
+        .get(uri)
+        .query({ limit })
+        .set('Authorization', adminHeader);
+
+      expect(res.status).to.equal(200);
+      expect(res.body.total).to.equal(count);
+      expect(res.body.data)
+        .to.be.an('array')
+        .that.has.a.lengthOf(limit)
+        .and.that.has.same.deep.members(appointments);
+    });
+
+    it('should get correct rooms with offset', async () => {
+      const count = 10;
+      const offset = 3;
+
+      await factory(AppointmentTimeslot)({
+        room: room,
+        user: admin,
+        ignoreRules: true,
+      }).createMany(count);
+      const appointments = Helpers.JSONify(
+        (await repository.find({ order: { start: 'ASC' }, skip: offset })).map(
+          (appointment) => {
+            return { ...appointment, maxStart: null };
+          }
+        )
+      );
+
+      const res = await chai
+        .request(app.app)
+        .get(uri)
+        .query({ offset })
+        .set('Authorization', adminHeader);
+
+      expect(res.status).to.equal(200);
+      expect(res.body.total).to.equal(count);
+      expect(res.body.data)
+        .to.be.an('array')
+        .that.has.a.lengthOf(count - offset)
+        .and.that.has.same.deep.members(appointments);
+    });
+
+    it('should return the last appointment start of a series as maxStart in every appointment', async () => {
+      const count = 10;
+      const factoryAppointments = await factory(AppointmentTimeslot)({
+        room: room,
+        user: admin,
+        ignoreRules: true,
+        seriesId: v4(),
+      }).createMany(count);
+
+      const lastStart = factoryAppointments
+        .map((appointment) => appointment.start)
+        .sort((a, b) => a.getTime() - b.getTime())[count - 1];
+
+      const appointments = Helpers.JSONify(
+        (await repository.find()).map((appointment) => {
+          return { ...appointment, maxStart: lastStart };
+        })
+      );
+
+      const res = await chai
+        .request(app.app)
+        .get(uri)
+        .set('Authorization', adminHeader);
+
+      expect(res.status).to.equal(200);
+      expect(res.body.total).to.equal(count);
+      expect(res.body.data)
+        .to.be.an('array')
+        .that.has.a.lengthOf(count)
+        .and.that.has.same.deep.members(appointments);
+    });
+
+    it('should return the last non-dirty appointment start of a series as maxStart in every appointment', async () => {
+      const count = 3;
+      const seriesId = v4();
+      const lastStart = (
+        await factory(AppointmentTimeslot)({
+          room: room,
+          user: admin,
+          ignoreRules: true,
+          seriesId: seriesId,
+        }).create()
+      ).start;
+      await factory(AppointmentTimeslot)({
+        room: room,
+        user: admin,
+        ignoreRules: true,
+        seriesId: seriesId,
+        isDirty: true,
+      }).createMany(count - 1);
+
+      const appointments = Helpers.JSONify(
+        (await repository.find()).map((appointment) => {
+          return { ...appointment, maxStart: lastStart };
+        })
+      );
+
+      const res = await chai
+        .request(app.app)
+        .get(uri)
+        .set('Authorization', adminHeader);
+
+      expect(res.status).to.equal(200);
+      expect(res.body.total).to.equal(count);
+      expect(res.body.data)
+        .to.be.an('array')
+        .that.has.a.lengthOf(count)
+        .and.that.has.same.deep.members(appointments);
+    });
   });
 
   describe('GET /user/appointments', () => {
