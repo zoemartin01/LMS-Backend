@@ -84,13 +84,6 @@ export class UserController {
       });
       return;
     }
-    if (req.body.id !== undefined) {
-      res.status(403).json({
-        message: 'No permission to change id.',
-      });
-      return;
-    }
-
     if (req.body.password) {
       bcrypt.hash(
         req.body.password,
@@ -229,7 +222,7 @@ export class UserController {
         }
       });
 
-    //create user with specified personal information an hashed password
+    //create user with specified personal information and hashed password
     bcrypt.hash(
       password,
       environment.pwHashSaltRound,

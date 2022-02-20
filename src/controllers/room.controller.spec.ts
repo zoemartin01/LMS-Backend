@@ -55,7 +55,7 @@ describe('RoomController', () => {
     });
 
     it(
-      'should fail without authentification',
+      'should fail without authentication',
       Helpers.checkAuthentication('GET', 'fails', app, uri)
     );
 
@@ -234,7 +234,7 @@ describe('RoomController', () => {
     const uri = `${environment.apiRoutes.base}${environment.apiRoutes.rooms.updateRoom}`;
 
     it(
-      'should fail without authentification',
+      'should fail without authentication',
       Helpers.checkAuthentication(
         'PATCH',
         'fails',
@@ -293,7 +293,7 @@ describe('RoomController', () => {
     const uri = `${environment.apiRoutes.base}${environment.apiRoutes.rooms.deleteRoom}`;
 
     it(
-      'should fail without authentification',
+      'should fail without authentication',
       Helpers.checkAuthentication(
         'DELETE',
         'fails',
