@@ -227,8 +227,7 @@ export class AuthController {
   ): Promise<{ accessToken: string; refreshToken: string }> {
     const tokenRepository = getRepository(Token);
 
-    //@todo Adrian reset to minutes after development phase
-    const expiration = moment().add(20, 'years').unix();
+    const expiration = moment().add(20, 'minutes').unix();
 
     const refreshToken = jsonwebtoken.sign(
       {

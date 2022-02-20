@@ -12,7 +12,6 @@ const environment = {
       process.env.LDAP_USERNAME || 'uid=pseteamtwo,ou=People,dc=teco,dc=edu',
     password: process.env.LDAP_PASSWORD || 'asd3412090',
   },
-  //@todo add SMTP credentials & sender email
   smtpConfig: {
     host: process.env.SMTP_HOST || 'mail.teco.edu',
     port: process.env.SMTP_POST ? +process.env.SMTP_POST : 25,
