@@ -281,17 +281,19 @@ export class RoomController {
 
         calendar[hour][day][index] = appointment;
 
-        if (index < room.maxConcurrentBookings - 1) {
-          calendar[hour][day][index + 1] = 'available';
-        }
-
         timespanEnd = +moment(appointment.end).format('HH');
         if (timespanEnd === 0) {
           timespanEnd = 24;
         }
 
-        for (let i = hour + 1; i <= timespanEnd - minTimeslot - 1; i++) {
+        for (let i = hour + 1; i < timespanEnd - minTimeslot; i++) {
           calendar[i][day][index] = null;
+        }
+
+        if (index < room.maxConcurrentBookings - 1) {
+          for (let i = hour; i < timespanEnd - minTimeslot; i++) {
+            calendar[i][day][index + 1] = 'available';
+          }
         }
       }
     } catch (e) {
