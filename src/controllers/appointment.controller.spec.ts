@@ -564,10 +564,6 @@ describe('AppointmentController', () => {
     });
   });
 
-  describe('GET /rooms/:id/appointments', () => {
-    const uri = `${environment.apiRoutes.base}${environment.apiRoutes.appointments.getRoomAppointments}`;
-  });
-
   describe('GET /appointments/series/:id', () => {
     const uri = `${environment.apiRoutes.base}${environment.apiRoutes.appointments.getSeriesAppointments}`;
   });

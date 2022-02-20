@@ -109,7 +109,6 @@ const environment = {
     },
     appointments: {
       getCurrentUserAppointments: '/user/appointments',
-      getRoomAppointments: '/rooms/:id/appointments',
       getSeriesAppointments: '/appointments/series/:id',
 
       getAllAppointments: '/appointments',

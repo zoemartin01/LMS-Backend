@@ -336,13 +336,6 @@ class AppRouter {
     );
     this.router.get(
       addUUIDRegexToRoute(
-        environment.apiRoutes.appointments.getRoomAppointments
-      ),
-      AuthController.checkAuthenticationMiddleware,
-      AppointmentController.getAppointmentsForRoom
-    );
-    this.router.get(
-      addUUIDRegexToRoute(
         environment.apiRoutes.appointments.getSeriesAppointments
       ),
       AuthController.checkAuthenticationMiddleware,
