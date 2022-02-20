@@ -10,6 +10,9 @@ import { User } from '../models/user.entity';
 import { MessagingController } from './messaging.controller';
 import * as Sinon from 'sinon';
 import sinonChai from 'sinon-chai';
+import { Token } from '../models/token.entity';
+import { TokenType } from '../types/enums/token-type';
+import { NotificationChannel } from '../types/enums/notification-channel';
 
 chai.use(chaiHttp);
 chai.use(sinonChai);
@@ -23,6 +26,7 @@ describe('UserController', () => {
   let visitorHeader: string;
   let visitor: User;
   let repository: Repository<User>;
+  let sandbox: Sinon.SinonSandbox;
 
   before(async () => {
     process.env.NODE_ENV = 'testing';
@@ -41,10 +45,14 @@ describe('UserController', () => {
 
     visitorHeader = await Helpers.getAuthHeader(false);
     visitor = users.visitor;
+
+    sandbox = Sinon.createSandbox();
   });
 
   afterEach(async () => {
     app.shutdownJobs();
+
+    sandbox.restore();
   });
 
   describe('POST /users', () => {
@@ -53,26 +61,23 @@ describe('UserController', () => {
     //todo test registration
 
     it('should send a message to the user with the registration link', async () => {
-      const spy = Sinon.spy(MessagingController, 'sendMessage');
+      const spy = sandbox.spy(MessagingController, 'sendMessage');
+      sandbox.stub(MessagingController, 'sendMessageViaEmail');
 
       const email = 'test@test.de';
 
-      const res = await chai
-        .request(app.app)
-        .post(uri)
-        .send({
-          firstName: 'first',
-          lastName: 'last',
-          email,
-          password: 'testPassword',
-        });
+      const res = await chai.request(app.app).post(uri).send({
+        firstName: 'first',
+        lastName: 'last',
+        email,
+        password: 'testPassword',
+      });
       res.should.have.status(201);
 
       const user = await getRepository(User).findOneOrFail({
         where: { email },
       });
       expect(spy).to.have.been.calledWith(user);
-      spy.restore();
     });
   });
 
@@ -80,14 +85,17 @@ describe('UserController', () => {
     const uri = `${environment.apiRoutes.base}${environment.apiRoutes.user_settings.getCurrentUser}`;
 
     it('should get the current user', async () => {
-      const user = Helpers.JSONify(await factory(User)().create());
+      const user = Helpers.JSONify(visitor);
 
       it(
         'should fail without authentication',
         Helpers.checkAuthentication('PATCH', 'fails', app, uri)
       );
 
-      const res = await chai.request(app.app).get(uri);
+      const res = await chai
+        .request(app.app)
+        .get(uri)
+        .set('Authorization', visitorHeader);
 
       expect(res.status).to.equal(200);
       expect(res.body).to.deep.equal(user);
@@ -96,6 +104,10 @@ describe('UserController', () => {
 
   describe('PATCH /user', () => {
     const uri = `${environment.apiRoutes.base}${environment.apiRoutes.user_settings.updateCurrentUser}`;
+
+    beforeEach(async () => {
+      sandbox.stub(MessagingController, 'sendMessageViaEmail');
+    });
 
     it(
       'should fail without authentication',
@@ -168,10 +180,13 @@ describe('UserController', () => {
         .request(app.app)
         .patch(uri)
         .set('Authorization', adminHeader)
-        .send({ NotificationChannel: 4 });
+        .send({ NotificationChannel: NotificationChannel.none });
 
       expect(res.status).to.equal(200);
-      expect(res.body).to.deep.equal({ ...user, NotificationChannel: 4 });
+      expect(res.body).to.deep.equal({
+        ...user,
+        NotificationChannel: NotificationChannel.none,
+      });
     });
 
     it('should update the Password of a user', async () => {
@@ -187,7 +202,7 @@ describe('UserController', () => {
     });
 
     it('should send a message to the user updated', async () => {
-      const spy = Sinon.spy(MessagingController, 'sendMessage');
+      const spy = sandbox.spy(MessagingController, 'sendMessage');
       const user = Helpers.JSONify(await factory(User)().create());
       const res = await chai
         .request(app.app)
@@ -197,7 +212,6 @@ describe('UserController', () => {
 
       res.should.have.status(200);
       expect(spy).to.have.been.calledWith(user);
-      spy.restore();
     });
   });
 
@@ -233,7 +247,7 @@ describe('UserController', () => {
     //todo check if mango strawberry
 
     it('should send a message to the email of deleted user', async () => {
-      const spy = Sinon.spy(MessagingController, 'sendMessageViaEmail');
+      const spy = sandbox.stub(MessagingController, 'sendMessageViaEmail');
       const user = Helpers.JSONify(await factory(User)().create());
       const res = await chai
         .request(app.app)
@@ -242,49 +256,59 @@ describe('UserController', () => {
 
       res.should.have.status(204);
       expect(spy).to.have.been.calledWith(user);
-      spy.restore();
     });
 
     it('should send a message to all admins if a visitor cancels their appointment', async () => {
-      const spy = Sinon.spy(MessagingController, 'sendMessageToAllAdmins');
+      const spy = sandbox.spy(MessagingController, 'sendMessageToAllAdmins');
       const res = await chai
         .request(app.app)
         .delete(uri)
         .set('Authorization', adminHeader);
       res.should.have.status(204);
       expect(spy).to.have.been.called;
-      spy.restore();
     });
   });
 
-  describe('PATCH /user/verify-email', () => {
+  describe('POST /user/verify-email', () => {
     const uri = `${environment.apiRoutes.base}${environment.apiRoutes.user_settings.verifyEmail}`;
 
     it('should update the verification of a user', async () => {
-      const user = Helpers.JSONify(await factory(User)().create());
+      const user = await factory(User)().create();
+      const token = await getRepository(Token).save({
+        userId: user.id,
+        type: TokenType.emailVerificationToken,
+        token: 'testToken',
+      });
       const res = await chai
         .request(app.app)
-        .patch(uri)
-        .send({ emailVerification: false })
-        .set('Authorization', adminHeader);
+        .post(uri)
+        .send({ userId: user.id, token: token.token });
 
       expect(res.status).to.equal(200);
-      expect(res.body).to.deep.equal({ ...user, emailVerification: false });
+      expect(res.body).to.deep.equal(
+        Helpers.JSONify({
+          ...(await repository.findOneOrFail(user.id)),
+          emailVerification: true,
+        })
+      );
     });
     //todo don't know if workes right
 
     it('should send a message to all admins if there is a new verified user', async () => {
-      const spy = Sinon.spy(MessagingController, 'sendMessageToAllAdmins');
-      const user = Helpers.JSONify(await factory(User)().create());
+      const spy = sandbox.spy(MessagingController, 'sendMessageToAllAdmins');
+      const user = await factory(User)().create();
+      const token = await getRepository(Token).save({
+        userId: user.id,
+        type: TokenType.emailVerificationToken,
+        token: 'testToken',
+      });
       const res = await chai
         .request(app.app)
-        .patch(uri)
-        .send({ emailVerification: true })
-        .set('Authorization', adminHeader);
+        .post(uri)
+        .send({ userId: user.id, token: token.token });
 
       res.should.have.status(200);
-      expect(spy).to.have.been.calledWith(user);
-      spy.restore();
+      expect(spy).to.have.been.called;
     });
   });
 });
