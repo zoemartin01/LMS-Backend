@@ -177,15 +177,15 @@ describe('RoomController', () => {
     });
 
     it('should get a specific room', async () => {
-      const room = await factory(Room)().create();
+      const room = Helpers.JSONify(await factory(Room)().create());
+
       const res = await chai
         .request(app.app)
         .get(uri.replace(':id', room.id))
-        .set('Authorization', adminHeader)
-        .send({ size: 1 });
+        .set('Authorization', adminHeader);
+
       expect(res.status).to.equal(200);
-      expect(res.body.name).to.exist;
-      expect(res.body.id).to.equal(room.id);
+      expect(res.body).to.deep.equal(room);
     });
   });
 
