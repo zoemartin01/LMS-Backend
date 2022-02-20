@@ -10,14 +10,12 @@ import chai, { expect } from 'chai';
 import chaiHttp from 'chai-http';
 import environment from '../environment';
 import { v4 as uuidv4 } from 'uuid';
-import CreateTestUsers from '../database/seeds/create-test-users.seed';
 import { Helpers } from '../test.spec';
 import { User } from '../models/user.entity';
-import CreateGlobalSettings from '../database/seeds/create-global_settings.seed';
-import CreateRetailers from '../database/seeds/create-retailers.seed';
 import { GlobalSetting } from '../models/global_settings.entity';
 import { Retailer } from '../models/retailer.entity';
 import { RetailerDomain } from '../models/retailer.domain.entity';
+import CreateGlobalSettings from '../database/seeds/create-global_settings.seed';
 
 chai.use(chaiHttp);
 chai.should();
@@ -37,16 +35,16 @@ describe('AdminController', () => {
   beforeEach(async () => {
     connection = await useRefreshDatabase({ connection: 'default' });
     await useSeeding();
-    await runSeeder(CreateTestUsers);
-    await runSeeder(CreateRetailers);
     await runSeeder(CreateGlobalSettings);
+
+    const users = await Helpers.createTestUsers();
 
     // Authentication
     adminHeader = await Helpers.getAuthHeader();
-    admin = await Helpers.getCurrentUser(adminHeader);
+    admin = users.admin;
 
     visitorHeader = await Helpers.getAuthHeader(false);
-    visitor = await Helpers.getCurrentUser(visitorHeader);
+    visitor = users.visitor;
   });
 
   afterEach(async () => {
@@ -56,48 +54,24 @@ describe('AdminController', () => {
   describe('GET /application-settings', () => {
     const uri = `${environment.apiRoutes.base}${environment.apiRoutes.admin_settings.getGlobalSettings}`;
 
-    /*    it('should fail without authentification', (done) => {
-      chai
-        .request(app.app)
-        .get(uri)
-        .end((err, res) => {
-          expect(res.status).to.equal(401);
-          done();
-        });
-    });
+    it('should get all application settings', async () => {
+      const settings = [
+        'user.max_recordings',
+        'recording.auto_delete',
+        'static.homepage',
+        'static.safety_instructions',
+        'static.lab_rules',
+        'static.faq',
+        'static.faq_admin',
+      ];
 
-    it('should fail as non-admin', (done) => {
-      chai
-        .request(app.app)
-        .get(uri)
-        .set('Authorization', visitorHeader)
-        .end((err, res) => {
-          expect(res.status).to.equal(403);
-          done();
-        });
-    });*/
+      const res = await chai.request(app.app).get(uri);
 
-    it('should get all globalsettings', (done) => {
-      chai
-        .request(app.app)
-        .get(uri)
-        .set('Authorization', adminHeader)
-        .end((err, res) => {
-          expect(res.status).to.equal(200);
-          expect(res.body).to.be.an('array');
-          expect(res.body.length).to.be.equal(7);
-          const keys = res.body.map((setting: GlobalSetting) => setting.key);
-          expect(keys).to.have.members([
-            'user.max_recordings',
-            'recording.auto_delete',
-            'static.homepage',
-            'static.safety_instructions',
-            'static.lab_rules',
-            'static.faq',
-            'static.faq_admin',
-          ]);
-          done();
-        });
+      res.should.have.status(200);
+      expect(res.body).to.be.an('array').and.to.have.lengthOf(settings.length);
+
+      const keys = res.body.map((setting: GlobalSetting) => setting.key);
+      expect(keys).to.have.members(settings);
     });
   });
 
