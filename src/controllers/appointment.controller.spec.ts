@@ -1137,6 +1137,8 @@ describe('AppointmentController', () => {
       res.should.have.status(204);
 
       expect(spy).to.have.been.calledWith(appointment.user);
+
+      spy.restore();
     });
 
     it('should send a message to all admins if a visitor cancels their appointment', async () => {
@@ -1156,6 +1158,8 @@ describe('AppointmentController', () => {
       res.should.have.status(204);
 
       expect(spy).to.have.been.called;
+
+      spy.restore();
     });
   });
 
@@ -1282,6 +1286,8 @@ describe('AppointmentController', () => {
       res.should.have.status(204);
 
       expect(spy).to.have.been.calledWith(admin);
+
+      spy.restore();
     });
 
     it('should send a message to all admins if a visitor cancels their appointment series', async () => {
@@ -1303,6 +1309,8 @@ describe('AppointmentController', () => {
       res.should.have.status(204);
 
       expect(spy).to.have.been.called;
+
+      spy.restore();
     });
   });
 });
