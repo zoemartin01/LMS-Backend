@@ -1023,6 +1023,103 @@ describe('AppointmentController', () => {
   describe('DELETE /appointments/:id', () => {
     const uri = `${environment.apiRoutes.base}${environment.apiRoutes.appointments.deleteAppointment}`;
 
+    beforeEach(async () => {
+      await expect(repository.count()).to.eventually.equal(0);
+    });
+
+    it(
+      'should return 401 if not authenticated',
+      Helpers.checkAuthentication(
+        'DELETE',
+        'fails',
+        app,
+        uri.replace(':id', v4())
+      )
+    );
+
+    it('should return 404 if no appointment with id exists', async () => {
+      const response = await chai
+        .request(app.app)
+        .delete(uri.replace(':id', v4()))
+        .set('Authorization', adminHeader);
+
+      response.should.have.status(404);
+    });
+
+    it('should return 403 as non-admin deleting another users appointment', async () => {
+      const appointment = Helpers.JSONify(
+        await factory(AppointmentTimeslot)({
+          room: room,
+          user: admin,
+          ignoreRules: true,
+        }).create()
+      );
+
+      const response = await chai
+        .request(app.app)
+        .delete(uri.replace(':id', appointment.id))
+        .set('Authorization', visitorHeader);
+
+      response.should.have.status(403);
+    });
+
+    it('should return 204 as non-admin deleting own appointment', async () => {
+      const appointment = Helpers.JSONify(
+        await factory(AppointmentTimeslot)({
+          room: room,
+          user: visitor,
+          ignoreRules: true,
+        }).create()
+      );
+
+      const response = await chai
+        .request(app.app)
+        .delete(uri.replace(':id', appointment.id))
+        .set('Authorization', visitorHeader);
+
+      response.should.have.status(204);
+      (async () => repository.findOneOrFail(appointment.id))().should.eventually
+        .be.rejected;
+    });
+
+    it('should return 204 as admin deleting another users appointment', async () => {
+      const appointment = Helpers.JSONify(
+        await factory(AppointmentTimeslot)({
+          room: room,
+          user: visitor,
+          ignoreRules: true,
+        }).create()
+      );
+
+      const response = await chai
+        .request(app.app)
+        .delete(uri.replace(':id', appointment.id))
+        .set('Authorization', adminHeader);
+
+      response.should.have.status(204);
+      (async () => repository.findOneOrFail(appointment.id))().should.eventually
+        .be.rejected;
+    });
+
+    it('should return 204 as admin deleting own appointment', async () => {
+      const appointment = Helpers.JSONify(
+        await factory(AppointmentTimeslot)({
+          room: room,
+          user: admin,
+          ignoreRules: true,
+        }).create()
+      );
+
+      const response = await chai
+        .request(app.app)
+        .delete(uri.replace(':id', appointment.id))
+        .set('Authorization', adminHeader);
+
+      response.should.have.status(204);
+      (async () => repository.findOneOrFail(appointment.id))().should.eventually
+        .be.rejected;
+    });
+
     it('should send a message to the user the appointment belongs to', async () => {
       const spy = Sinon.spy(MessagingController, 'sendMessage');
 
