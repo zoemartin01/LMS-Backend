@@ -84,6 +84,13 @@ export class AppointmentController {
         appointment.user = await getRepository(User).findOne({
           id: appointment.userId,
         });
+        appointment.userId = undefined;
+        appointment.roomId = undefined;
+        appointment.confirmationStatus =
+          +appointment.confirmationStatus as ConfirmationStatus;
+        appointment.type = +appointment.type as TimeSlotRecurrence;
+        appointment.timeSlotRecurrence =
+          +appointment.timeSlotRecurrence as TimeSlotRecurrence;
         return appointment;
       })
     );
@@ -144,6 +151,13 @@ export class AppointmentController {
           id: appointment.roomId,
         });
         appointment.user = currentUser;
+        appointment.userId = undefined;
+        appointment.roomId = undefined;
+        appointment.confirmationStatus =
+          +appointment.confirmationStatus as ConfirmationStatus;
+        appointment.type = +appointment.type as TimeSlotRecurrence;
+        appointment.timeSlotRecurrence =
+          +appointment.timeSlotRecurrence as TimeSlotRecurrence;
         return appointment;
       })
     );
@@ -210,6 +224,13 @@ export class AppointmentController {
         appointment.user = await getRepository(User).findOne({
           id: appointment.userId,
         });
+        appointment.userId = undefined;
+        appointment.roomId = undefined;
+        appointment.confirmationStatus =
+          +appointment.confirmationStatus as ConfirmationStatus;
+        appointment.type = +appointment.type as TimeSlotRecurrence;
+        appointment.timeSlotRecurrence =
+          +appointment.timeSlotRecurrence as TimeSlotRecurrence;
         return appointment;
       })
     );
@@ -278,6 +299,13 @@ export class AppointmentController {
         appointment.user = await getRepository(User).findOne({
           id: appointment.userId,
         });
+        appointment.userId = undefined;
+        appointment.roomId = undefined;
+        appointment.confirmationStatus =
+          +appointment.confirmationStatus as ConfirmationStatus;
+        appointment.type = +appointment.type as TimeSlotRecurrence;
+        appointment.timeSlotRecurrence =
+          +appointment.timeSlotRecurrence as TimeSlotRecurrence;
         return appointment;
       })
     );
