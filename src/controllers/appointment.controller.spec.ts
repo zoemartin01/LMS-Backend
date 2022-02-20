@@ -846,6 +846,162 @@ describe('AppointmentController', () => {
 
   describe('GET /appointments/:id', () => {
     const uri = `${environment.apiRoutes.base}${environment.apiRoutes.appointments.getSingleAppointment}`;
+
+    beforeEach(async () => {
+      await expect(repository.count()).to.eventually.equal(0);
+    });
+
+    it(
+      'should return 401 if not authenticated',
+      Helpers.checkAuthentication('GET', 'fails', app, uri.replace(':id', v4()))
+    );
+
+    it('should return 404 if no appointment with id exists', async () => {
+      const response = await chai
+        .request(app.app)
+        .get(uri.replace(':id', v4()))
+        .set('Authorization', adminHeader);
+
+      response.should.have.status(404);
+    });
+
+    it('should return 200 as non-admin requesting own appointment', async () => {
+      const appointment = Helpers.JSONify(
+        await factory(AppointmentTimeslot)({
+          room: room,
+          user: visitor,
+          ignoreRules: true,
+        }).create()
+      );
+
+      const response = await chai
+        .request(app.app)
+        .get(uri.replace(':id', appointment.id))
+        .set('Authorization', visitorHeader);
+
+      response.should.have.status(200);
+      response.body.should.deep.include(appointment);
+    });
+
+    it('should return 403 as non-admin requesting another users appointment', async () => {
+      const appointment = Helpers.JSONify(
+        await factory(AppointmentTimeslot)({
+          room: room,
+          user: admin,
+          ignoreRules: true,
+        }).create()
+      );
+
+      const response = await chai
+        .request(app.app)
+        .get(uri.replace(':id', appointment.id))
+        .set('Authorization', visitorHeader);
+
+      response.should.have.status(403);
+    });
+
+    it('should return 200 as admin requesting another users appointment', async () => {
+      const appointment = Helpers.JSONify(
+        await factory(AppointmentTimeslot)({
+          room: room,
+          user: visitor,
+          ignoreRules: true,
+        }).create()
+      );
+
+      const response = await chai
+        .request(app.app)
+        .get(uri.replace(':id', appointment.id))
+        .set('Authorization', adminHeader);
+
+      response.should.have.status(200);
+      response.body.should.deep.include(appointment);
+    });
+
+    it('should return 200 as admin requesting own appointment', async () => {
+      const appointment = Helpers.JSONify(
+        await factory(AppointmentTimeslot)({
+          room: room,
+          user: admin,
+          ignoreRules: true,
+        }).create()
+      );
+
+      const response = await chai
+        .request(app.app)
+        .get(uri.replace(':id', appointment.id))
+        .set('Authorization', adminHeader);
+
+      response.should.have.status(200);
+      response.body.should.deep.include(appointment);
+    });
+
+    it('should return the last appointment start of a series as maxStart in appointment', async () => {
+      const count = 3;
+      const seriesId = v4();
+      const factoryAppointments = await factory(AppointmentTimeslot)({
+        room: room,
+        user: admin,
+        ignoreRules: true,
+        seriesId: seriesId,
+      }).createMany(count);
+
+      const lastStart = factoryAppointments
+        .map((appointment) => appointment.start)
+        .sort((a, b) => a.getTime() - b.getTime())[count - 1];
+
+      const appointments = Helpers.JSONify(
+        (await repository.find({ where: { seriesId } })).map((appointment) => {
+          return { ...appointment, maxStart: lastStart };
+        })
+      );
+
+      const appointment = appointments[0];
+
+      const response = await chai
+        .request(app.app)
+        .get(uri.replace(':id', appointment.id))
+        .set('Authorization', adminHeader);
+
+      response.should.have.status(200);
+      response.body.should.deep.include(appointment);
+    });
+
+    it('should return the last non-dirty appointment start of a series as maxStart in every appointment', async () => {
+      const count = 3;
+      const seriesId = v4();
+      const lastStart = (
+        await factory(AppointmentTimeslot)({
+          room: room,
+          user: admin,
+          ignoreRules: true,
+          seriesId: seriesId,
+        }).create()
+      ).start;
+      await factory(AppointmentTimeslot)({
+        room: room,
+        user: admin,
+        ignoreRules: true,
+        seriesId: seriesId,
+        isDirty: true,
+      }).createMany(count - 1);
+
+      const appointments = Helpers.JSONify(
+        (await repository.find({ where: { seriesId } })).map((appointment) => {
+          return { ...appointment, maxStart: lastStart };
+        })
+      );
+
+      const appointment = appointments[0];
+
+      const response = await chai
+        .request(app.app)
+        .get(uri.replace(':id', appointment.id))
+        .set('Authorization', adminHeader);
+
+      response.should.have.status(200);
+      response.body.should.deep.include(appointment);
+    });
   });
 
   describe('POST /appointments', () => {

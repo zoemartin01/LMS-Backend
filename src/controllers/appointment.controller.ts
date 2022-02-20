@@ -273,7 +273,7 @@ export class AppointmentController {
 
     const maxStart = appointment.seriesId
       ? await getRepository(AppointmentTimeslot).findOne({
-          where: { seriesId: appointment.seriesId },
+          where: { seriesId: appointment.seriesId, isDirty: false },
           order: {
             start: 'DESC',
           },
