@@ -41,10 +41,10 @@ describe('UserController', () => {
 
     // Authentication
     adminHeader = await Helpers.getAuthHeader();
-    admin = users.admin;
+    admin = await Helpers.getCurrentUser(adminHeader);
 
     visitorHeader = await Helpers.getAuthHeader(false);
-    visitor = users.visitor;
+    visitor = await Helpers.getCurrentUser(visitorHeader);
 
     sandbox = Sinon.createSandbox();
   });
@@ -62,7 +62,7 @@ describe('UserController', () => {
 
     it('should send a message to the user with the registration link', async () => {
       const spy = sandbox.spy(MessagingController, 'sendMessage');
-      sandbox.stub(MessagingController, 'sendMessageViaEmail');
+      sandbox.stub(MessagingController, 'sendMessageViaEmail').resolves();
 
       const email = 'test@test.de';
 
@@ -85,24 +85,17 @@ describe('UserController', () => {
     const uri = `${environment.apiRoutes.base}${environment.apiRoutes.user_settings.getCurrentUser}`;
     it(
       'should fail without authentication',
-      Helpers.checkAuthentication('PATCH', 'fails', app, uri)
+      Helpers.checkAuthentication('GET', 'fails', app, uri)
     );
 
     it('should get the current user', async () => {
-      const user = Helpers.JSONify(visitor);
-
-      it(
-        'should fail without authentication',
-        Helpers.checkAuthentication('PATCH', 'fails', app, uri)
-      );
-
       const res = await chai
         .request(app.app)
         .get(uri)
         .set('Authorization', visitorHeader);
 
       expect(res.status).to.equal(200);
-      expect(res.body).to.deep.equal(Helpers.JSONify(admin));
+      expect(res.body).to.deep.equal(Helpers.JSONify(visitor));
     });
   });
 
@@ -110,7 +103,7 @@ describe('UserController', () => {
     const uri = `${environment.apiRoutes.base}${environment.apiRoutes.user_settings.updateCurrentUser}`;
 
     beforeEach(async () => {
-      sandbox.stub(MessagingController, 'sendMessageViaEmail');
+      sandbox.stub(MessagingController, 'sendMessageViaEmail').resolves();
     });
 
     it(
@@ -183,12 +176,12 @@ describe('UserController', () => {
         .request(app.app)
         .patch(uri)
         .set('Authorization', adminHeader)
-        .send({ NotificationChannel: NotificationChannel.none });
+        .send({ notificationChannel: NotificationChannel.none });
 
       expect(res.status).to.equal(200);
       expect(res.body).to.deep.equal({
-        ...(await repository.findOneOrFail(admin.id)),
-        NotificationChannel: NotificationChannel.none,
+        ...Helpers.JSONify(await repository.findOneOrFail(admin.id)),
+        notificationChannel: NotificationChannel.none,
       });
     });
 
@@ -229,6 +222,7 @@ describe('UserController', () => {
     );
 
     it('should delete the user', async () => {
+      sandbox.stub(MessagingController, 'sendMessageViaEmail').resolves();
       expect(
         (async () => {
           return await repository.findOneOrFail(visitor.id);
@@ -251,19 +245,21 @@ describe('UserController', () => {
     //todo check if mango strawberry
 
     it('should send a message to the email of deleted user', async () => {
-      const spy = sandbox.stub(MessagingController, 'sendMessageViaEmail');
-      const user = Helpers.JSONify(await factory(User)().create());
+      const spy = sandbox
+        .stub(MessagingController, 'sendMessageViaEmail')
+        .resolves();
       const res = await chai
         .request(app.app)
         .delete(uri)
         .set('Authorization', visitorHeader);
 
       res.should.have.status(204);
-      expect(spy).to.have.been.calledWith(user);
+      expect(spy).to.have.been.calledWith(visitor);
     });
 
-    it('should send a message to all admins if a visitor cancels their appointment', async () => {
+    it('should send a message to all admins if a visitor deletes their account', async () => {
       const spy = sandbox.spy(MessagingController, 'sendMessageToAllAdmins');
+      sandbox.stub(MessagingController, 'sendMessageViaEmail').resolves();
       const res = await chai
         .request(app.app)
         .delete(uri)

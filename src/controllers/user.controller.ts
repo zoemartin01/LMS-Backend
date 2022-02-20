@@ -165,14 +165,19 @@ export class UserController {
       return;
     }
     const userRepository = getRepository(User);
+    const slimUser = await userRepository.findOneOrFail(user.id);
 
     await MessagingController.sendMessageToAllAdmins(
       'User deleted',
-      'User ' + user.firstName + ' ' + user.lastName + ' deleted their account.'
+      'User ' +
+        slimUser.firstName +
+        ' ' +
+        slimUser.lastName +
+        ' deleted their account.'
     );
 
     await MessagingController.sendMessageViaEmail(
-      user,
+      slimUser,
       'Account deleted',
       'Your account has been deleted. Bye!'
     );
@@ -317,6 +322,6 @@ export class UserController {
 
     await tokenRepository.delete(tokenObject.id);
 
-    res.status(200).json(user);
+    res.status(200).json(await userRepository.findOne(user.id));
   }
 }
