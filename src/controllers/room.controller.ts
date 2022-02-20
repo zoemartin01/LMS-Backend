@@ -284,33 +284,52 @@ export class RoomController {
           //
         }
 
-        calendar[hour][day][index] = appointment;
-
         timespanEnd = +moment(appointment.end).format('HH');
         if (timespanEnd === 0) {
           timespanEnd = 24;
         }
 
+        for (let i = hour; i < timespanEnd - minTimeslot; i++) {
+          let jumpToNext = false;
+          for (j = index - 1; 0 <= j; j--) {
+            if (typeof calendar[i][day][j] === 'string'
+              && (<string>calendar[i][day][j]).split(' ')[0] === 'available') {
+              if (index === j + +(<string>calendar[i][day][j]).split(' ')[1] - 1) {
+                jumpToNext = true;
+              }
+              break;
+            }
+          }
+
+          if (jumpToNext) {
+            continue;
+          }
+
+          if (calendar[i][day][index] === undefined || calendar[i][day][index] === null) {
+            calendar[i][day][index + 1] = `available ${+(<string>calendar[i][day][j]).split(' ')[1] - index - 1}`;
+          }
+
+          if (typeof calendar[i][day][index] === 'string'
+            && (<string>calendar[i][day][index]).split(' ')[0] === 'available'
+            && +(<string>calendar[i][day][index]).split(' ')[1] > 1) {
+            calendar[i][day][index + 1] = `available ${+(<string>calendar[i][day][index]).split(' ')[1] - 1}`;
+          }
+        }
+
+        calendar[hour][day][index] = appointment;
+
         for (let i = hour + 1; i < timespanEnd - minTimeslot; i++) {
           calendar[i][day][index] = null;
         }
 
-        if (index < room.maxConcurrentBookings - 1) {
-          for (let i = hour; i < timespanEnd - minTimeslot; i++) {
-            calendar[i][day][index + 1] = `available ${room.maxConcurrentBookings}`;
-          }
-        }
-
-        if (0 < index) {
-          for (let i = hour; i < timespanEnd - minTimeslot; i++) {
-            for (j = index - 1; 0 <= j; j--) {
-              if (typeof calendar[i][day][j] === 'string'
-                && (<string>calendar[i][day][j]).split(' ')[0] === 'available') {
-                if (index < j + +(<string>calendar[i][day][j]).split(' ')[1]) {
-                  calendar[i][day][j] = `available ${index - j}`;
-                }
-                break;
+        for (let i = hour; i < timespanEnd - minTimeslot; i++) {
+          for (j = index - 1; 0 <= j; j--) {
+            if (typeof calendar[i][day][j] === 'string'
+              && (<string>calendar[i][day][j]).split(' ')[0] === 'available') {
+              if (index < j + +(<string>calendar[i][day][j]).split(' ')[1]) {
+                calendar[i][day][j] = `available ${index - j}`;
               }
+              break;
             }
           }
         }
