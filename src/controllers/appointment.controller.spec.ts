@@ -1161,6 +1161,149 @@ describe('AppointmentController', () => {
 
   describe('DELETE /appointments/series/:id', () => {
     const uri = `${environment.apiRoutes.base}${environment.apiRoutes.appointments.deleteAppointmentSeries}`;
+
+    beforeEach(async () => {
+      await expect(repository.count()).to.eventually.equal(0);
+    });
+
+    it(
+      'should return 401 if not authenticated',
+      Helpers.checkAuthentication(
+        'DELETE',
+        'fails',
+        app,
+        uri.replace(':id', v4())
+      )
+    );
+
+    it('should return 404 if no appointment serues with id exists', async () => {
+      const response = await chai
+        .request(app.app)
+        .delete(uri.replace(':id', v4()))
+        .set('Authorization', adminHeader);
+
+      response.should.have.status(404);
+    });
+
+    it('should return 403 as non-admin deleting another users appointment series', async () => {
+      const seriesId = v4();
+
+      await factory(AppointmentTimeslot)({
+        room: room,
+        user: admin,
+        ignoreRules: true,
+        seriesId: seriesId,
+      }).createMany(3);
+
+      const response = await chai
+        .request(app.app)
+        .delete(uri.replace(':id', seriesId))
+        .set('Authorization', visitorHeader);
+
+      response.should.have.status(403);
+    });
+
+    it('should return 204 as non-admin deleting own appointment series', async () => {
+      const seriesId = v4();
+
+      await factory(AppointmentTimeslot)({
+        room: room,
+        user: visitor,
+        ignoreRules: true,
+        seriesId: seriesId,
+      }).createMany(3);
+
+      const response = await chai
+        .request(app.app)
+        .delete(uri.replace(':id', seriesId))
+        .set('Authorization', visitorHeader);
+
+      response.should.have.status(204);
+      (async () => repository.findOneOrFail({ where: { seriesId } }))().should
+        .eventually.be.rejected;
+    });
+
+    it('should return 204 as admin deleting another users appointment series', async () => {
+      const seriesId = v4();
+
+      await factory(AppointmentTimeslot)({
+        room: room,
+        user: visitor,
+        ignoreRules: true,
+        seriesId: seriesId,
+      }).createMany(3);
+
+      const response = await chai
+        .request(app.app)
+        .delete(uri.replace(':id', seriesId))
+        .set('Authorization', adminHeader);
+
+      response.should.have.status(204);
+      (async () => repository.findOneOrFail({ where: { seriesId } }))().should
+        .eventually.be.rejected;
+    });
+
+    it('should return 204 as admin deleting own appointment series', async () => {
+      const seriesId = v4();
+
+      await factory(AppointmentTimeslot)({
+        room: room,
+        user: admin,
+        ignoreRules: true,
+        seriesId: seriesId,
+      }).createMany(3);
+
+      const response = await chai
+        .request(app.app)
+        .delete(uri.replace(':id', seriesId))
+        .set('Authorization', adminHeader);
+
+      response.should.have.status(204);
+      (async () => repository.findOneOrFail({ where: { seriesId } }))().should
+        .eventually.be.rejected;
+    });
+
+    it('should send a message to the user the appointment belongs to', async () => {
+      const spy = Sinon.spy(MessagingController, 'sendMessage');
+
+      const seriesId = v4();
+
+      await factory(AppointmentTimeslot)({
+        room: room,
+        user: admin,
+        ignoreRules: true,
+        seriesId: seriesId,
+      }).createMany(3);
+
+      const res = await chai
+        .request(app.app)
+        .delete(uri.replace(':id', seriesId))
+        .set('Authorization', adminHeader);
+      res.should.have.status(204);
+
+      expect(spy).to.have.been.calledWith(admin);
+    });
+
+    it('should send a message to all admins if a visitor cancels their appointment series', async () => {
+      const spy = Sinon.spy(MessagingController, 'sendMessageToAllAdmins');
+
+      const seriesId = v4();
+
+      await factory(AppointmentTimeslot)({
+        room: room,
+        user: visitor,
+        ignoreRules: true,
+        seriesId: seriesId,
+      }).createMany(3);
+
+      const res = await chai
+        .request(app.app)
+        .delete(uri.replace(':id', seriesId))
+        .set('Authorization', visitorHeader);
+      res.should.have.status(204);
+
+      expect(spy).to.have.been.called;
+    });
   });
 });
 

@@ -1283,9 +1283,7 @@ export class AppointmentController {
       return;
     }
 
-    await repository.remove(appointments).then(() => {
-      res.sendStatus(204);
-    });
+    await repository.remove(appointments);
 
     if (await AuthController.checkAdmin(req)) {
       await MessagingController.sendMessage(
@@ -1341,5 +1339,7 @@ export class AppointmentController {
         ).toISOString()}`
       );
     }
+
+    res.sendStatus(204);
   }
 }

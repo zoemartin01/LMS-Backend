@@ -384,7 +384,6 @@ class AppRouter {
         environment.apiRoutes.appointments.deleteAppointmentSeries
       ),
       AuthController.checkAuthenticationMiddleware,
-      AuthController.checkAdminMiddleware,
       AppointmentController.deleteAppointmentSeries
     );
 
