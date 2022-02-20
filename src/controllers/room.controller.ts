@@ -302,15 +302,15 @@ export class RoomController {
 
         if (0 < index) {
           for (let i = hour; i < timespanEnd - minTimeslot; i++) {
-            for (j = index - 1;
-                 j > 0
-                 && (typeof calendar[hour][day][j] !== 'string'
-                 || (<string>calendar[hour][day][j]).split(' ')[0] !== 'available');
-                 j--) {
-              //
+            for (j = index - 1; 0 <= j; j--) {
+              if (typeof calendar[i][day][j] === 'string'
+                && (<string>calendar[i][day][j]).split(' ')[0] === 'available') {
+                if (index < j + +(<string>calendar[i][day][j]).split(' ')[1]) {
+                  calendar[i][day][j] = `available ${index - j}`;
+                }
+                break;
+              }
             }
-
-            calendar[i][day][j] = `available ${index - j}`;
           }
         }
       }
