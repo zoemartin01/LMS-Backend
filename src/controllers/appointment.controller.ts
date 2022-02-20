@@ -854,16 +854,6 @@ export class AppointmentController {
               moment(newAppointment.end).subtract(1, 'ms').toDate()
             ),
           },
-          {
-            room: appointment.room,
-            start: Equal(moment(newAppointment.start).toDate()),
-            confirmationStatus: Not(ConfirmationStatus.denied),
-          },
-          {
-            room: appointment.room,
-            end: Equal(moment(newAppointment.end).toDate()),
-            confirmationStatus: Not(ConfirmationStatus.denied),
-          },
         ],
       })) !== undefined;
 
