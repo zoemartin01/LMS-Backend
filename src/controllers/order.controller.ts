@@ -517,8 +517,9 @@ export class OrderController {
         itemName +
         ' of user ' +
         order.user.firstName +
+        ' ' +
         order.user.lastName +
-        'has been updated',
+        'has been updated.',
       'Updated Order',
       '/orders/all'
     );
@@ -578,13 +579,13 @@ export class OrderController {
       await MessagingController.sendMessage(
         currentUser,
         'Order Deletion Confirmation',
-        'Your order of ' + itemName + ' was deleted successfully'
+        'Your order of ' + itemName + ' was deleted successfully.'
       );
     } else {
       await MessagingController.sendMessage(
         order.user,
         'Order deleted',
-        'Your order of' + itemName + ' was deleted by an admin'
+        'Your order of ' + itemName + ' was deleted by an admin.'
       );
     }
     await MessagingController.sendMessageToAllAdmins(
@@ -593,8 +594,9 @@ export class OrderController {
         itemName +
         ' of user ' +
         order.user.firstName +
+        ' ' +
         order.user.lastName +
-        'was deleted'
+        ' was deleted.'
     );
   }
 }

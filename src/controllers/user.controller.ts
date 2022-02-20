@@ -171,7 +171,7 @@ export class UserController {
 
     await MessagingController.sendMessageToAllAdmins(
       'User deleted',
-      'User' + user.firstName + user.lastName + 'deleted their account'
+      'User ' + user.firstName + ' ' + user.lastName + ' deleted their account.'
     );
 
     await MessagingController.sendMessageViaEmail(
