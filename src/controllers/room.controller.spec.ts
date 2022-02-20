@@ -35,7 +35,7 @@ describe('RoomController', () => {
     const users = await Helpers.createTestUsers();
     repository = getRepository(Room);
 
-    // Authentifivation
+    // Authentication
     adminHeader = await Helpers.getAuthHeader();
     admin = users.admin;
 
@@ -189,6 +189,56 @@ describe('RoomController', () => {
     });
   });
 
+  describe('GET /rooms/:id/timeslot/:timeslotId', () => {});
+
+  describe('GET /rooms/:id/calendar', () => {});
+
+  describe('GET /rooms/:id/availability-calendar', () => {});
+
+  describe('POST /rooms', () => {
+    const uri = `${environment.apiRoutes.base}${environment.apiRoutes.rooms.createRoom}`;
+
+    it(
+      'should fail without authentification',
+      Helpers.checkAuthentication('POST', 'fails', app, uri)
+    );
+
+    it('should fail as non-admin', (done) => {
+      chai
+        .request(app.app)
+        .post(uri)
+        .set('Authorization', visitorHeader)
+        .end((err, res) => {
+          expect(res.status).to.equal(403);
+          done();
+        });
+    });
+
+    it('should successfully create a new room with valid data', async () => {
+      const room = await factory(Room)().make();
+
+      const res = await chai
+        .request(app.app)
+        .post(uri)
+        .set('Authorization', adminHeader)
+        .send(room);
+      expect(res.status).to.equal(201);
+      expect(res.body).to.deep.equal(
+        Helpers.JSONify(await repository.findOneOrFail(res.body.id))
+      );
+    });
+
+    it('should fail to create a room with invalid/no data', async () => {
+      const res = await chai
+        .request(app.app)
+        .post(uri)
+        .set('Authorization', adminHeader)
+        .send({});
+
+      expect(res.status).to.equal(400);
+    });
+  });
+
   describe('PATCH /rooms/:id', () => {
     const uri = `${environment.apiRoutes.base}${environment.apiRoutes.rooms.updateRoom}`;
 
@@ -216,7 +266,7 @@ describe('RoomController', () => {
     it('should fail with invalid id', (done) => {
       chai
         .request(app.app)
-        .patch(uri.replace(':id', 'invalid'))
+        .patch(uri.replace(':id', uuidv4()))
         .set('Authorization', adminHeader)
         .end((err, res) => {
           expect(res.status).to.equal(404);
@@ -224,8 +274,19 @@ describe('RoomController', () => {
         });
     });
 
+    it('should fail to update the id', async () => {
+      const room = Helpers.JSONify(await factory(Room)().create());
+      const res = await chai
+        .request(app.app)
+        .patch(uri.replace(':id', room.id))
+        .set('Authorization', adminHeader)
+        .send({ id: uuidv4() });
+
+      expect(res.status).to.equal(400);
+    });
+
     it('should update a specific room', async () => {
-      const room = await factory(Room)().create();
+      const room = Helpers.JSONify(await factory(Room)().create());
       const res = await chai
         .request(app.app)
         .patch(uri.replace(':id', room.id))
@@ -233,42 +294,7 @@ describe('RoomController', () => {
         .send({ name: 'testRoomUpdate' });
 
       expect(res.status).to.equal(200);
-      expect(res.body.name).to.equal('testRoomUpdate');
-    });
-  });
-
-  describe('POST /rooms', () => {
-    const uri = `${environment.apiRoutes.base}${environment.apiRoutes.rooms.createRoom}`;
-
-    it(
-      'should fail without authentification',
-      Helpers.checkAuthentication('POST', 'fails', app, uri)
-    );
-
-    it('should fail as non-admin', (done) => {
-      chai
-        .request(app.app)
-        .post(uri)
-        .set('Authorization', visitorHeader)
-        .end((err, res) => {
-          expect(res.status).to.equal(403);
-          done();
-        });
-    });
-
-    it('should successfully create a new room', async () => {
-      const room = await factory(Room)().make();
-      const repository = getRepository(Room);
-
-      const res = await chai
-        .request(app.app)
-        .post(uri)
-        .set('Authorization', adminHeader)
-        .send(room);
-      expect(res.status).to.equal(201);
-      repository.findOne({ name: room.name }).then((room) => {
-        expect(room).to.exist;
-      });
+      expect(res.body).to.deep.equal({ ...room, name: 'testRoomUpdate' });
     });
   });
 
@@ -285,17 +311,6 @@ describe('RoomController', () => {
       )
     );
 
-    it('should fail with invalid id', (done) => {
-      chai
-        .request(app.app)
-        .delete(uri.replace(':id', 'invalid'))
-        .set('Authorization', adminHeader)
-        .end((err, res) => {
-          expect(res.status).to.equal(404);
-          done();
-        });
-    });
-
     it('should fail as non-admin', (done) => {
       chai
         .request(app.app)
@@ -307,13 +322,24 @@ describe('RoomController', () => {
         });
     });
 
+    it('should fail with invalid id', (done) => {
+      chai
+        .request(app.app)
+        .delete(uri.replace(':id', uuidv4()))
+        .set('Authorization', adminHeader)
+        .end((err, res) => {
+          expect(res.status).to.equal(404);
+          done();
+        });
+    });
+
     it('should delete a specific room', async () => {
       const room = await factory(Room)().create();
-      const repository = getRepository(Room);
-
-      repository.findOne({ id: room.id }).then((room) => {
-        expect(room).to.be.not.undefined;
-      });
+      expect(
+        (async () => {
+          return await repository.findOneOrFail(room.id);
+        })()
+      ).to.be.fulfilled;
 
       const res = await chai
         .request(app.app)
@@ -321,11 +347,17 @@ describe('RoomController', () => {
         .set('Authorization', adminHeader);
 
       expect(res.status).to.equal(204);
-      repository.findOne({ id: room.id }).then((room) => {
-        expect(room).to.be.undefined;
-      });
+      expect(
+        (async () => {
+          return await repository.findOneOrFail(room.id);
+        })()
+      ).to.be.rejected;
     });
   });
+
+  describe('GET /rooms/:roomId/timeslots/available', () => {});
+
+  describe('GET /rooms/:roomId/timeslots/unavailable', () => {});
 
   describe('POST /rooms/:roomId/timeslots', () => {
     const uri = `${environment.apiRoutes.base}${environment.apiRoutes.rooms.createTimeslot}`;
@@ -365,6 +397,12 @@ describe('RoomController', () => {
       expect(await timeSlotRepository.count()).to.equal(expectedAmount + 1);
     });
   });
+
+  describe('POST /rooms/:roomId/timeslots/series', () => {});
+
+  describe('PATCH /rooms/:roomId/timeslots/:timeslotId', () => {});
+
+  describe('PATCH/rooms/:roomId/timeslots/series/:seriesId', () => {});
 
   describe('DELETE /rooms/:roomId/timeslots/:timeslotId', () => {
     const uri = `${environment.apiRoutes.base}${environment.apiRoutes.rooms.deleteTimeslot}`;
@@ -425,4 +463,6 @@ describe('RoomController', () => {
       });
     });
   });
+
+  describe('DELETE /rooms/:roomId/timeslots/series/:seriesId', () => {});
 });
