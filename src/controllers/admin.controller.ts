@@ -403,12 +403,14 @@ export class AdminController {
    */
   public static async checkDomainAgainstWhitelist(req: Request, res: Response) {
     const domainRepository = getRepository(RetailerDomain);
-    res.json({
-      isWhitelisted:
-        (await domainRepository.findOne({
-          where: { domain: req.body.domain },
-        })) !== undefined,
-    });
+    const count = await domainRepository
+      .createQueryBuilder('domain')
+      .select()
+      .where(":domain LIKE CONCAT('%', domain.domain, '%')", {
+        domain: req.body.domain,
+      })
+      .getCount();
+    res.json({ isWhitelisted: count > 0 });
   }
 
   /**
@@ -559,7 +561,9 @@ export class AdminController {
         await MessagingController.sendMessageViaEmail(
           user,
           'Account request accepted',
-          'Your account request has been accepted. You can now login.'
+          'Your account request has been accepted. You can now login.',
+          'User Login',
+          '/login'
         );
         try {
           await userRepository.update(
@@ -584,7 +588,9 @@ export class AdminController {
       'Your account has been updated by an admin. ' +
         Object.keys(req.body)
           .map((e: string) => `${e}: ${req.body[e]}`)
-          .join(', ')
+          .join(', '),
+      'User Settings',
+      '/settings'
     );
 
     if (req.body.password) {

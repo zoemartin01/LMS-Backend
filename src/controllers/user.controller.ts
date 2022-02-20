@@ -115,7 +115,9 @@ export class UserController {
             'Your account has been updated' +
               Object.keys(req.body)
                 .map((e: string) => `${e}: ${req.body[e]}`)
-                .join(', ')
+                .join(', '),
+            'User Settings',
+            '/settings'
           );
           res.json(await repository.findOne(user.id));
         }
@@ -139,7 +141,9 @@ export class UserController {
         'Your account has been updated' +
           Object.keys(req.body)
             .map((e: string) => `${e}: ${req.body[e]}`)
-            .join(', ')
+            .join(', '),
+        'User Settings',
+        '/settings'
       );
       res.json(await repository.findOne(user.id));
     }
@@ -171,7 +175,7 @@ export class UserController {
 
     await MessagingController.sendMessageToAllAdmins(
       'User deleted',
-      'User' + user.firstName + user.lastName + 'deleted their account'
+      'User ' + user.firstName + ' ' + user.lastName + ' deleted their account.'
     );
 
     await MessagingController.sendMessageViaEmail(
