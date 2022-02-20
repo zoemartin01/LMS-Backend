@@ -32,8 +32,8 @@ describe('RoomController', () => {
     connection = await useRefreshDatabase({ connection: 'default' });
     await useSeeding();
 
-    const users = await Helpers.createTestUsers();
     repository = getRepository(Room);
+    const users = await Helpers.createTestUsers();
 
     // Authentication
     adminHeader = await Helpers.getAuthHeader();

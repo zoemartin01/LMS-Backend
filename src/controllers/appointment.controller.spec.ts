@@ -40,15 +40,15 @@ describe('AppointmentController', () => {
     connection = await useRefreshDatabase({ connection: 'default' });
     await useSeeding();
 
-    await Helpers.createTestUsers();
     repository = getRepository(AppointmentTimeslot);
+    const users = await Helpers.createTestUsers();
 
     // Authentication
     adminHeader = await Helpers.getAuthHeader();
-    admin = await Helpers.getCurrentUser(adminHeader);
+    admin = users.admin;
 
     visitorHeader = await Helpers.getAuthHeader(false);
-    visitor = await Helpers.getCurrentUser(visitorHeader);
+    visitor = users.visitor;
 
     room = await factory(Room)().create();
   });
