@@ -7,15 +7,17 @@ const environment = {
   apiKey: 'ZjVlOTk1YjEtNjIwOS00MDM4LWFiNTctZTI1Y2Q3MWIwNjZm',
   activeDirectoryConfig: {
     url: process.env.LDAP_URL || 'ldaps://ldap.teco.edu:636',
-    //baseDN: 'dc=',
+    baseDN: process.env.LDAP_BASEDN || 'dc=teco,dc=edu',
+    username:
+      process.env.LDAP_USERNAME || 'uid=pseteamtwo,ou=People,dc=teco,dc=edu',
+    password: process.env.LDAP_PASSWORD || 'asd3412090',
   },
-  //@todo add SMTP credentials & sender email
   smtpConfig: {
     host: process.env.SMTP_HOST || 'mail.teco.edu',
     port: process.env.SMTP_POST ? +process.env.SMTP_POST : 25,
     secure: process.env.SMTP_SSL === 'true' || false,
   },
-  smtpSender: process.env.SMTP_SENDER || '',
+  smtpSender: process.env.SMTP_SENDER || 'noreply@pseteamtwo.dmz.teco.edu',
   livecam_server: {
     host: process.env.LIVECAM_HOST || 'localhost',
     port: process.env.LIVECAM_PORT || 7000,
@@ -55,27 +57,29 @@ const environment = {
       verifyEmail: '/user/verify-email',
     },
     admin_settings: {
-      getGlobalSettings: '/global-settings',
-      updateGlobalSettings: '/global-settings',
+      getGlobalSettings: '/application-settings',
+      updateGlobalSettings: '/application-settings',
 
-      getWhitelistRetailer: '/global-settings/whitelist-retailers/:id',
-      getWhitelistRetailers: '/global-settings/whitelist-retailers',
+      getWhitelistRetailer: '/application-settings/whitelist-retailers/:id',
+      getWhitelistRetailers: '/application-settings/whitelist-retailers',
 
-      createWhitelistRetailer: '/global-settings/whitelist-retailers',
-      updateWhitelistRetailer: '/global-settings/whitelist-retailers/:id',
-      deleteWhitelistRetailer: '/global-settings/whitelist-retailers/:id',
+      createWhitelistRetailer: '/application-settings/whitelist-retailers',
+      updateWhitelistRetailer: '/application-settings/whitelist-retailers/:id',
+      deleteWhitelistRetailer: '/application-settings/whitelist-retailers/:id',
 
       addDomainToWhitelistRetailer:
-        '/global-settings/whitelist-retailers/:id/domains',
+        '/application-settings/whitelist-retailers/:id/domains',
       updateDomainOfWhitelistRetailer:
-        '/global-settings/whitelist-retailers/:id/domains/:domainId',
+        '/application-settings/whitelist-retailers/:id/domains/:domainId',
       deleteDomainOfWhitelistRetailer:
-        '/global-settings/whitelist-retailers/:id/domains/:domainId',
+        '/application-settings/whitelist-retailers/:id/domains/:domainId',
 
-      checkDomainAgainstWhitelist: '/global-settings/whitelist-retailers/check',
+      checkDomainAgainstWhitelist:
+        '/application-settings/whitelist-retailers/check',
     },
     user_management: {
-      getAllUsers: '/users',
+      getAllPendingUsers: '/users/pending',
+      getAllAcceptedUsers: '/users/accepted',
       getSingleUser: '/users/:id',
 
       updateUser: '/users/:id',
@@ -90,8 +94,17 @@ const environment = {
       updateRoom: '/rooms/:id',
       deleteRoom: '/rooms/:id',
 
+      getAllAvailableTimeslotsForRoom: '/rooms/:roomId/timeslots/available',
+      getAllUnavailableTimeslotsForRoom: '/rooms/:roomId/timeslots/unavailable',
+      getAvailabilityCalendar: '/rooms/:id/availability-calendar',
+      getTimeslot: '/rooms/:id/timeslot/:timeslotId',
+
       createTimeslot: '/rooms/:roomId/timeslots',
+      createTimeslotSeries: '/rooms/:roomId/timeslots/series',
+      updateTimeslot: '/rooms/:roomId/timeslots/:timeslotId',
+      updateTimeslotSeries: '/rooms/:roomId/timeslots/series/:seriesId',
       deleteTimeslot: '/rooms/:roomId/timeslots/:timeslotId',
+      deleteTimeslotSeries: '/rooms/:roomId/timeslots/series/:seriesId',
     },
     appointments: {
       getCurrentUserAppointments: '/user/appointments',
@@ -111,15 +124,20 @@ const environment = {
     inventory_item: {
       getAllItems: '/inventory-items',
       getSingleItem: '/inventory-items/:id',
+      getByName: '/inventory-items/name/:name',
 
       createItem: '/inventory-items',
       updateItem: '/inventory-items/:id',
       deleteItem: '/inventory-items/:id',
     },
     orders: {
-      getCurrentUserOrders: '/user/orders',
+      getCurrentUsersPendingOrders: '/user/orders/pending',
+      getCurrentUsersAcceptedOrders: '/user/orders/accepted',
+      getCurrentUsersDeclinedOrders: '/user/orders/declined',
 
-      getAllOrders: '/orders',
+      getAllPendingOrders: '/orders/pending',
+      getAllAcceptedOrders: '/orders/accepted',
+      getAllDeclinedOrders: '/orders/declined',
       getSingleOrder: '/orders/:id',
 
       createOrder: '/orders',

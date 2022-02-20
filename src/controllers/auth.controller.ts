@@ -10,6 +10,8 @@ import { User } from '../models/user.entity';
 import { Token } from '../models/token.entity';
 import { TokenType } from '../types/enums/token-type';
 import { UserRole } from '../types/enums/user-role';
+import { WebSocket } from 'ws';
+import { MessagingController } from './messaging.controller';
 
 /**
  * Controller for Authentication
@@ -34,6 +36,7 @@ export class AuthController {
 
     if (email === 'SYSTEM') {
       res.sendStatus(401);
+      return;
     }
 
     isActiveDirectory
@@ -57,39 +60,41 @@ export class AuthController {
     try {
       const ad = new ActiveDirectory(environment.activeDirectoryConfig);
 
-      ad.authenticate(email, password, async (err: object, auth: boolean) => {
-        if (err) {
-          res.status(500).json(err);
-          return;
+      ad.authenticate(
+        `uid=${email.split('@')[0]},ou=People,dc=teco,dc=edu`,
+        password,
+        async (err: object, auth: boolean) => {
+          if (err) {
+            res.status(500).json(err);
+            return;
+          }
+
+          if (!auth) {
+            await AuthController.loginCallback(undefined, res);
+            return;
+          }
+
+          const userRepository = getRepository(User);
+          userRepository
+            .findOne({
+              where: { email },
+            })
+            .then(async (user: User | undefined) => {
+              if (user === undefined) {
+                await AuthController.createActiveDirectoryUser(email, res);
+                return;
+              } else if (!user.isActiveDirectory) {
+                res.status(400).json({
+                  message:
+                    'Your account ist not linked to active directory, use regular login.',
+                });
+                return;
+              }
+
+              await AuthController.loginCallback(user, res);
+            });
         }
-
-        if (!auth) {
-          await AuthController.loginCallback(undefined, res);
-          return;
-        }
-
-        const userRepository = getRepository(User);
-        userRepository
-          .findOne({
-            where: { email },
-          })
-          .then(async (user: User | undefined) => {
-            if (user === undefined) {
-              await AuthController.loginCallback(
-                await AuthController.createActiveDirectoryUser(email),
-                res
-              );
-            } else if (!user.isActiveDirectory) {
-              res.status(400).json({
-                message:
-                  'Your account ist not linked to active directory, use regular login.',
-              });
-              return;
-            }
-
-            await AuthController.loginCallback(user, res);
-          });
-      });
+      );
     } catch (e) {
       console.log(e);
       res.sendStatus(500);
@@ -102,23 +107,36 @@ export class AuthController {
    * @param {string} email email of user
    * @private
    */
-  private static async createActiveDirectoryUser(email: string): Promise<User> {
+  private static async createActiveDirectoryUser(email: string, res: Response) {
     const ad = new ActiveDirectory(environment.activeDirectoryConfig);
     const userRepository = getRepository(User);
 
-    return ad.findUser(
-      email,
-      async (err: boolean, adUser: { givenName: string; surname: string }) => {
-        return await userRepository.save(
-          userRepository.create({
+    ad.find(
+      { filter: `(&(objectclass=tecoUser)(mail=${email}))` },
+      async (err: boolean, obj: any) => {
+        const userObj = obj.other[0];
+
+        try {
+          const user = await userRepository.save({
             email,
-            firstName: adUser.givenName,
-            lastName: adUser.surname,
-            password: '',
+            firstName: userObj.givenName,
+            lastName: userObj.sn,
             emailVerification: true,
             isActiveDirectory: true,
-          })
-        );
+            password: '',
+          });
+
+          await MessagingController.sendMessageToAllAdmins(
+            'Accept User Registration',
+            'You have an open user registration request.',
+            'Accept User',
+            '/users'
+          );
+
+          await AuthController.loginCallback(user, res);
+        } catch (err) {
+          res.status(500).json(err);
+        }
       }
     );
   }
@@ -209,8 +227,7 @@ export class AuthController {
   ): Promise<{ accessToken: string; refreshToken: string }> {
     const tokenRepository = getRepository(Token);
 
-    //@todo Adrian reset to minutes after development phase
-    const expiration = moment().add(20, 'years').unix();
+    const expiration = moment().add(20, 'minutes').unix();
 
     const refreshToken = jsonwebtoken.sign(
       {
@@ -351,7 +368,6 @@ export class AuthController {
       }
     );
   }
-
   /**
    * Checks token of current user
    *
@@ -419,6 +435,53 @@ export class AuthController {
 
       next();
     });
+  }
+
+  public static async checkWebSocketAuthenticationMiddleware(
+    ws: WebSocket,
+    req: Request,
+    next: NextFunction
+  ) {
+    const token = req.query.token;
+
+    if (token === undefined) {
+      ws.send('Invalid token');
+      ws.close();
+    }
+
+    jsonwebtoken.verify(
+      token as string,
+      environment.accessTokenSecret,
+      async (err) => {
+        if (err) {
+          ws.send('Invalid token');
+          ws.close();
+          return;
+        }
+
+        const tokenObject: Token | undefined = await getRepository(
+          Token
+        ).findOne({
+          where: {
+            token,
+            type: TokenType.authenticationToken,
+            expiresAt: MoreThan(new Date()),
+          },
+          relations: ['user'],
+        });
+
+        if (tokenObject === undefined) {
+          ws.send('Invalid token');
+          ws.close();
+          return;
+        }
+
+        req.body.user = tokenObject.user;
+
+        ws.send('Authorization successful');
+        next();
+      }
+    );
   }
 
   /**

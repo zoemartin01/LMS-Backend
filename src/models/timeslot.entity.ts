@@ -1,6 +1,9 @@
 import { Column, Entity, TableInheritance } from 'typeorm';
-import { TimeSlotType } from '../types/enums/timeslot-type';
 import { BaseEntity } from './base.entity';
+import { TimeSlotType } from '../types/enums/timeslot-type';
+import { TimeSlotRecurrence } from '../types/enums/timeslot-recurrence';
+import { IsDate } from 'class-validator';
+import { Room } from './room.entity';
 
 /**
  * A model for a time slot.
@@ -26,7 +29,7 @@ export class TimeSlot extends BaseEntity {
    * @readonly
    */
   @Column()
-  // @IsDateString()
+  @IsDate()
   start: Date;
 
   /**
@@ -36,7 +39,7 @@ export class TimeSlot extends BaseEntity {
    * @readonly
    */
   @Column()
-  // @IsDateString()
+  @IsDate()
   end: Date;
 
   /**
@@ -50,4 +53,41 @@ export class TimeSlot extends BaseEntity {
     enum: TimeSlotType,
   })
   type: TimeSlotType;
+
+  /**
+   * The id of the series the time slot belongs to.
+   * @type {string}
+   */
+  @Column({ nullable: true })
+  seriesId: string;
+
+  /**
+   * The amount of the appointments of the series.
+   * @type {number}
+   */
+  @Column({ default: 1 })
+  amount: number;
+
+  /**
+   * The recurrence of an appointment.
+   *
+   * @type {TimeSlotRecurrence}
+   * @default TimeSlotRecurrence.single
+   */
+  @Column({
+    type: 'enum',
+    enum: TimeSlotRecurrence,
+    default: TimeSlotRecurrence.single,
+  })
+  timeSlotRecurrence: TimeSlotRecurrence;
+
+  /**
+   * True if this appointment was changed and is not in the series anymore.
+   * @type {boolean}
+   * @default false
+   */
+  @Column({ default: false })
+  isDirty: boolean;
+
+  room: Room;
 }

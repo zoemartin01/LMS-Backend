@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { getRepository } from 'typeorm';
+import { getRepository, Not } from 'typeorm';
 import nodemailer from 'nodemailer';
 import { AuthController } from './auth.controller';
 import { Message } from '../models/message.entity';
@@ -7,6 +7,7 @@ import { User } from '../models/user.entity';
 import { UserRole } from '../types/enums/user-role';
 import { NotificationChannel } from '../types/enums/notification-channel';
 import environment from '../environment';
+import { WebSocket } from 'ws';
 
 /**
  * Controller for messaging
@@ -42,23 +43,22 @@ export class MessagingController {
     res.json({ total, data: messages });
   }
 
-  /**
-   * Returns the amounts of unread messages for current user
-   *
-   * @route {GET} /user/messages/unread-amounts
-   * @param {Request} req frontend request to get data of one inventory item
-   * @param {Response} res backend response with data of one inventory item
-   */
-  public static async getUnreadMessagesAmounts(
-    req: Request,
-    res: Response
-  ): Promise<void> {
+  private static async getUnreadMessagesAmountsUtil(user: User): Promise<{
+    sum: number;
+    appointments: number;
+    appointments_admin: number;
+    orders: number;
+    orders_admin: number;
+    users: number;
+    settings: number;
+  }> {
     const messageRepository = getRepository(Message);
 
     const unreadMessagesSum = await messageRepository
       .createQueryBuilder('message')
       .select('COUNT(*)', 'sum')
       .where('message.readStatus = :b', { b: false })
+      .andWhere('message.recipient = :user', { user: user.id })
       .getRawOne();
 
     const unreadMessages = await messageRepository
@@ -66,17 +66,67 @@ export class MessagingController {
       .select('message.correspondingUrl')
       .addSelect('COUNT(*)', 'sum')
       .where('message.readStatus = :b', { b: false })
+      .andWhere('message.recipient = :user', { user: user.id })
       .groupBy('message.correspondingUrl')
       .getRawMany();
 
-    //@todo categorize unreadMessages
+    return {
+      sum: +unreadMessagesSum.sum,
+      appointments: +(unreadMessages.filter(el => el.message_correspondingUrl === '/appointments')[0]?.sum ?? 0),
+      appointments_admin: +(unreadMessages.filter(el => el.message_correspondingUrl === '/appointments/all')[0]?.sum ?? 0),
+      orders: +(unreadMessages.filter(el => el.message_correspondingUrl === '/orders')[0]?.sum ?? 0),
+      orders_admin: +(unreadMessages.filter(el => el.message_correspondingUrl === '/orders/all')[0]?.sum ?? 0),
+      users: +(unreadMessages.filter(el => el.message_correspondingUrl === '/users')[0]?.sum ?? 0),
+      settings: +(unreadMessages.filter(el => el.message_correspondingUrl === '/settings')[0]?.sum ?? 0),
+    };
+  }
 
-    res.json({
-      sum: unreadMessagesSum.sum,
-      appointments: 0,
-      orders: 0,
-      users: 0,
-    });
+  /**
+   * Returns the amounts of unread messages for current user
+   *
+   * @route {GET} /user/messages/unread-amounts
+   * @param {Request} req frontend request to get data of one inventory item
+   * @param {Response} res backend response with data of one inventory item
+   */
+  public static async getUnreadMessagesAmounts(req: Request, res: Response) {
+    const user = await AuthController.getCurrentUser(req);
+
+    if (user === null) {
+      return;
+    }
+
+    res.json(await MessagingController.getUnreadMessagesAmountsUtil(user));
+  }
+
+  /**
+   * { userId: WebSocket }
+   */
+  static messageSockets: { [key: string]: WebSocket[] } = {};
+
+  public static async registerUnreadMessagesSocket(
+    ws: WebSocket,
+    req: Request
+  ) {
+    const array = MessagingController.messageSockets[req.body.user.id];
+    if (array === undefined) {
+      MessagingController.messageSockets[req.body.user.id] = [];
+    }
+    MessagingController.messageSockets[req.body.user.id].push(ws);
+
+    ws.send(
+      JSON.stringify(
+        await MessagingController.getUnreadMessagesAmountsUtil(req.body.user)
+      )
+    );
+
+    ws.onclose = () => {
+      const array = MessagingController.messageSockets[req.body.user.id];
+
+      const index = array.indexOf(ws, 0);
+      if (index > -1) {
+        array.splice(index, 1);
+      }
+    };
   }
 
   /**
@@ -107,6 +157,20 @@ export class MessagingController {
     await messageRepository.delete(message.id);
 
     res.sendStatus(204);
+
+    const ws = MessagingController.messageSockets[message.recipient.id];
+
+    if (ws !== undefined) {
+      ws.forEach(async (ws) => {
+        ws.send(
+          JSON.stringify(
+            await MessagingController.getUnreadMessagesAmountsUtil(
+              message.recipient
+            )
+          )
+        );
+      });
+    }
   }
 
   /**
@@ -150,6 +214,20 @@ export class MessagingController {
     await messageRepository.update({ id: message.id }, req.body);
 
     res.json(message);
+
+    const ws = MessagingController.messageSockets[message.recipient.id];
+
+    if (ws !== undefined) {
+      ws.forEach(async (ws) => {
+        ws.send(
+          JSON.stringify(
+            await MessagingController.getUnreadMessagesAmountsUtil(
+              message.recipient
+            )
+          )
+        );
+      });
+    }
   }
 
   /**
@@ -169,10 +247,10 @@ export class MessagingController {
     linkUrl: string | null = null
   ): Promise<void> {
     if (
-      NotificationChannel.emailAndMessageBox ||
-      NotificationChannel.messageBoxOnly
+      recipient.notificationChannel === NotificationChannel.emailAndMessageBox ||
+      recipient.notificationChannel === NotificationChannel.messageBoxOnly
     ) {
-      this.sendMessageViaMessageBox(
+      await MessagingController.sendMessageViaMessageBox(
         recipient,
         title,
         content,
@@ -182,10 +260,28 @@ export class MessagingController {
     }
 
     if (
-      NotificationChannel.emailAndMessageBox ||
-      NotificationChannel.emailOnly
+      recipient.notificationChannel === NotificationChannel.emailAndMessageBox ||
+      recipient.notificationChannel === NotificationChannel.emailOnly
     ) {
-      this.sendMessageViaEmail(recipient, title, content, linkText, linkUrl);
+      await MessagingController.sendMessageViaEmail(
+        recipient,
+        title,
+        content,
+        linkText,
+        linkUrl
+      );
+    }
+
+    const ws = MessagingController.messageSockets[recipient.id];
+
+    if (ws !== undefined) {
+      ws.forEach(async (ws) => {
+        ws.send(
+          JSON.stringify(
+            await MessagingController.getUnreadMessagesAmountsUtil(recipient)
+          )
+        );
+      });
     }
   }
 
@@ -244,13 +340,13 @@ export class MessagingController {
     const message =
       linkText === null || linkUrl === null
         ? {
-            from: `"TECO HWLab System" <${environment.smtpSender}>`,
+            from: `TECO HWLab System <${environment.smtpSender}>`,
             to: recipient.email,
             subject: title,
             text: `${content}`,
           }
         : {
-            from: `"TECO HWLab System" <${environment.smtpSender}>`,
+            from: `TECO HWLab System <${environment.smtpSender}>`,
             to: recipient.email,
             subject: title,
             text: `${content}\n${linkText}: ${environment.frontendUrl}${linkUrl}`,
@@ -259,7 +355,7 @@ export class MessagingController {
 
     try {
       const transporter = nodemailer.createTransport(environment.smtpConfig);
-      await transporter.sendMail(message);
+      console.log(await transporter.sendMail(message));
     } catch (e) {
       console.log(e);
     }
@@ -282,11 +378,17 @@ export class MessagingController {
     const userRepository = getRepository(User);
 
     const admins: User[] = await userRepository.find({
-      where: { role: UserRole.admin },
+      where: { role: UserRole.admin, email: Not('SYSTEM') },
     });
 
     for (const recipient of admins) {
-      await this.sendMessage(recipient, title, content, linkText, linkUrl);
+      await MessagingController.sendMessage(
+        recipient,
+        title,
+        content,
+        linkText,
+        linkUrl
+      );
     }
   }
 }

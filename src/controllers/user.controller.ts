@@ -91,17 +91,62 @@ export class UserController {
       return;
     }
 
-    try {
-      await repository.update(
-        { id: user.id },
-        repository.create(<DeepPartial<User>>{ ...user, ...req.body })
+    if (req.body.password) {
+      bcrypt.hash(
+        req.body.password,
+        environment.pwHashSaltRound,
+        async (err: Error | undefined, hash) => {
+          try {
+            await repository.update(
+              { id: user.id },
+              repository.create(<DeepPartial<User>>{
+                ...user,
+                ...req.body,
+                password: hash,
+              })
+            );
+          } catch (err) {
+            res.status(400).json(err);
+            return;
+          }
+          await MessagingController.sendMessage(
+            user,
+            'Account updated',
+            'Your account has been updated' +
+              Object.keys(req.body)
+                .map((e: string) => `${e}: ${req.body[e]}`)
+                .join(', '),
+            'User Settings',
+            '/settings'
+          );
+          res.json(await repository.findOne(user.id));
+        }
       );
-    } catch (err) {
-      res.status(400).json(err);
-      return;
+    } else {
+      try {
+        await repository.update(
+          { id: user.id },
+          repository.create(<DeepPartial<User>>{
+            ...user,
+            ...req.body,
+          })
+        );
+      } catch (err) {
+        res.status(400).json(err);
+        return;
+      }
+      await MessagingController.sendMessage(
+        user,
+        'Account updated',
+        'Your account has been updated' +
+          Object.keys(req.body)
+            .map((e: string) => `${e}: ${req.body[e]}`)
+            .join(', '),
+        'User Settings',
+        '/settings'
+      );
+      res.json(await repository.findOne(user.id));
     }
-
-    res.json(await repository.findOne(user.id));
   }
 
   /**
@@ -112,7 +157,13 @@ export class UserController {
    * @param {Response} res backend response deletion
    */
   public static async deleteUser(req: Request, res: Response) {
-    const user = await AuthController.getCurrentUser(req);
+    const user = await AuthController.getCurrentUser(req, [
+      'bookings',
+      'messages',
+      'tokens',
+      'orders',
+      'recordings',
+    ]);
 
     if (user === null) {
       res.status(404).json({
@@ -124,27 +175,25 @@ export class UserController {
 
     await MessagingController.sendMessageToAllAdmins(
       'User deleted',
-      'User' + user.firstName + user.lastName + 'deleted their account'
+      'User ' + user.firstName + ' ' + user.lastName + ' deleted their account.'
     );
 
-    await MessagingController.sendMessage(
+    await MessagingController.sendMessageViaEmail(
       user,
       'Account deleted',
       'Your account has been deleted. Bye!'
     );
-    try {
-      await userRepository.update(
-        { id: user.id },
-        userRepository.create(<DeepPartial<User>>{
-          ...user,
-          ...{ firstName: undefined, lastName: undefined, email: undefined },
-        })
-      );
-    } catch (err) {
-      res.status(400).json(err);
-      return;
-    }
-    await userRepository.softDelete(user.id);
+
+    await userRepository.update(
+      { id: user.id },
+      {
+        firstName: 'strawberry',
+        lastName: 'mango',
+        email: 'raspberry@choco.late',
+        password: '',
+      }
+    );
+    await userRepository.softRemove(user);
 
     res.sendStatus(204);
   }
@@ -210,7 +259,7 @@ export class UserController {
           'Verify Email to confirm account',
           `You need to click on this link to confirm your account or go to ${environment.frontendUrl}/register/verify-email and enter user-ID: ${user.id} and token: ${token.token}.`,
           'Verify Email',
-          `${environment.frontendUrl}/register/verify-email/${user.id}/${token.token}`
+          `/register/verify-email/${user.id}/${token.token}`
         );
 
         res.status(201).json(user);
@@ -264,13 +313,13 @@ export class UserController {
       return;
     }
 
-    await userRepository.update(user, { emailVerification: true });
+    await userRepository.update(user.id, { emailVerification: true });
 
     await MessagingController.sendMessageToAllAdmins(
       'Accept User Registration',
       'You have an open user registration request.',
       'Accept User',
-      `${environment.frontendUrl}/users`
+      '/users'
     );
 
     await tokenRepository.delete(tokenObject.id);

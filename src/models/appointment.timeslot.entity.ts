@@ -16,6 +16,7 @@ import { TimeSlotType } from '../types/enums/timeslot-type';
  * @property {User} user - The user who booked the appointment.
  * @property {ConfirmationStatus} confirmationStatus - The confirmation status of the time slot.
  * @property {string} seriesId - The id of the series the time slot belongs to.
+ * @property {TimeSlotRecurrence} timeSlotRecurrence - The recurrence of an appointment in a series.
  */
 @ChildEntity(TimeSlotType.booked)
 export class AppointmentTimeslot extends TimeSlot {
@@ -25,7 +26,10 @@ export class AppointmentTimeslot extends TimeSlot {
    * @type {Room}
    * @readonly
    */
-  @ManyToOne(() => Room, (room) => room.appointments, { eager: true })
+  @ManyToOne(() => Room, (room) => room.appointments, {
+    eager: true,
+    onDelete: 'CASCADE',
+  })
   readonly room: Room;
 
   /**
@@ -49,12 +53,4 @@ export class AppointmentTimeslot extends TimeSlot {
     default: ConfirmationStatus.pending,
   })
   confirmationStatus: ConfirmationStatus;
-
-  /**
-   * The id of the series the time slot belongs to.
-   * @type {string}
-   * @readonly
-   */
-  @Column()
-  seriesId: string;
 }
