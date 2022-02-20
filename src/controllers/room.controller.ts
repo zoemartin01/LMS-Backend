@@ -186,7 +186,8 @@ export class RoomController {
       start,
       hour,
       day,
-      index;
+      index,
+      j;
     for (availableTimespan of availableTimeSlots) {
       if (availableTimespan.start == null || availableTimespan.end == null) {
         continue;
@@ -240,7 +241,7 @@ export class RoomController {
       for (let i = +moment(availableTimespan.start).format('HH'); i < timespanEnd; i++) {
         calendar[i - minTimeslot][
           (+moment(availableTimespan.start).format('e') + 6) % 7
-        ][0] = 'available';
+        ][0] = `available ${room.maxConcurrentBookings}`;
       }
     }
 
@@ -275,7 +276,10 @@ export class RoomController {
         hour = +start.format('HH') - minTimeslot;
         day = (+start.format('e') + 6) % 7;
 
-        for (index = 0; calendar[hour][day][index] !== 'available'; index++) {
+        for (index = 0;
+             typeof calendar[hour][day][index] !== 'string'
+             || (<string>calendar[hour][day][index]).split(' ')[0] !== 'available';
+             index++) {
           //
         }
 
@@ -292,7 +296,21 @@ export class RoomController {
 
         if (index < room.maxConcurrentBookings - 1) {
           for (let i = hour; i < timespanEnd - minTimeslot; i++) {
-            calendar[i][day][index + 1] = 'available';
+            calendar[i][day][index + 1] = `available ${room.maxConcurrentBookings}`;
+          }
+        }
+
+        if (0 < index) {
+          for (let i = hour; i < timespanEnd - minTimeslot; i++) {
+            for (j = index - 1;
+                 j > 0
+                 && (typeof calendar[hour][day][j] !== 'string'
+                 || (<string>calendar[hour][day][j]).split(' ')[0] !== 'available');
+                 j--) {
+              //
+            }
+
+            calendar[i][day][j] = `available ${index - j}`;
           }
         }
       }
