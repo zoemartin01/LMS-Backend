@@ -53,6 +53,42 @@ describe('AppointmentController', () => {
     app.shutdownJobs();
   });
 
+  describe('GET /appointments', () => {
+    const uri = `${environment.apiRoutes.base}${environment.apiRoutes.appointments.getAllAppointments}`;
+  });
+
+  describe('GET /user/appointments', () => {
+    const uri = `${environment.apiRoutes.base}${environment.apiRoutes.appointments.getCurrentUserAppointments}`;
+  });
+
+  describe('GET /rooms/:id/appointments', () => {
+    const uri = `${environment.apiRoutes.base}${environment.apiRoutes.appointments.getRoomAppointments}`;
+  });
+
+  describe('GET /appointments/series/:id', () => {
+    const uri = `${environment.apiRoutes.base}${environment.apiRoutes.appointments.getSeriesAppointments}`;
+  });
+
+  describe('GET /appointments/:id', () => {
+    const uri = `${environment.apiRoutes.base}${environment.apiRoutes.appointments.getSingleAppointment}`;
+  });
+
+  describe('POST /appointments', () => {
+    const uri = `${environment.apiRoutes.base}${environment.apiRoutes.appointments.createAppointment}`;
+  });
+
+  describe('POST /appointments/series', () => {
+    const uri = `${environment.apiRoutes.base}${environment.apiRoutes.appointments.createAppointmentSeries}`;
+  });
+
+  describe('PATCH /appointments/:id', () => {
+    const uri = `${environment.apiRoutes.base}${environment.apiRoutes.appointments.updateAppointment}`;
+  });
+
+  describe('PATCH /appointments/series/:id', () => {
+    const uri = `${environment.apiRoutes.base}${environment.apiRoutes.appointments.updateAppointmentSeries}`;
+  });
+
   describe('DELETE /appointments/:id', () => {
     const uri = `${environment.apiRoutes.base}${environment.apiRoutes.appointments.deleteAppointment}`;
 
@@ -93,6 +129,10 @@ describe('AppointmentController', () => {
 
       expect(spy).to.have.been.called;
     });
+  });
+
+  describe('DELETE /appointments/series/:id', () => {
+    const uri = `${environment.apiRoutes.base}${environment.apiRoutes.appointments.deleteAppointmentSeries}`;
   });
 });
 
