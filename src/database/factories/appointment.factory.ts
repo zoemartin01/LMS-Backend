@@ -18,6 +18,7 @@ define(
       seriesId?: string;
       availableTimeSlot?: AvailableTimeslot;
       ignoreRules?: boolean;
+      confirmationStatus?: ConfirmationStatus;
     }
   ) => {
     if (!context || !context.user || !context.room)
@@ -36,7 +37,8 @@ define(
         end: end.toDate(),
         room: context.room,
         user: context.user,
-        confirmationStatus: ConfirmationStatus.pending,
+        confirmationStatus:
+          context?.confirmationStatus ?? ConfirmationStatus.pending,
         seriesId: context.seriesId,
       });
     }
@@ -80,11 +82,13 @@ define(
 
     const room = context.room;
     const user = context.user;
-    const confirmationStatus = faker.random.arrayElement([
-      ConfirmationStatus.pending,
-      ConfirmationStatus.accepted,
-      ConfirmationStatus.denied,
-    ]);
+    const confirmationStatus =
+      context?.confirmationStatus ??
+      faker.random.arrayElement([
+        ConfirmationStatus.pending,
+        ConfirmationStatus.accepted,
+        ConfirmationStatus.denied,
+      ]);
 
     if (context.seriesId === undefined) {
       return getRepository(AppointmentTimeslot).create({
