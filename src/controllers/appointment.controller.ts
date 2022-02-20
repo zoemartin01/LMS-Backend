@@ -1236,13 +1236,9 @@ export class AppointmentController {
     }
 
     if (appointment.seriesId === undefined) {
-      repository.delete(req.params.id).then(() => {
-        res.sendStatus(204);
-      });
+      await repository.delete(req.params.id);
     } else {
-      repository.softDelete(req.params.id).then(() => {
-        res.sendStatus(204);
-      });
+      await repository.softDelete(req.params.id);
     }
 
     if (await AuthController.checkAdmin(req)) {
@@ -1291,6 +1287,8 @@ export class AppointmentController {
         ).toISOString()}`
       );
     }
+
+    res.sendStatus(204);
   }
 
   /**
