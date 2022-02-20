@@ -123,21 +123,12 @@ describe('RoomController', () => {
       const count = 10;
       const offset = 3;
 
-      let res = await chai
-        .request(app.app)
-        .get(uri)
-        .set('Authorization', adminHeader);
-
-      expect(res.status).to.equal(200);
-      expect(res.body.total).to.equal(0);
-      expect(res.body.data).to.be.an('array').that.is.empty;
-
       await factory(Room)().createMany(count);
       const rooms = Helpers.JSONify(
         await repository.find({ order: { name: 'ASC' }, skip: offset })
       );
 
-      res = await chai
+      const res = await chai
         .request(app.app)
         .get(uri)
         .query({ offset })
