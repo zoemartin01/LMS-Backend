@@ -373,7 +373,7 @@ describe('RoomController', () => {
     );
 
     it('should fail as non-admin', async () => {
-      const room = await getRepository(Room).findOneOrFail();
+      const room = await factory(Room)().create();
       const res = await chai
         .request(app.app)
         .post(uri.replace(':roomId', room.id))
