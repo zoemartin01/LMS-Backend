@@ -256,7 +256,7 @@ export class RoomController {
       }
 
       for (let i = +moment(unavailableTimeSlot.start).format('HH'); i < timespanEnd; i++) {
-        if (i >= minTimeslot && i <= maxTimeslot) {
+        if (minTimeslot <= i && i < maxTimeslot) {
           calendar[i - minTimeslot][
             (+moment(unavailableTimeSlot.start).format('e') + 6) % 7
           ][0] = 'unavailable';
