@@ -457,7 +457,7 @@ export class RoomController {
    * @routeParam {string} id - id of the room
    * @bodyParam {string [Optional]} name - name of the room
    * @bodyParam {string [Optional]} description - description of the room
-   * @bodyParam {number [Optional]} maxConcurrentBooking - max number of concurrent bookings
+   * @bodyParam {number [Optional]} maxConcurrentBookings - max number of concurrent bookings
    * @bodyParam {boolean [Optional]} autoAcceptBookings - if bookings are automatically accepted
    * @param {Request} req frontend request to change data about one room
    * @param {Response} res backend response with data change of one room
@@ -473,8 +473,8 @@ export class RoomController {
 
     //todo please fix max concurrent bookings edit check
     if (
-      req.params.maxConcurrentBooking != undefined &&
-      +req.params.maxConcurrentBooking < room.maxConcurrentBookings
+      req.body.maxConcurrentBookings !== undefined &&
+      +req.body.maxConcurrentBookings < room.maxConcurrentBookings
     ) {
       res
         .status(409)
