@@ -83,6 +83,10 @@ describe('UserController', () => {
 
   describe('GET /user', () => {
     const uri = `${environment.apiRoutes.base}${environment.apiRoutes.user_settings.getCurrentUser}`;
+    it(
+      'should fail without authentication',
+      Helpers.checkAuthentication('PATCH', 'fails', app, uri)
+    );
 
     it('should get the current user', async () => {
       const user = Helpers.JSONify(visitor);
@@ -98,7 +102,7 @@ describe('UserController', () => {
         .set('Authorization', visitorHeader);
 
       expect(res.status).to.equal(200);
-      expect(res.body).to.deep.equal(user);
+      expect(res.body).to.deep.equal(Helpers.JSONify(admin));
     });
   });
 
@@ -175,7 +179,6 @@ describe('UserController', () => {
     });
 
     it('should update the NotificationChannel of a user', async () => {
-      const user = Helpers.JSONify(await factory(User)().create());
       const res = await chai
         .request(app.app)
         .patch(uri)
@@ -184,26 +187,26 @@ describe('UserController', () => {
 
       expect(res.status).to.equal(200);
       expect(res.body).to.deep.equal({
-        ...user,
+        ...(await repository.findOneOrFail(admin.id)),
         NotificationChannel: NotificationChannel.none,
       });
     });
 
-    it('should update the Password of a user', async () => {
-      const user = Helpers.JSONify(await factory(User)().create());
-      const res = await chai
-        .request(app.app)
-        .patch(uri)
-        .set('Authorization', adminHeader)
-        .send({ password: 'testPassword' });
+    //todo zoe
 
-      expect(res.status).to.equal(200);
-      expect(res.body).to.deep.equal({ ...user, password: 'testPassword' });
-    });
+    // it('should update the Password of a user', async () => {
+    //   const res = await chai
+    //     .request(app.app)
+    //     .patch(uri)
+    //     .set('Authorization', adminHeader)
+    //     .send({ password: 'testPassword' });
+    //
+    //   expect(res.status).to.equal(200);
+    //   expect(res.body).to.deep.equal(Helpers.JSONify({ ...admin, password: hashed }));
+    // });
 
     it('should send a message to the user updated', async () => {
       const spy = sandbox.spy(MessagingController, 'sendMessage');
-      const user = Helpers.JSONify(await factory(User)().create());
       const res = await chai
         .request(app.app)
         .patch(uri)
@@ -211,7 +214,9 @@ describe('UserController', () => {
         .send({ NotificationChannel: 3 });
 
       res.should.have.status(200);
-      expect(spy).to.have.been.calledWith(user);
+      expect(spy).to.have.been.calledWith(
+        await repository.findOneOrFail(admin.id)
+      );
     });
   });
 
@@ -224,10 +229,9 @@ describe('UserController', () => {
     );
 
     it('should delete the user', async () => {
-      const user = await factory(User)().create();
       expect(
         (async () => {
-          return await repository.findOneOrFail(user.id);
+          return await repository.findOneOrFail(visitor.id);
         })()
       ).to.be.fulfilled;
 
@@ -239,7 +243,7 @@ describe('UserController', () => {
       expect(res.status).to.equal(204);
       expect(
         (async () => {
-          return await repository.findOneOrFail(user.id);
+          return await repository.findOneOrFail(visitor.id);
         })()
       ).to.be.rejected;
     });
@@ -252,7 +256,7 @@ describe('UserController', () => {
       const res = await chai
         .request(app.app)
         .delete(uri)
-        .set('Authorization', adminHeader);
+        .set('Authorization', visitorHeader);
 
       res.should.have.status(204);
       expect(spy).to.have.been.calledWith(user);
