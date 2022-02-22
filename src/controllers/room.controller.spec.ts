@@ -147,7 +147,7 @@ describe('RoomController', () => {
     const uri = `${environment.apiRoutes.base}${environment.apiRoutes.rooms.getSingleRoom}`;
 
     it(
-      'should fail without authentification',
+      'should fail without authentication',
       Helpers.checkAuthentication(
         'GET',
         'fails',
@@ -205,6 +205,16 @@ describe('RoomController', () => {
         });
     });
 
+    it('should fail to create a room with invalid/no data', async () => {
+      const res = await chai
+        .request(app.app)
+        .post(uri)
+        .set('Authorization', adminHeader)
+        .send({});
+
+      expect(res.status).to.equal(400);
+    });
+
     it('should successfully create a new room with valid data', async () => {
       const room = await factory(Room)().make();
 
@@ -217,16 +227,6 @@ describe('RoomController', () => {
       expect(res.body).to.deep.equal(
         Helpers.JSONify(await repository.findOneOrFail(res.body.id))
       );
-    });
-
-    it('should fail to create a room with invalid/no data', async () => {
-      const res = await chai
-        .request(app.app)
-        .post(uri)
-        .set('Authorization', adminHeader)
-        .send({});
-
-      expect(res.status).to.equal(400);
     });
   });
 
@@ -354,7 +354,7 @@ describe('RoomController', () => {
     const uri = `${environment.apiRoutes.base}${environment.apiRoutes.rooms.createTimeslot}`;
 
     it(
-      'should fail without authentification',
+      'should fail without authentication',
       Helpers.checkAuthentication(
         'POST',
         'fails',
@@ -399,7 +399,7 @@ describe('RoomController', () => {
     const uri = `${environment.apiRoutes.base}${environment.apiRoutes.rooms.deleteTimeslot}`;
 
     it(
-      'should fail without authentification',
+      'should fail without authentication',
       Helpers.checkAuthentication(
         'DELETE',
         'fails',
