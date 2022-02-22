@@ -250,8 +250,8 @@ export class LivecamController {
     });
   }
 
-  static wss: WebSocket[] = [];
-  static ws: WebSocket | undefined;
+  public static wss: WebSocket[] = [];
+  public static ws: WebSocket | undefined;
 
   /**
    * Returns the live camera feed
@@ -274,6 +274,8 @@ export class LivecamController {
       if (index > -1) {
         array.splice(index, 1);
       }
+
+      LivecamController.wss = array;
     });
   }
 
