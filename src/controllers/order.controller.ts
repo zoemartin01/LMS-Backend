@@ -366,7 +366,7 @@ export class OrderController {
         // check if order status is still pending, visitors aren't allowed to change order after that
         order.status !== OrderStatus.pending ||
         // check if no admin user tried to change order status
-        'status' in req.body
+        req.body.status !== undefined
       ) {
         res.sendStatus(403);
         return;
