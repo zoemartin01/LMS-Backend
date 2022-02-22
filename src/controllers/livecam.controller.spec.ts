@@ -68,78 +68,206 @@ describe('LivecamController', () => {
   describe('GET /livecam/recordings', () => {
     const uri = `${environment.apiRoutes.base}${environment.apiRoutes.livecam.getAllRecordings}`;
 
-    it('should fail without authentication', (done) => {
-      chai
+    it(
+      'should return 401 if not authenticated',
+      Helpers.checkAuthentication('GET', 'fails', app, uri.replace(':id', v4()))
+    );
+
+    it('should return 403 as non-admin', async () => {
+      const response = await chai
         .request(app.app)
-        .get(uri)
-        .end((err, res) => {
-          expect(res.status).to.equal(401);
-          done();
-        });
+        .get(uri.replace(':id', v4()))
+        .set('Authorization', visitorHeader);
+
+      response.should.have.status(403);
     });
 
-    it('should fail as non-admin', (done) => {
-      chai
+    it('should get all finished recordings without limit/offset', async () => {
+      const count = 10;
+      const recordings = Helpers.JSONify(
+        await factory(Recording)({ user: admin, size: 1 }).createMany(count)
+      );
+
+      const res = await chai
         .request(app.app)
         .get(uri)
-        .set('Authorization', visitorHeader)
-        .end((err, res) => {
-          expect(res.status).to.equal(403);
-          done();
-        });
+        .set('Authorization', adminHeader);
+
+      expect(res.status).to.equal(200);
+      expect(res.body.total).to.equal(count);
+      expect(res.body.data)
+        .to.be.an('array')
+        .that.has.a.lengthOf(count)
+        .and.that.has.same.deep.members(recordings);
     });
 
-    it('should get no finished recordings', (done) => {
-      // Seeding doesn't create any finished recordings
-      chai
+    it('should sort finished recordings by start in ascending order', async () => {
+      const count = 10;
+      await factory(Recording)({ user: admin, size: 1 }).createMany(count);
+      const recordings = Helpers.JSONify(
+        await repository.find({ order: { start: 'ASC' } })
+      );
+
+      const res = await chai
         .request(app.app)
         .get(uri)
-        .set('Authorization', adminHeader)
-        .end((err, res) => {
-          expect(res.status).to.equal(200);
-          expect(res.body.data).to.be.an('array');
-          expect(res.body.data.length).to.be.equal(0);
-          done();
-        });
+        .set('Authorization', adminHeader);
+
+      expect(res.status).to.equal(200);
+      expect(res.body.total).to.equal(count);
+      expect(res.body.data)
+        .to.be.an('array')
+        .that.has.a.lengthOf(count)
+        .and.that.has.same.deep.ordered.members(recordings);
     });
 
-    it('should get all finished recordings', async () => {
-      const repository = getRepository(Recording);
-      const start = Faker.date.past().toISOString();
-      const recording = await repository.save({
-        user: admin,
-        start,
-        end: Faker.date
-          .between(start, new Date(Date.parse(start) + 1000 * 60 * 60 * 24 * 7))
-          .toISOString(),
-        resolution: VideoResolution.V1080,
-        bitrate: 10000,
-        size: 100,
-      });
+    it('should get correct finished recordings with limit', async () => {
+      const count = 10;
+      const limit = 3;
 
-      chai
+      await factory(Recording)({ user: admin, size: 1 }).createMany(count);
+      const recordings = Helpers.JSONify(
+        await repository.find({ order: { start: 'ASC' }, take: limit })
+      );
+
+      const res = await chai
         .request(app.app)
         .get(uri)
-        .set('Authorization', adminHeader)
-        .end((err, res) => {
-          expect(res.status).to.equal(200);
-          expect(res.body.data).to.be.an('array');
-          expect(res.body.data.length).to.be.equal(1);
-        });
+        .query({ limit })
+        .set('Authorization', adminHeader);
+
+      expect(res.status).to.equal(200);
+      expect(res.body.total).to.equal(count);
+      expect(res.body.data)
+        .to.be.an('array')
+        .that.has.a.lengthOf(limit)
+        .and.that.has.same.deep.members(recordings);
+    });
+
+    it('should get correct finished recordings with offset', async () => {
+      const count = 10;
+      const offset = 3;
+
+      await factory(Recording)({ user: admin, size: 1 }).createMany(count);
+      const recordings = Helpers.JSONify(
+        await repository.find({ order: { start: 'ASC' }, skip: offset })
+      );
+
+      const res = await chai
+        .request(app.app)
+        .get(uri)
+        .query({ offset })
+        .set('Authorization', adminHeader);
+
+      expect(res.status).to.equal(200);
+      expect(res.body.total).to.equal(count);
+      expect(res.body.data)
+        .to.be.an('array')
+        .that.has.a.lengthOf(count - offset)
+        .and.that.has.same.deep.members(recordings);
     });
   });
 
   describe('GET /livecam/recordings/schedules', () => {
     const uri = `${environment.apiRoutes.base}${environment.apiRoutes.livecam.getAllScheduled}`;
 
-    it('should fail without authentication', (done) => {
-      chai
+    it(
+      'should return 401 if not authenticated',
+      Helpers.checkAuthentication('GET', 'fails', app, uri.replace(':id', v4()))
+    );
+
+    it('should return 403 as non-admin', async () => {
+      const response = await chai
+        .request(app.app)
+        .get(uri.replace(':id', v4()))
+        .set('Authorization', visitorHeader);
+
+      response.should.have.status(403);
+    });
+
+    it('should get all scheduled recordings without limit/offset', async () => {
+      const count = 10;
+      const recordings = Helpers.JSONify(
+        await factory(Recording)({ user: admin }).createMany(count)
+      );
+
+      const res = await chai
         .request(app.app)
         .get(uri)
-        .end((err, res) => {
-          expect(res.status).to.equal(401);
-          done();
-        });
+        .set('Authorization', adminHeader);
+
+      expect(res.status).to.equal(200);
+      expect(res.body.total).to.equal(count);
+      expect(res.body.data)
+        .to.be.an('array')
+        .that.has.a.lengthOf(count)
+        .and.that.has.same.deep.members(recordings);
+    });
+
+    it('should sort scheduled recordings by start in ascending order', async () => {
+      const count = 10;
+      await factory(Recording)({ user: admin }).createMany(count);
+      const recordings = Helpers.JSONify(
+        await repository.find({ order: { start: 'ASC' } })
+      );
+
+      const res = await chai
+        .request(app.app)
+        .get(uri)
+        .set('Authorization', adminHeader);
+
+      expect(res.status).to.equal(200);
+      expect(res.body.total).to.equal(count);
+      expect(res.body.data)
+        .to.be.an('array')
+        .that.has.a.lengthOf(count)
+        .and.that.has.same.deep.ordered.members(recordings);
+    });
+
+    it('should get correct scheduled recordings with limit', async () => {
+      const count = 10;
+      const limit = 3;
+
+      await factory(Recording)({ user: admin }).createMany(count);
+      const recordings = Helpers.JSONify(
+        await repository.find({ order: { start: 'ASC' }, take: limit })
+      );
+
+      const res = await chai
+        .request(app.app)
+        .get(uri)
+        .query({ limit })
+        .set('Authorization', adminHeader);
+
+      expect(res.status).to.equal(200);
+      expect(res.body.total).to.equal(count);
+      expect(res.body.data)
+        .to.be.an('array')
+        .that.has.a.lengthOf(limit)
+        .and.that.has.same.deep.members(recordings);
+    });
+
+    it('should get correct scheduled recordings with offset', async () => {
+      const count = 10;
+      const offset = 3;
+
+      await factory(Recording)({ user: admin }).createMany(count);
+      const recordings = Helpers.JSONify(
+        await repository.find({ order: { start: 'ASC' }, skip: offset })
+      );
+
+      const res = await chai
+        .request(app.app)
+        .get(uri)
+        .query({ offset })
+        .set('Authorization', adminHeader);
+
+      expect(res.status).to.equal(200);
+      expect(res.body.total).to.equal(count);
+      expect(res.body.data)
+        .to.be.an('array')
+        .that.has.a.lengthOf(count - offset)
+        .and.that.has.same.deep.members(recordings);
     });
   });
 
@@ -150,6 +278,15 @@ describe('LivecamController', () => {
       'should return 401 if not authenticated',
       Helpers.checkAuthentication('GET', 'fails', app, uri.replace(':id', v4()))
     );
+
+    it('should return 403 as non-admin', async () => {
+      const response = await chai
+        .request(app.app)
+        .get(uri.replace(':id', v4()))
+        .set('Authorization', visitorHeader);
+
+      response.should.have.status(403);
+    });
 
     it('should fail with invalid id', (done) => {
       chai
@@ -189,6 +326,15 @@ describe('LivecamController', () => {
         uri.replace(':id', v4())
       )
     );
+
+    it('should return 403 as non-admin', async () => {
+      const response = await chai
+        .request(app.app)
+        .get(uri.replace(':id', v4()))
+        .set('Authorization', visitorHeader);
+
+      response.should.have.status(403);
+    });
 
     it('should fail with invalid id', (done) => {
       chai
