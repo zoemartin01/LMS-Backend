@@ -260,18 +260,9 @@ export class UserController {
     const userRepository = getRepository(User);
     const tokenRepository = getRepository(Token);
 
-    let user: User | undefined;
-
-    try {
-      user = await userRepository.findOne({
-        where: { id: userId },
-      });
-    } catch (e) {
-      res.status(404).json({
-        message: 'User not found.',
-      });
-      return;
-    }
+    const user = await userRepository.findOne({
+      where: { id: userId },
+    });
 
     if (user === undefined) {
       res.status(404).json({
