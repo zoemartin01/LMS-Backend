@@ -142,17 +142,20 @@ export class LivecamController {
    * @param {Response} res backend response
    */
   public static async scheduleRecording(req: Request, res: Response) {
-    const user = await AuthController.getCurrentUser(req, ['recordings']);
+    const user = await AuthController.getCurrentUser(req);
     const limit = await getRepository(GlobalSetting).findOne({
       where: { key: 'user.max_recordings' },
     });
+    const repository = getRepository(Recording);
 
-    if (limit !== undefined && user.recordings.length >= +limit.value) {
+    if (
+      limit !== undefined &&
+      (await repository.count({ where: { user } })) >= +limit.value
+    ) {
       res.status(400).json({ message: 'Max recording limit reached' });
       return;
     }
 
-    const repository = getRepository(Recording);
     let recording: Recording;
     try {
       recording = await repository.save(

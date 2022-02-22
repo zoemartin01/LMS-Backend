@@ -19,6 +19,8 @@ import { WebSocket } from 'ws';
 import { Request } from 'express';
 import axios from 'axios';
 import * as util from 'util';
+import { GlobalSetting } from '../models/global_settings.entity';
+import moment from 'moment';
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const MockExpressRequest = require('mock-express-request');
 
@@ -190,6 +192,90 @@ describe('LivecamController', () => {
           expect(res.status).to.equal(200);
           expect(res.body.size).to.be.equal(1);
         });
+    });
+  });
+
+  describe('POST /livecam/recordings/schedules', () => {
+    const uri = `${environment.apiRoutes.base}${environment.apiRoutes.livecam.createSchedule}`;
+
+    it(
+      'should return 401 if not authenticated',
+      Helpers.checkAuthentication('POST', 'fails', app, uri)
+    );
+
+    it('should return 403 as non-admin', async () => {
+      const response = await chai
+        .request(app.app)
+        .get(uri)
+        .set('Authorization', visitorHeader);
+
+      response.should.have.status(403);
+    });
+
+    it('should fail if max recording per user have been reached', async () => {
+      await getRepository(GlobalSetting).save({
+        key: 'user.max_recordings',
+        value: '0',
+      });
+
+      const response = await chai
+        .request(app.app)
+        .post(uri)
+        .set('Authorization', adminHeader);
+
+      response.should.have.status(400);
+      response.body.should.have.property(
+        'message',
+        'Max recording limit reached'
+      );
+    });
+
+    it('should fail if max recording per user have been reached', async () => {
+      await getRepository(GlobalSetting).save({
+        key: 'user.max_recordings',
+        value: '1',
+      });
+
+      const response = await chai
+        .request(app.app)
+        .post(uri)
+        .set('Authorization', adminHeader)
+        .send({});
+
+      response.should.have.status(400);
+    });
+
+    it('should fail to schedule a recording if the livecam server is not available', async () => {
+      const recording = await factory(Recording)(admin).make();
+
+      sandbox.stub(axios, 'post').throws('Timeout');
+
+      const res = await chai
+        .request(app.app)
+        .post(uri)
+        .set('Authorization', adminHeader)
+        .send({ ...recording, user: undefined });
+
+      res.status.should.equal(503);
+
+      await repository.findOneOrFail().should.eventually.be.rejected;
+    });
+
+    it('should schedule a recording', async () => {
+      const recording = await factory(Recording)(admin).make();
+
+      sandbox.stub(axios, 'post').resolves({ status: 201 });
+
+      const res = await chai
+        .request(app.app)
+        .post(uri)
+        .set('Authorization', adminHeader)
+        .send({ ...recording, user: undefined });
+
+      res.status.should.equal(201);
+      res.body.should.deep.equal(
+        Helpers.JSONify(await repository.findOneOrFail(res.body.id))
+      );
     });
   });
 
