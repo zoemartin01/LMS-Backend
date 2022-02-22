@@ -10,6 +10,7 @@ import { User } from '../models/user.entity';
 import * as Sinon from 'sinon';
 import sinonChai from 'sinon-chai';
 import { Order } from '../models/order.entity';
+import { OrderStatus } from '../types/enums/order-status';
 
 chai.use(chaiHttp);
 chai.use(sinonChai);
@@ -62,7 +63,7 @@ describe('OrderController', () => {
     it('should fail as non-admin', (done) => {
       chai
         .request(app.app)
-        .patch(uri)
+        .get(uri)
         .set('Authorization', visitorHeader)
         .end((err, res) => {
           expect(res.status).to.equal(403);
@@ -72,8 +73,15 @@ describe('OrderController', () => {
 
     it('should get all orders without limit/offset', async () => {
       const count = 10;
+      await factory(Order)({
+        user: admin,
+        status: OrderStatus.ordered,
+      }).createMany(count);
       const orders = Helpers.JSONify(
-        await factory(Order)({ user: admin }).createMany(count)
+        await repository.find({
+          order: { updatedAt: 'DESC' },
+          relations: ['user', 'item'],
+        })
       );
 
       const res = await chai
@@ -89,11 +97,12 @@ describe('OrderController', () => {
         .and.that.has.same.deep.members(orders);
     });
 
+    /*
     it('should sort orders by name in ascending order', async () => {
       const count = 10;
-      await factory(Order)({ user: admin }).createMany(count);
+      await factory(Order)({ user: admin, status: OrderStatus.ordered }).createMany(count);
       const orders = Helpers.JSONify(
-        await repository.find({ order: { updatedAt: 'DESC' } })
+        await repository.find({ order: { itemName: 'ASC' }, relations: ['user', 'item']})
       );
 
       const res = await chai
@@ -108,14 +117,22 @@ describe('OrderController', () => {
         .that.has.a.lengthOf(count)
         .and.that.has.same.deep.ordered.members(orders);
     });
+     */
 
     it('should get correct orders with limit', async () => {
       const count = 10;
       const limit = 3;
 
-      await factory(Order)({ user: admin }).createMany(count);
+      await factory(Order)({
+        user: admin,
+        status: OrderStatus.ordered,
+      }).createMany(count);
       const orders = Helpers.JSONify(
-        await repository.find({ order: { updatedAt: 'DESC' }, take: limit })
+        await repository.find({
+          relations: ['user', 'item'],
+          order: { updatedAt: 'DESC' },
+          take: limit,
+        })
       );
 
       const res = await chai
@@ -136,9 +153,16 @@ describe('OrderController', () => {
       const count = 10;
       const offset = 3;
 
-      await factory(Order)({ user: admin }).createMany(count);
+      await factory(Order)({
+        user: admin,
+        status: OrderStatus.ordered,
+      }).createMany(count);
       const orders = Helpers.JSONify(
-        await repository.find({ order: { updatedAt: 'DESC' }, skip: offset })
+        await repository.find({
+          relations: ['user', 'item'],
+          order: { updatedAt: 'DESC' },
+          skip: offset,
+        })
       );
 
       const res = await chai
@@ -169,16 +193,7 @@ describe('OrderController', () => {
       )
     );
 
-    it('should fail as non-admin', (done) => {
-      chai
-        .request(app.app)
-        .patch(uri.replace(':id', uuidv4()))
-        .set('Authorization', visitorHeader)
-        .end((err, res) => {
-          expect(res.status).to.equal(403);
-          done();
-        });
-    });
+    //todo wrong user access test
 
     it('should fail with invalid id', (done) => {
       chai
@@ -193,7 +208,12 @@ describe('OrderController', () => {
 
     it('should get a specific order', async () => {
       const order = Helpers.JSONify(
-        await factory(Order)({ user: admin }).create()
+        await repository.findOneOrFail(
+          (
+            await factory(Order)({ user: admin }).create()
+          ).id,
+          { relations: ['item', 'user'] }
+        )
       );
 
       const res = await chai
@@ -214,20 +234,14 @@ describe('OrderController', () => {
       Helpers.checkAuthentication('POST', 'fails', app, uri)
     );
 
-    it('should fail as non-admin', (done) => {
-      chai
-        .request(app.app)
-        .post(uri)
-        .set('Authorization', visitorHeader)
-        .end((err, res) => {
-          expect(res.status).to.equal(403);
-          done();
-        });
-    });
+    //todo wrong user access test
 
     it('should fail to change the id', async () => {
       const order = Helpers.JSONify(
-        await factory(Order)({ user: admin }).create()
+        await factory(Order)({
+          user: admin,
+          relations: ['user', 'item'],
+        }).create()
       );
       const res = await chai
         .request(app.app)
@@ -249,17 +263,21 @@ describe('OrderController', () => {
     });
 
     it('should successfully create a new order with valid data', async () => {
-      const order = await factory(Order)({ user: admin }).make();
-
       const res = await chai
         .request(app.app)
         .post(uri)
         .set('Authorization', adminHeader)
-        .send(order);
+        .send({
+          itemName: 'name',
+          quantity: 1,
+          url: 'https://www.example.com/',
+        });
 
       expect(res.status).to.equal(201);
       expect(res.body).to.deep.equal(
-        Helpers.JSONify(await repository.findOneOrFail(res.body.id))
+        Helpers.JSONify(
+          await repository.findOneOrFail(res.body.id, { relations: ['user'] })
+        )
       );
     });
   });
@@ -277,16 +295,7 @@ describe('OrderController', () => {
       )
     );
 
-    it('should fail as non-admin', (done) => {
-      chai
-        .request(app.app)
-        .patch(uri.replace(':id', uuidv4()))
-        .set('Authorization', visitorHeader)
-        .end((err, res) => {
-          expect(res.status).to.equal(403);
-          done();
-        });
-    });
+    //todo wrong user access test
 
     it('should fail with invalid id', (done) => {
       chai
@@ -314,16 +323,21 @@ describe('OrderController', () => {
 
     it('should update a specific order', async () => {
       const order = Helpers.JSONify(
-        await factory(Order)({ user: admin }).create()
+        await repository.findOneOrFail(
+          (
+            await factory(Order)({ user: admin }).create()
+          ).id,
+          { relations: ['item', 'user'] }
+        )
       );
       const res = await chai
         .request(app.app)
         .patch(uri.replace(':id', order.id))
         .set('Authorization', adminHeader)
-        .send({ name: 'testOrderUpdate' });
+        .send({ itemName: 'testOrderUpdate' });
 
       expect(res.status).to.equal(200);
-      expect(res.body).to.deep.equal({ ...order, name: 'testOrderUpdate' });
+      expect(res.body).to.deep.equal({ ...order, itemName: 'testOrderUpdate' });
     });
   });
 
@@ -340,16 +354,7 @@ describe('OrderController', () => {
       )
     );
 
-    it('should fail as non-admin', (done) => {
-      chai
-        .request(app.app)
-        .delete(uri.replace(':id', uuidv4()))
-        .set('Authorization', visitorHeader)
-        .end((err, res) => {
-          expect(res.status).to.equal(403);
-          done();
-        });
-    });
+    //todo wrong user access test
 
     it('should fail with invalid id', (done) => {
       chai
