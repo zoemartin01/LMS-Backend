@@ -97,12 +97,97 @@ describe('OrderController', () => {
         .and.that.has.same.deep.members(orders);
     });
 
-    /*
-    it('should sort orders by name in ascending order', async () => {
+    it('should get correct orders with limit', async () => {
       const count = 10;
-      await factory(Order)({ user: admin, status: OrderStatus.ordered }).createMany(count);
+      const limit = 3;
+
+      await factory(Order)({
+        user: admin,
+        status: OrderStatus.ordered,
+      }).createMany(count);
       const orders = Helpers.JSONify(
-        await repository.find({ order: { itemName: 'ASC' }, relations: ['user', 'item']})
+        await repository.find({
+          relations: ['user', 'item'],
+          order: { updatedAt: 'DESC' },
+          take: limit,
+        })
+      );
+
+      const res = await chai
+        .request(app.app)
+        .get(uri)
+        .query({ limit })
+        .set('Authorization', adminHeader);
+
+      expect(res.status).to.equal(200);
+      expect(res.body.total).to.equal(count);
+      expect(res.body.data)
+        .to.be.an('array')
+        .that.has.a.lengthOf(limit)
+        .and.that.has.same.deep.members(orders);
+    });
+
+    it('should get correct orders with offset', async () => {
+      const count = 10;
+      const offset = 3;
+
+      await factory(Order)({
+        user: admin,
+        status: OrderStatus.ordered,
+      }).createMany(count);
+      const orders = Helpers.JSONify(
+        await repository.find({
+          relations: ['user', 'item'],
+          order: { updatedAt: 'DESC' },
+          skip: offset,
+        })
+      );
+
+      const res = await chai
+        .request(app.app)
+        .get(uri)
+        .query({ offset })
+        .set('Authorization', adminHeader);
+
+      expect(res.status).to.equal(200);
+      expect(res.body.total).to.equal(count);
+      expect(res.body.data)
+        .to.be.an('array')
+        .that.has.a.lengthOf(count - offset)
+        .and.that.has.same.deep.members(orders);
+    });
+  });
+
+  describe('GET /user/orders/declined', () => {
+    const uri = `${environment.apiRoutes.base}${environment.apiRoutes.orders.getAllDeclinedOrders}`;
+
+    it(
+      'should fail without authentication',
+      Helpers.checkAuthentication('GET', 'fails', app, uri)
+    );
+
+    it('should fail as non-admin', (done) => {
+      chai
+        .request(app.app)
+        .get(uri)
+        .set('Authorization', visitorHeader)
+        .end((err, res) => {
+          expect(res.status).to.equal(403);
+          done();
+        });
+    });
+
+    it('should get all orders without limit/offset', async () => {
+      const count = 10;
+      await factory(Order)({
+        user: admin,
+        status: OrderStatus.declined,
+      }).createMany(count);
+      const orders = Helpers.JSONify(
+        await repository.find({
+          order: { updatedAt: 'DESC' },
+          relations: ['user', 'item'],
+        })
       );
 
       const res = await chai
@@ -115,9 +200,209 @@ describe('OrderController', () => {
       expect(res.body.data)
         .to.be.an('array')
         .that.has.a.lengthOf(count)
-        .and.that.has.same.deep.ordered.members(orders);
+        .and.that.has.same.deep.members(orders);
     });
-     */
+
+    it('should get correct orders with limit', async () => {
+      const count = 10;
+      const limit = 3;
+
+      await factory(Order)({
+        user: admin,
+        status: OrderStatus.declined,
+      }).createMany(count);
+      const orders = Helpers.JSONify(
+        await repository.find({
+          relations: ['user', 'item'],
+          order: { updatedAt: 'DESC' },
+          take: limit,
+        })
+      );
+
+      const res = await chai
+        .request(app.app)
+        .get(uri)
+        .query({ limit })
+        .set('Authorization', adminHeader);
+
+      expect(res.status).to.equal(200);
+      expect(res.body.total).to.equal(count);
+      expect(res.body.data)
+        .to.be.an('array')
+        .that.has.a.lengthOf(limit)
+        .and.that.has.same.deep.members(orders);
+    });
+
+    it('should get correct orders with offset', async () => {
+      const count = 10;
+      const offset = 3;
+
+      await factory(Order)({
+        user: admin,
+        status: OrderStatus.declined,
+      }).createMany(count);
+      const orders = Helpers.JSONify(
+        await repository.find({
+          relations: ['user', 'item'],
+          order: { updatedAt: 'DESC' },
+          skip: offset,
+        })
+      );
+
+      const res = await chai
+        .request(app.app)
+        .get(uri)
+        .query({ offset })
+        .set('Authorization', adminHeader);
+
+      expect(res.status).to.equal(200);
+      expect(res.body.total).to.equal(count);
+      expect(res.body.data)
+        .to.be.an('array')
+        .that.has.a.lengthOf(count - offset)
+        .and.that.has.same.deep.members(orders);
+    });
+  });
+
+  describe('GET /user/orders/pending', () => {
+    const uri = `${environment.apiRoutes.base}${environment.apiRoutes.orders.getAllPendingOrders}`;
+
+    it(
+      'should fail without authentication',
+      Helpers.checkAuthentication('GET', 'fails', app, uri)
+    );
+
+    it('should fail as non-admin', (done) => {
+      chai
+        .request(app.app)
+        .get(uri)
+        .set('Authorization', visitorHeader)
+        .end((err, res) => {
+          expect(res.status).to.equal(403);
+          done();
+        });
+    });
+
+    it('should get all orders without limit/offset', async () => {
+      const count = 10;
+      await factory(Order)({
+        user: admin,
+        status: OrderStatus.pending,
+      }).createMany(count);
+      const orders = Helpers.JSONify(
+        await repository.find({
+          order: { updatedAt: 'DESC' },
+          relations: ['user', 'item'],
+        })
+      );
+
+      const res = await chai
+        .request(app.app)
+        .get(uri)
+        .set('Authorization', adminHeader);
+
+      expect(res.status).to.equal(200);
+      expect(res.body.total).to.equal(count);
+      expect(res.body.data)
+        .to.be.an('array')
+        .that.has.a.lengthOf(count)
+        .and.that.has.same.deep.members(orders);
+    });
+
+    it('should get correct orders with limit', async () => {
+      const count = 10;
+      const limit = 3;
+
+      await factory(Order)({
+        user: admin,
+        status: OrderStatus.pending,
+      }).createMany(count);
+      const orders = Helpers.JSONify(
+        await repository.find({
+          relations: ['user', 'item'],
+          order: { updatedAt: 'DESC' },
+          take: limit,
+        })
+      );
+
+      const res = await chai
+        .request(app.app)
+        .get(uri)
+        .query({ limit })
+        .set('Authorization', adminHeader);
+
+      expect(res.status).to.equal(200);
+      expect(res.body.total).to.equal(count);
+      expect(res.body.data)
+        .to.be.an('array')
+        .that.has.a.lengthOf(limit)
+        .and.that.has.same.deep.members(orders);
+    });
+
+    it('should get correct orders with offset', async () => {
+      const count = 10;
+      const offset = 3;
+
+      await factory(Order)({
+        user: admin,
+        status: OrderStatus.pending,
+      }).createMany(count);
+      const orders = Helpers.JSONify(
+        await repository.find({
+          relations: ['user', 'item'],
+          order: { updatedAt: 'DESC' },
+          skip: offset,
+        })
+      );
+
+      const res = await chai
+        .request(app.app)
+        .get(uri)
+        .query({ offset })
+        .set('Authorization', adminHeader);
+
+      expect(res.status).to.equal(200);
+      expect(res.body.total).to.equal(count);
+      expect(res.body.data)
+        .to.be.an('array')
+        .that.has.a.lengthOf(count - offset)
+        .and.that.has.same.deep.members(orders);
+    });
+  });
+
+  describe('GET /user/orders/accepted', () => {
+    const uri = `${environment.apiRoutes.base}${environment.apiRoutes.orders.getCurrentUsersAcceptedOrders}`;
+
+    it(
+      'should fail without authentication',
+      Helpers.checkAuthentication('GET', 'fails', app, uri)
+    );
+
+    it('should get all orders without limit/offset', async () => {
+      const count = 10;
+      await factory(Order)({
+        user: admin,
+        status: OrderStatus.ordered,
+      }).createMany(count);
+      const orders = Helpers.JSONify(
+        await repository.find({
+          order: { updatedAt: 'DESC' },
+          relations: ['user', 'item'],
+        })
+      );
+
+      const res = await chai
+        .request(app.app)
+        .get(uri)
+        .set('Authorization', adminHeader);
+
+      expect(res.status).to.equal(200);
+      expect(res.body.total).to.equal(count);
+      expect(res.body.data)
+        .to.be.an('array')
+        .that.has.a.lengthOf(count)
+        .and.that.has.same.deep.members(orders);
+    });
 
     it('should get correct orders with limit', async () => {
       const count = 10;
@@ -180,6 +465,196 @@ describe('OrderController', () => {
     });
   });
 
+  describe('GET /user/orders/declined', () => {
+    const uri = `${environment.apiRoutes.base}${environment.apiRoutes.orders.getCurrentUsersDeclinedOrders}`;
+
+    it(
+      'should fail without authentication',
+      Helpers.checkAuthentication('GET', 'fails', app, uri)
+    );
+
+    it('should get all orders without limit/offset', async () => {
+      const count = 10;
+      await factory(Order)({
+        user: admin,
+        status: OrderStatus.declined,
+      }).createMany(count);
+      const orders = Helpers.JSONify(
+        await repository.find({
+          order: { updatedAt: 'DESC' },
+          relations: ['user', 'item'],
+        })
+      );
+
+      const res = await chai
+        .request(app.app)
+        .get(uri)
+        .set('Authorization', adminHeader);
+
+      expect(res.status).to.equal(200);
+      expect(res.body.total).to.equal(count);
+      expect(res.body.data)
+        .to.be.an('array')
+        .that.has.a.lengthOf(count)
+        .and.that.has.same.deep.members(orders);
+    });
+
+    it('should get correct orders with limit', async () => {
+      const count = 10;
+      const limit = 3;
+
+      await factory(Order)({
+        user: admin,
+        status: OrderStatus.declined,
+      }).createMany(count);
+      const orders = Helpers.JSONify(
+        await repository.find({
+          relations: ['user', 'item'],
+          order: { updatedAt: 'DESC' },
+          take: limit,
+        })
+      );
+
+      const res = await chai
+        .request(app.app)
+        .get(uri)
+        .query({ limit })
+        .set('Authorization', adminHeader);
+
+      expect(res.status).to.equal(200);
+      expect(res.body.total).to.equal(count);
+      expect(res.body.data)
+        .to.be.an('array')
+        .that.has.a.lengthOf(limit)
+        .and.that.has.same.deep.members(orders);
+    });
+
+    it('should get correct orders with offset', async () => {
+      const count = 10;
+      const offset = 3;
+
+      await factory(Order)({
+        user: admin,
+        status: OrderStatus.declined,
+      }).createMany(count);
+      const orders = Helpers.JSONify(
+        await repository.find({
+          relations: ['user', 'item'],
+          order: { updatedAt: 'DESC' },
+          skip: offset,
+        })
+      );
+
+      const res = await chai
+        .request(app.app)
+        .get(uri)
+        .query({ offset })
+        .set('Authorization', adminHeader);
+
+      expect(res.status).to.equal(200);
+      expect(res.body.total).to.equal(count);
+      expect(res.body.data)
+        .to.be.an('array')
+        .that.has.a.lengthOf(count - offset)
+        .and.that.has.same.deep.members(orders);
+    });
+  });
+
+  describe('GET /user/orders/pending', () => {
+    const uri = `${environment.apiRoutes.base}${environment.apiRoutes.orders.getCurrentUsersPendingOrders}`;
+
+    it(
+      'should fail without authentication',
+      Helpers.checkAuthentication('GET', 'fails', app, uri)
+    );
+
+    it('should get all orders without limit/offset', async () => {
+      const count = 10;
+      await factory(Order)({
+        user: admin,
+        status: OrderStatus.pending,
+      }).createMany(count);
+      const orders = Helpers.JSONify(
+        await repository.find({
+          order: { updatedAt: 'DESC' },
+          relations: ['user', 'item'],
+        })
+      );
+
+      const res = await chai
+        .request(app.app)
+        .get(uri)
+        .set('Authorization', adminHeader);
+
+      expect(res.status).to.equal(200);
+      expect(res.body.total).to.equal(count);
+      expect(res.body.data)
+        .to.be.an('array')
+        .that.has.a.lengthOf(count)
+        .and.that.has.same.deep.members(orders);
+    });
+
+    it('should get correct orders with limit', async () => {
+      const count = 10;
+      const limit = 3;
+
+      await factory(Order)({
+        user: admin,
+        status: OrderStatus.pending,
+      }).createMany(count);
+      const orders = Helpers.JSONify(
+        await repository.find({
+          relations: ['user', 'item'],
+          order: { updatedAt: 'DESC' },
+          take: limit,
+        })
+      );
+
+      const res = await chai
+        .request(app.app)
+        .get(uri)
+        .query({ limit })
+        .set('Authorization', adminHeader);
+
+      expect(res.status).to.equal(200);
+      expect(res.body.total).to.equal(count);
+      expect(res.body.data)
+        .to.be.an('array')
+        .that.has.a.lengthOf(limit)
+        .and.that.has.same.deep.members(orders);
+    });
+
+    it('should get correct orders with offset', async () => {
+      const count = 10;
+      const offset = 3;
+
+      await factory(Order)({
+        user: admin,
+        status: OrderStatus.pending,
+      }).createMany(count);
+      const orders = Helpers.JSONify(
+        await repository.find({
+          relations: ['user', 'item'],
+          order: { updatedAt: 'DESC' },
+          skip: offset,
+        })
+      );
+
+      const res = await chai
+        .request(app.app)
+        .get(uri)
+        .query({ offset })
+        .set('Authorization', adminHeader);
+
+      expect(res.status).to.equal(200);
+      expect(res.body.total).to.equal(count);
+      expect(res.body.data)
+        .to.be.an('array')
+        .that.has.a.lengthOf(count - offset)
+        .and.that.has.same.deep.members(orders);
+    });
+  });
+
   describe('GET /orders/:id', () => {
     const uri = `${environment.apiRoutes.base}${environment.apiRoutes.orders.getSingleOrder}`;
 
@@ -193,7 +668,20 @@ describe('OrderController', () => {
       )
     );
 
-    //todo wrong user access test
+    it('should return 403 as non-admin requesting another users orders', async () => {
+      const order = Helpers.JSONify(
+        await factory(Order)({
+          user: admin,
+          status: OrderStatus.ordered,
+        }).create()
+      );
+      const response = await chai
+        .request(app.app)
+        .get(uri.replace(':id', order.id))
+        .set('Authorization', visitorHeader);
+
+      response.should.have.status(403);
+    });
 
     it('should fail with invalid id', (done) => {
       chai
@@ -325,7 +813,10 @@ describe('OrderController', () => {
       const order = Helpers.JSONify(
         await repository.findOneOrFail(
           (
-            await factory(Order)({ user: admin }).create()
+            await factory(Order)({
+              user: admin,
+              status: OrderStatus.pending,
+            }).create()
           ).id,
           { relations: ['item', 'user'] }
         )
