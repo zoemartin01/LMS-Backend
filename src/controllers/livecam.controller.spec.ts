@@ -16,6 +16,7 @@ import sinonChai from 'sinon-chai';
 import chaiAsPromised from 'chai-as-promised';
 import { LivecamController } from './livecam.controller';
 import { WebSocket } from 'ws';
+import { Request } from 'express';
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const MockExpressRequest = require('mock-express-request');
 
@@ -257,6 +258,14 @@ describe('LivecamController', () => {
         });
       };
 
+      socket.on = (event: 'close', fn: Function) => {
+        socket.onclose = fn;
+      };
+
+      socket.emit = (event: 'close') => {
+        socket.onclose();
+      };
+
       return socket as WebSocket & { register: Function };
     };
 
@@ -264,6 +273,8 @@ describe('LivecamController', () => {
     let frontend_server_ws: WebSocket & { register: Function };
     let livecam_client_ws: WebSocket & { register: Function };
     let livecam_server_ws: WebSocket & { register: Function };
+
+    let req: Request;
 
     beforeEach(() => {
       frontend_client_ws = WebSocketMock();
@@ -274,10 +285,13 @@ describe('LivecamController', () => {
 
       frontend_server_ws.register(frontend_client_ws);
       livecam_server_ws.register(livecam_client_ws);
+
+      req = new MockExpressRequest();
+
+      LivecamController.wss = [];
     });
 
     it('should relay websocket messages from the livecam server', async () => {
-      const req = new MockExpressRequest();
       const spy = sandbox.spy(frontend_client_ws, 'onmessage');
 
       livecam_client_ws.onmessage = (event) => {
@@ -287,10 +301,28 @@ describe('LivecamController', () => {
       };
 
       LivecamController.ws = livecam_client_ws;
-      LivecamController.getLiveCameraFeed(frontend_server_ws, req);
+      await LivecamController.getLiveCameraFeed(frontend_server_ws, req);
 
       livecam_server_ws.send('message');
       expect(spy).to.have.been.called;
+    });
+
+    it('should remove a client from the broadcast list on clone', async () => {
+      LivecamController.ws = livecam_client_ws;
+      await LivecamController.getLiveCameraFeed(frontend_server_ws, req);
+
+      LivecamController.wss.should.include(frontend_server_ws);
+      frontend_server_ws.emit('close');
+      LivecamController.wss.should.not.include(frontend_server_ws);
+    });
+
+    it('should try to initialize a connection with the backend if no connection was established yet', async () => {
+      const spy = sandbox
+        .stub(LivecamController, 'initBackendConnection')
+        .resolves();
+      LivecamController.ws = undefined;
+      await LivecamController.getLiveCameraFeed(frontend_server_ws, req);
+      spy.should.have.been.called;
     });
   });
 });
