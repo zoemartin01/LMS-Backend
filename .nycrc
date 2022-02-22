@@ -5,8 +5,8 @@
     ".ts"
   ],
   "include": [
-    "src/**/*.js",
-    "src/**/*.ts"
+    "src/controllers/*.ts",
+    "src/models/*.ts"
   ],
   "exclude": [
     "coverage/**",
