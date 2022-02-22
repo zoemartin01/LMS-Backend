@@ -8,23 +8,27 @@ import { getRepository } from 'typeorm';
 
 define(
   Order,
-  (faker: typeof Faker, context?: { user: User; item?: InventoryItem }) => {
+  (
+    faker: typeof Faker,
+    context?: { user: User; item?: InventoryItem; status?: OrderStatus }
+  ) => {
     if (!context || !context.user)
       throw new Error('Factory Order requires user');
     const itemName = faker.commerce.productName();
     const quantity = faker.random.number({ min: 1 });
-    const status = faker.random.arrayElement([
-      OrderStatus.declined,
-      OrderStatus.pending,
-      OrderStatus.ordered,
-      OrderStatus.inventoried,
-      OrderStatus.sent_back,
-    ]);
+    const status =
+      context?.status ??
+      faker.random.arrayElement([
+        OrderStatus.declined,
+        OrderStatus.pending,
+        OrderStatus.ordered,
+        OrderStatus.inventoried,
+        OrderStatus.sent_back,
+      ]);
     const user = context.user;
     const item = context.item;
     const url = faker.internet.url();
 
-    let order: Order;
     if (item) {
       return getRepository(Order).create({
         item,
