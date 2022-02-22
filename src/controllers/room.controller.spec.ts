@@ -190,7 +190,7 @@ describe('RoomController', () => {
     const uri = `${environment.apiRoutes.base}${environment.apiRoutes.rooms.createRoom}`;
 
     it(
-      'should fail without authentification',
+      'should fail without authentication',
       Helpers.checkAuthentication('POST', 'fails', app, uri)
     );
 
