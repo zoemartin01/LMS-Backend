@@ -78,15 +78,11 @@ describe('AdminController', () => {
   describe('PATCH /application-settings', () => {
     const uri = `${environment.apiRoutes.base}${environment.apiRoutes.admin_settings.updateGlobalSettings}`;
 
-    it('should fail without authentication', (done) => {
-      chai
-        .request(app.app)
-        .patch(uri)
-        .end((err, res) => {
-          expect(res.status).to.equal(401);
-          done();
-        });
-    });
+    it(
+      'should fail without authentication',
+      Helpers.checkAuthentication('GET', 'fails', app, uri)
+    );
+
     it('should fail as non-admin', (done) => {
       chai
         .request(app.app)
@@ -117,15 +113,10 @@ describe('AdminController', () => {
   describe('GET /application-settings/whitelist-retailers', () => {
     const uri = `${environment.apiRoutes.base}${environment.apiRoutes.admin_settings.getWhitelistRetailers}`;
 
-    it('should fail without authentification', (done) => {
-      chai
-        .request(app.app)
-        .get(uri)
-        .end((err, res) => {
-          expect(res.status).to.equal(401);
-          done();
-        });
-    });
+    it(
+      'should fail without authentication',
+      Helpers.checkAuthentication('GET', 'fails', app, uri)
+    );
 
     it('should fail as non-admin', (done) => {
       chai
@@ -162,18 +153,18 @@ describe('AdminController', () => {
     });
   });
 
-  describe('GET /application-settings/whitelist-retailers', () => {
+  describe('GET /application-settings/whitelist-retailers/:id', () => {
     const uri = `${environment.apiRoutes.base}${environment.apiRoutes.admin_settings.getWhitelistRetailer}`;
 
-    it('should fail without authentification', (done) => {
-      chai
-        .request(app.app)
-        .get(uri.replace(':id', uuidv4()))
-        .end((err, res) => {
-          expect(res.status).to.equal(401);
-          done();
-        });
-    });
+    it(
+      'should fail without authentication',
+      Helpers.checkAuthentication(
+        'GET',
+        'fails',
+        app,
+        uri.replace(':id', uuidv4())
+      )
+    );
 
     it('should fail as non-admin', (done) => {
       chai
@@ -214,15 +205,10 @@ describe('AdminController', () => {
   describe('POST /application-settings/whitelist-retailers', () => {
     const uri = `${environment.apiRoutes.base}${environment.apiRoutes.admin_settings.createWhitelistRetailer}`;
 
-    it('should fail without authentification', (done) => {
-      chai
-        .request(app.app)
-        .post(uri)
-        .end((err, res) => {
-          expect(res.status).to.equal(401);
-          done();
-        });
-    });
+    it(
+      'should fail without authentication',
+      Helpers.checkAuthentication('GET', 'fails', app, uri)
+    );
 
     it('should fail as non-admin', (done) => {
       chai
@@ -254,15 +240,16 @@ describe('AdminController', () => {
   describe('PATCH /application-settings/whitelist-retailers/:id', () => {
     const uri = `${environment.apiRoutes.base}${environment.apiRoutes.admin_settings.updateWhitelistRetailer}`;
 
-    it('should fail without authentification', (done) => {
-      chai
-        .request(app.app)
-        .patch(uri.replace(':id', uuidv4()))
-        .end((err, res) => {
-          expect(res.status).to.equal(401);
-          done();
-        });
-    });
+    it(
+      'should fail without authentication',
+      Helpers.checkAuthentication(
+        'GET',
+        'fails',
+        app,
+        uri.replace(':id', uuidv4())
+      )
+    );
+
     it('should fail as non-admin', (done) => {
       chai
         .request(app.app)
@@ -290,15 +277,15 @@ describe('AdminController', () => {
   describe('DELETE /application-settings/whitelist-retailers/:id', () => {
     const uri = `${environment.apiRoutes.base}${environment.apiRoutes.admin_settings.deleteWhitelistRetailer}`;
 
-    it('should fail without authentification', (done) => {
-      chai
-        .request(app.app)
-        .delete(uri.replace(':id', uuidv4()))
-        .end((err, res) => {
-          expect(res.status).to.equal(401);
-          done();
-        });
-    });
+    it(
+      'should fail without authentication',
+      Helpers.checkAuthentication(
+        'GET',
+        'fails',
+        app,
+        uri.replace(':id', uuidv4())
+      )
+    );
 
     it('should fail with invalid id', (done) => {
       chai
@@ -345,13 +332,15 @@ describe('AdminController', () => {
   describe('POST /application-settings/whitelist-retailers/:id/domains', () => {
     const uri = `${environment.apiRoutes.base}${environment.apiRoutes.admin_settings.addDomainToWhitelistRetailer}`;
 
-    it('should fail without authentification', async () => {
-      const retailer = await factory(Retailer)().create();
-      const res = await chai
-        .request(app.app)
-        .post(uri.replace(':id', retailer.id));
-      expect(res.status).to.equal(401);
-    });
+    it(
+      'should fail without authentication',
+      Helpers.checkAuthentication(
+        'GET',
+        'fails',
+        app,
+        uri.replace(':id', uuidv4())
+      )
+    );
 
     it('should fail as non-admin', async () => {
       const retailer = await factory(Retailer)().create();
@@ -378,18 +367,13 @@ describe('AdminController', () => {
     });
   });
 
-  /** describe('DELETE /application-settings/whitelist-retailers/:id/domains/:domainId', () => {
+  /* describe('DELETE /application-settings/whitelist-retailers/:id/domains/:domainId', () => {
     const uri = `${environment.apiRoutes.base}${environment.apiRoutes.rooms.deleteTimeslot}`;
 
-    it('should fail without authentification', async () => {
-      const retailer = await factory(Retailer)().create();
-      const res = await chai
-        .request(app.app)
-        .delete(
-          uri.replace(':id', retailer.id).replace(':domainId', uuidv4())
-        );
-      expect(res.status).to.equal(401);
-    });
+    it(
+      'should fail without authentication',
+      Helpers.checkAuthentication('GET', 'fails', app, uri.replace(':id', uuidv4()))
+    );
 
     it('should fail with invalid id', async () => {
       const retailer = await factory(Retailer)().create();
@@ -443,5 +427,5 @@ describe('AdminController', () => {
         expect(domain).to.be.undefined;
       });
     });
-  }); **/
+  }); */
 });

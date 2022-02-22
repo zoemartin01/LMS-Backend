@@ -62,7 +62,7 @@ describe('LivecamController', () => {
   describe('GET /livecam/recordings', () => {
     const uri = `${environment.apiRoutes.base}${environment.apiRoutes.livecam.getAllRecordings}`;
 
-    it('should fail without authentification', (done) => {
+    it('should fail without authentication', (done) => {
       chai
         .request(app.app)
         .get(uri)
@@ -126,7 +126,7 @@ describe('LivecamController', () => {
   describe('GET /livecam/recordings/schedules', () => {
     const uri = `${environment.apiRoutes.base}${environment.apiRoutes.livecam.getAllScheduled}`;
 
-    it('should fail without authentification', (done) => {
+    it('should fail without authentication', (done) => {
       chai
         .request(app.app)
         .get(uri)
@@ -140,7 +140,7 @@ describe('LivecamController', () => {
   describe('PATCH /livecam/recordings/:id', () => {
     const uri = `${environment.apiRoutes.base}${environment.apiRoutes.livecam.updateRecording}`;
 
-    // it('should fail without authentification', (done) => {
+    // it('should fail without authentication', (done) => {
     //   chai
     //     .request(app.app)
     //     .patch(uri.replace(':id', uuidv4()))
@@ -192,7 +192,7 @@ describe('LivecamController', () => {
   describe('DELETE /livecam/recordings/:id', () => {
     const uri = `${environment.apiRoutes.base}${environment.apiRoutes.livecam.deleteRecording}`;
 
-    it('should fail without authentification', (done) => {
+    it('should fail without authentication', (done) => {
       chai
         .request(app.app)
         .delete(uri.replace(':id', uuidv4()))
