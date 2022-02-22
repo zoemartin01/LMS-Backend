@@ -78,7 +78,7 @@ describe('AdminController', () => {
   describe('PATCH /application-settings', () => {
     const uri = `${environment.apiRoutes.base}${environment.apiRoutes.admin_settings.updateGlobalSettings}`;
 
-    it('should fail without authentification', (done) => {
+    it('should fail without authentication', (done) => {
       chai
         .request(app.app)
         .patch(uri)
