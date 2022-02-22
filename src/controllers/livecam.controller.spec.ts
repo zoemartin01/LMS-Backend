@@ -16,8 +16,13 @@ import { Helpers } from '../test.spec';
 import { User } from '../models/user.entity';
 import Faker from 'faker';
 import { VideoResolution } from '../types/enums/video-resolution';
+import Sinon from 'sinon';
+import sinonChai from 'sinon-chai';
+import chaiAsPromised from 'chai-as-promised';
 
 chai.use(chaiHttp);
+chai.use(sinonChai);
+chai.use(chaiAsPromised);
 chai.should();
 
 describe('LivecamController', () => {
@@ -27,6 +32,7 @@ describe('LivecamController', () => {
   let admin: User;
   let visitorHeader: string;
   let visitor: User;
+  let sandbox: Sinon.SinonSandbox;
 
   before(async () => {
     process.env.NODE_ENV = 'testing';
@@ -36,7 +42,7 @@ describe('LivecamController', () => {
     connection = await useRefreshDatabase({ connection: 'default' });
     await useSeeding();
 
-    await runSeeder(CreateTestUsers);
+    await Helpers.createTestUsers();
 
     // Authentication
     adminHeader = await Helpers.getAuthHeader();
@@ -44,10 +50,13 @@ describe('LivecamController', () => {
 
     visitorHeader = await Helpers.getAuthHeader(false);
     visitor = await Helpers.getCurrentUser(visitorHeader);
+
+    sandbox = Sinon.createSandbox();
   });
 
   afterEach(async () => {
     app.shutdownJobs();
+    sandbox.restore();
   });
 
   describe('GET /livecam/recordings', () => {
@@ -225,4 +234,6 @@ describe('LivecamController', () => {
         });
     });
   });
+
+  describe('WS /livecam/stream', () => {});
 });
