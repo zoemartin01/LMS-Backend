@@ -80,7 +80,7 @@ describe('AdminController', () => {
 
     it(
       'should fail without authentication',
-      Helpers.checkAuthentication('GET', 'fails', app, uri)
+      Helpers.checkAuthentication('PATCH', 'fails', app, uri)
     );
 
     it('should fail as non-admin', (done) => {
@@ -207,7 +207,7 @@ describe('AdminController', () => {
 
     it(
       'should fail without authentication',
-      Helpers.checkAuthentication('GET', 'fails', app, uri)
+      Helpers.checkAuthentication('POST', 'fails', app, uri)
     );
 
     it('should fail as non-admin', (done) => {
