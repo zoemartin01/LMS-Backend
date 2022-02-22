@@ -31,6 +31,7 @@ describe('AppointmentController', () => {
   let visitorHeader: string;
   let visitor: User;
   let room: Room;
+  let spy: Sinon.SinonSpy | Sinon.SinonStub;
 
   before(async () => {
     process.env.NODE_ENV = 'testing';
@@ -45,15 +46,16 @@ describe('AppointmentController', () => {
 
     // Authentication
     adminHeader = await Helpers.getAuthHeader();
-    admin = users.admin;
+    admin = await Helpers.getCurrentUser(adminHeader);
 
     visitorHeader = await Helpers.getAuthHeader(false);
-    visitor = users.visitor;
+    visitor = await Helpers.getCurrentUser(visitorHeader);
 
     room = await factory(Room)().create();
   });
 
   afterEach(async () => {
+    if (spy) spy.restore();
     app.shutdownJobs();
   });
 
@@ -1121,7 +1123,7 @@ describe('AppointmentController', () => {
     });
 
     it('should send a message to the user the appointment belongs to', async () => {
-      const spy = Sinon.spy(MessagingController, 'sendMessage');
+      spy = Sinon.spy(MessagingController, 'sendMessage');
 
       const appointment = await getRepository(AppointmentTimeslot).save({
         start: moment().toDate(),
@@ -1137,12 +1139,10 @@ describe('AppointmentController', () => {
       res.should.have.status(204);
 
       expect(spy).to.have.been.calledWith(appointment.user);
-
-      spy.restore();
     });
 
     it('should send a message to all admins if a visitor cancels their appointment', async () => {
-      const spy = Sinon.spy(MessagingController, 'sendMessageToAllAdmins');
+      spy = Sinon.spy(MessagingController, 'sendMessageToAllAdmins');
 
       const appointment = await getRepository(AppointmentTimeslot).save({
         start: moment().toDate(),
@@ -1158,8 +1158,6 @@ describe('AppointmentController', () => {
       res.should.have.status(204);
 
       expect(spy).to.have.been.called;
-
-      spy.restore();
     });
   });
 
@@ -1268,7 +1266,7 @@ describe('AppointmentController', () => {
     });
 
     it('should send a message to the user the appointment belongs to', async () => {
-      const spy = Sinon.spy(MessagingController, 'sendMessage');
+      spy = Sinon.spy(MessagingController, 'sendMessage');
 
       const seriesId = v4();
 
@@ -1286,12 +1284,10 @@ describe('AppointmentController', () => {
       res.should.have.status(204);
 
       expect(spy).to.have.been.calledWith(admin);
-
-      spy.restore();
     });
 
     it('should send a message to all admins if a visitor cancels their appointment series', async () => {
-      const spy = Sinon.spy(MessagingController, 'sendMessageToAllAdmins');
+      spy = Sinon.spy(MessagingController, 'sendMessageToAllAdmins');
 
       const seriesId = v4();
 
@@ -1309,8 +1305,6 @@ describe('AppointmentController', () => {
       res.should.have.status(204);
 
       expect(spy).to.have.been.called;
-
-      spy.restore();
     });
   });
 });
