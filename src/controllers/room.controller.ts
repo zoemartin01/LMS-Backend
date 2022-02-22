@@ -309,29 +309,30 @@ export class RoomController {
             calendar[i][day][index + 1] = `available ${+(<string>calendar[i][day][j]).split(' ')[1] - index - 1}`;
           }
 
-        if (index < room.maxConcurrentBookings - 1) {
-          for (let i = hour; i < timespanEnd - minTimeslot; i++) {
-            if (typeof calendar[i][day][index] === 'string'
-              && (<string>calendar[i][day][index]).split(' ')[0] === 'available'
-              && +(<string>calendar[i][day][index]).split(' ')[1] > 1) {
-              calendar[i][day][index + 1] = `available ${+(<string>calendar[i][day][index]).split(' ')[1] - 1}`;
+          if (index < room.maxConcurrentBookings - 1) {
+            for (let i = hour; i < timespanEnd - minTimeslot; i++) {
+              if (typeof calendar[i][day][index] === 'string'
+                && (<string>calendar[i][day][index]).split(' ')[0] === 'available'
+                && +(<string>calendar[i][day][index]).split(' ')[1] > 1) {
+                calendar[i][day][index + 1] = `available ${+(<string>calendar[i][day][index]).split(' ')[1] - 1}`;
+              }
             }
           }
-        }
 
-        calendar[hour][day][index] = appointment;
+          calendar[hour][day][index] = appointment;
 
-        if (0 < index) {
-          for (let i = hour; i < timespanEnd - minTimeslot; i++) {
-            for (j = index - 1; 0 <= j; j--) {
-              if (typeof calendar[i][day][j] === 'string'
-                && (<string>calendar[i][day][j]).split(' ')[0] === 'available') {
-                if (index < j + +(<string>calendar[i][day][j]).split(' ')[1]) {
-                  calendar[i][day][j] = `available ${index - j}`;
+          if (0 < index) {
+            for (let i = hour; i < timespanEnd - minTimeslot; i++) {
+              for (j = index - 1; 0 <= j; j--) {
+                if (typeof calendar[i][day][j] === 'string'
+                  && (<string>calendar[i][day][j]).split(' ')[0] === 'available') {
+                  if (index < j + +(<string>calendar[i][day][j]).split(' ')[1]) {
+                    calendar[i][day][j] = `available ${index - j}`;
+                  }
+                  break;
                 }
                 break;
               }
-              break;
             }
           }
         }
