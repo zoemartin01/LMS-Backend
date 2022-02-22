@@ -91,13 +91,14 @@ export class InventoryController {
     }
 
     res
-      .status(303)
-      .send(
+      .setHeader(
+        'location',
         environment.apiRoutes.inventory_item.getSingleItem.replace(
           ':id',
           existingInventoryItem.id
         )
-      );
+      )
+      .sendStatus(303);
   }
 
   /**

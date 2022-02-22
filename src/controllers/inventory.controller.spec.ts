@@ -161,7 +161,7 @@ describe('InventoryController', () => {
     it('should fail with invalid id', (done) => {
       chai
         .request(app.app)
-        .get(uri.replace(':id', 'invalid'))
+        .get(uri.replace(':id', uuidv4()))
         .set('Authorization', adminHeader)
         .end((err, res) => {
           expect(res.status).to.equal(404);
@@ -255,7 +255,17 @@ describe('InventoryController', () => {
       expect(res.status).to.equal(400);
     });
 
-    it('should fail to create a inventory item with invalid/no data', async () => {
+    it('should return 400 on invalid entity input', async () => {
+      const res = await chai
+        .request(app.app)
+        .post(uri)
+        .set('Authorization', adminHeader)
+        .send({ quantity: -1 });
+
+      expect(res.status).to.equal(400);
+    });
+
+    it('should fail to create a inventory item with no data', async () => {
       const res = await chai
         .request(app.app)
         .post(uri)
@@ -263,6 +273,19 @@ describe('InventoryController', () => {
         .send({});
 
       expect(res.status).to.equal(400);
+    });
+
+    it('should redirect when trying to create a inventory item that already exists', async () => {
+      const inventoryItem = await factory(InventoryItem)().create();
+
+      const res = await chai
+        .request(app.app)
+        .post(uri)
+        .redirects(0)
+        .set('Authorization', adminHeader)
+        .send({ name: inventoryItem.name });
+
+      expect(res.status).to.equal(303);
     });
 
     it('should successfully create a new inventory item with valid data', async () => {
@@ -325,6 +348,19 @@ describe('InventoryController', () => {
         .patch(uri.replace(':id', inventoryItem.id))
         .set('Authorization', adminHeader)
         .send({ id: uuidv4() });
+
+      expect(res.status).to.equal(400);
+    });
+
+    it('should return 400 on invalid entity input', async () => {
+      const inventoryItem = Helpers.JSONify(
+        await factory(InventoryItem)().create()
+      );
+      const res = await chai
+        .request(app.app)
+        .patch(uri.replace(':id', inventoryItem.id))
+        .set('Authorization', adminHeader)
+        .send({ quantity: -1 });
 
       expect(res.status).to.equal(400);
     });
