@@ -5,7 +5,7 @@ import App from '../app';
 import chai, { expect } from 'chai';
 import chaiHttp from 'chai-http';
 import environment from '../environment';
-import { v4 as uuidv4, v4 } from 'uuid';
+import { v4 } from 'uuid';
 import { Recording } from '../models/recording.entity';
 import { Helpers } from '../test.spec';
 import { User } from '../models/user.entity';
@@ -18,6 +18,7 @@ import { LivecamController } from './livecam.controller';
 import { WebSocket } from 'ws';
 import { Request } from 'express';
 import axios from 'axios';
+import * as util from 'util';
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const MockExpressRequest = require('mock-express-request');
 
@@ -192,17 +193,81 @@ describe('LivecamController', () => {
     });
   });
 
+  describe('GET /livecam/recordings/:id/download', () => {
+    const uri = `${environment.apiRoutes.base}${environment.apiRoutes.livecam.downloadRecording}`;
+
+    it(
+      'should return 401 if not authenticated',
+      Helpers.checkAuthentication('GET', 'fails', app, uri.replace(':id', v4()))
+    );
+
+    it('should return 403 as non-admin', async () => {
+      const response = await chai
+        .request(app.app)
+        .get(uri.replace(':id', v4()))
+        .set('Authorization', visitorHeader);
+
+      response.should.have.status(403);
+    });
+
+    it('should return 503 if the livecam server is not available', async () => {
+      const recording = await factory(Recording)(admin).create();
+      sandbox.stub(axios, 'get').throws('Timeout');
+
+      const res = await chai
+        .request(app.app)
+        .get(uri.replace(':id', recording.id))
+        .set('Authorization', adminHeader);
+
+      res.status.should.equal(503);
+    });
+
+    it('should relay the error codes from the livecam server', async () => {
+      const recording = await factory(Recording)(admin).create();
+      sandbox.stub(axios, 'get').resolves({ status: 500 });
+
+      const res = await chai
+        .request(app.app)
+        .get(uri.replace(':id', recording.id))
+        .set('Authorization', adminHeader);
+
+      res.status.should.equal(500);
+    });
+
+    it('should relay the download', async () => {
+      const recording = await factory(Recording)(admin).create();
+      sandbox.stub(axios, 'get').resolves({ status: 200, data: 'test' });
+
+      const res = await chai
+        .request(app.app)
+        .get(uri.replace(':id', recording.id))
+        .set('Authorization', adminHeader);
+
+      res.should.have.status(200);
+      res.body.toString().should.equal('test');
+    });
+  });
+
   describe('DELETE /livecam/recordings/:id', () => {
     const uri = `${environment.apiRoutes.base}${environment.apiRoutes.livecam.deleteRecording}`;
 
-    it('should fail without authentication', (done) => {
-      chai
+    it(
+      'should return 401 if not authenticated',
+      Helpers.checkAuthentication(
+        'DELETE',
+        'fails',
+        app,
+        uri.replace(':id', v4())
+      )
+    );
+
+    it('should return 403 as non-admin', async () => {
+      const response = await chai
         .request(app.app)
-        .delete(uri.replace(':id', uuidv4()))
-        .end((err, res) => {
-          expect(res.status).to.equal(401);
-          done();
-        });
+        .delete(uri.replace(':id', v4()))
+        .set('Authorization', visitorHeader);
+
+      response.should.have.status(403);
     });
 
     it('should fail with invalid id', (done) => {
@@ -237,7 +302,6 @@ describe('LivecamController', () => {
 
     it('should fail to delete a recording if the livecam server is not available', async () => {
       const recording = await factory(Recording)(admin).create();
-      const repository = getRepository(Recording);
 
       await repository.findOneOrFail({ id: recording.id }).should.eventually.be
         .fulfilled;
