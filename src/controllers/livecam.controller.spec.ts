@@ -1,11 +1,11 @@
 /* eslint-disable @typescript-eslint/ban-types */
-import { Connection, getRepository } from 'typeorm';
+import { Connection, getRepository, Repository } from 'typeorm';
 import { factory, useRefreshDatabase, useSeeding } from 'typeorm-seeding';
 import App from '../app';
 import chai, { expect } from 'chai';
 import chaiHttp from 'chai-http';
 import environment from '../environment';
-import { v4 as uuidv4 } from 'uuid';
+import { v4 as uuidv4, v4 } from 'uuid';
 import { Recording } from '../models/recording.entity';
 import { Helpers } from '../test.spec';
 import { User } from '../models/user.entity';
@@ -17,6 +17,7 @@ import chaiAsPromised from 'chai-as-promised';
 import { LivecamController } from './livecam.controller';
 import { WebSocket } from 'ws';
 import { Request } from 'express';
+import axios from 'axios';
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const MockExpressRequest = require('mock-express-request');
 
@@ -33,6 +34,7 @@ describe('LivecamController', () => {
   let visitorHeader: string;
   let visitor: User;
   let sandbox: Sinon.SinonSandbox;
+  let repository: Repository<Recording>;
 
   before(async () => {
     process.env.NODE_ENV = 'testing';
@@ -52,6 +54,7 @@ describe('LivecamController', () => {
     visitor = await Helpers.getCurrentUser(visitorHeader);
 
     sandbox = Sinon.createSandbox();
+    repository = getRepository(Recording);
   });
 
   afterEach(async () => {
@@ -205,7 +208,7 @@ describe('LivecamController', () => {
     it('should fail with invalid id', (done) => {
       chai
         .request(app.app)
-        .delete(uri.replace(':id', 'invalid'))
+        .delete(uri.replace(':id', v4()))
         .set('Authorization', adminHeader)
         .end((err, res) => {
           expect(res.status).to.equal(404);
@@ -215,23 +218,41 @@ describe('LivecamController', () => {
 
     it('should delete a specific recording', async () => {
       const recording = await factory(Recording)(admin).create();
-      const repository = getRepository(Recording);
 
-      repository.findOne({ id: recording.id }).then((recording) => {
-        expect(recording).to.be.not.undefined;
-      });
+      await repository.findOneOrFail({ id: recording.id }).should.eventually.be
+        .fulfilled;
 
-      chai
+      sandbox.stub(axios, 'delete').resolves();
+
+      const res = await chai
         .request(app.app)
         .delete(uri.replace(':id', recording.id))
-        .set('Authorization', adminHeader)
-        .end((err, res) => {
-          expect(res.status).to.equal(503);
+        .set('Authorization', adminHeader);
 
-          repository.findOne({ id: recording.id }).then((recording) => {
-            expect(recording).to.be.undefined;
-          });
-        });
+      res.status.should.equal(204);
+
+      await repository.findOneOrFail({ id: recording.id }).should.eventually.be
+        .rejected;
+    });
+
+    it('should fail to delete a recording if the livecam server is not available', async () => {
+      const recording = await factory(Recording)(admin).create();
+      const repository = getRepository(Recording);
+
+      await repository.findOneOrFail({ id: recording.id }).should.eventually.be
+        .fulfilled;
+
+      sandbox.stub(axios, 'delete').throws('Timeout');
+
+      const res = await chai
+        .request(app.app)
+        .delete(uri.replace(':id', recording.id))
+        .set('Authorization', adminHeader);
+
+      res.status.should.equal(503);
+
+      await repository.findOneOrFail({ id: recording.id }).should.eventually.be
+        .fulfilled;
     });
   });
 
