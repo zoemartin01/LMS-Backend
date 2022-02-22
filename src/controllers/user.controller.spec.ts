@@ -195,6 +195,16 @@ describe('UserController', () => {
       expect(res.status).to.equal(403);
     });
 
+    it('should update invalid NotificationChannel of a user', async () => {
+      const res = await chai
+        .request(app.app)
+        .patch(uri)
+        .set('Authorization', adminHeader)
+        .send({ notificationChannel: -1 });
+
+      expect(res.status).to.equal(400);
+    });
+
     it('should update the NotificationChannel of a user', async () => {
       const res = await chai
         .request(app.app)
