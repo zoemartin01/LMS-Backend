@@ -13,10 +13,12 @@ import sinonChai from 'sinon-chai';
 import { Token } from '../models/token.entity';
 import { TokenType } from '../types/enums/token-type';
 import { NotificationChannel } from '../types/enums/notification-channel';
-import { Room } from '../models/room.entity';
+import bcrypt from 'bcrypt';
+import chaiAsPromised from 'chai-as-promised';
 
 chai.use(chaiHttp);
 chai.use(sinonChai);
+chai.use(chaiAsPromised);
 chai.should();
 
 describe('UserController', () => {
@@ -195,12 +197,22 @@ describe('UserController', () => {
       expect(res.status).to.equal(403);
     });
 
-    it('should update invalid NotificationChannel of a user', async () => {
+    it('should return 400 on invalid entity input (1)', async () => {
       const res = await chai
         .request(app.app)
         .patch(uri)
         .set('Authorization', adminHeader)
         .send({ notificationChannel: -1 });
+
+      expect(res.status).to.equal(400);
+    });
+
+    it('should return 400 on invalid entity input (2)', async () => {
+      const res = await chai
+        .request(app.app)
+        .patch(uri)
+        .set('Authorization', adminHeader)
+        .send({ password: 'test', notificationChannel: -1 });
 
       expect(res.status).to.equal(400);
     });
@@ -219,18 +231,18 @@ describe('UserController', () => {
       });
     });
 
-    //todo zoe
+    it('should update the Password of a user', async () => {
+      const res = await chai
+        .request(app.app)
+        .patch(uri)
+        .set('Authorization', adminHeader)
+        .send({ password: 'testPassword' });
 
-    // it('should update the Password of a user', async () => {
-    //   const res = await chai
-    //     .request(app.app)
-    //     .patch(uri)
-    //     .set('Authorization', adminHeader)
-    //     .send({ password: 'testPassword' });
-    //
-    //   expect(res.status).to.equal(200);
-    //   expect(res.body).to.deep.equal(Helpers.JSONify({ ...admin, password: hashed }));
-    // });
+      const user = await repository.findOneOrFail(admin.id);
+
+      expect(res.status).to.equal(200);
+      bcrypt.compareSync('testPassword', user.password).should.be.true;
+    });
 
     it('should send a message to the user updated', async () => {
       const spy = sandbox.spy(MessagingController, 'sendMessage');
