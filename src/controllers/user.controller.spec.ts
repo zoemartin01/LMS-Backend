@@ -13,6 +13,7 @@ import sinonChai from 'sinon-chai';
 import { Token } from '../models/token.entity';
 import { TokenType } from '../types/enums/token-type';
 import { NotificationChannel } from '../types/enums/notification-channel';
+import { Room } from '../models/room.entity';
 
 chai.use(chaiHttp);
 chai.use(sinonChai);
@@ -58,7 +59,30 @@ describe('UserController', () => {
   describe('POST /users', () => {
     const uri = `${environment.apiRoutes.base}${environment.apiRoutes.user_settings.register}`;
 
+    it('should fail to create user with same email', async () => {
+      const user = Helpers.JSONify(await factory(User)().create());
+      const res = await chai.request(app.app).post(uri).send({
+        firstName: 'first',
+        lastName: 'last',
+        email: user.email,
+        password: 'testPassword',
+      });
+      res.should.have.status(409);
+    });
+
     //todo test registration
+    /*
+    it('should register user', async () => {
+      const res = await chai.request(app.app).post(uri).send({
+        firstName: 'first',
+        lastName: 'last',
+        email: 'test@test.de',
+        password: 'testPassword',
+      });
+      //todo test token and password hash
+      res.should.have.status(201);
+    });
+     */
 
     it('should send a message to the user with the registration link', async () => {
       const spy = sandbox.spy(MessagingController, 'sendMessage');
@@ -271,6 +295,31 @@ describe('UserController', () => {
 
   describe('POST /user/verify-email', () => {
     const uri = `${environment.apiRoutes.base}${environment.apiRoutes.user_settings.verifyEmail}`;
+
+    it('should fail with invalid user id', async () => {
+      const user = await factory(User)().create();
+      const token = await getRepository(Token).save({
+        userId: user.id,
+        type: TokenType.emailVerificationToken,
+        token: 'testToken',
+      });
+      const res = await chai
+        .request(app.app)
+        .post(uri)
+        .send({ userId: undefined, token: token.token });
+
+      expect(res.status).to.equal(404);
+    });
+
+    it('should fail with invalid token', async () => {
+      const user = await factory(User)().create();
+      const res = await chai
+        .request(app.app)
+        .post(uri)
+        .send({ userId: user.id, token: undefined });
+
+      expect(res.status).to.equal(400);
+    });
 
     it('should update the verification of a user', async () => {
       const user = await factory(User)().create();
