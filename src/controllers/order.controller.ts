@@ -517,9 +517,9 @@ export class OrderController {
         itemName +
         ' of user ' +
         order.user.firstName +
-        ' ' +
+        '  ' +
         order.user.lastName +
-        'has been updated.',
+        ' has been updated.',
       'Updated Order',
       '/orders/all'
     );
