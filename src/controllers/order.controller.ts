@@ -454,13 +454,9 @@ export class OrderController {
       return;
     }
 
-    res.status(200).json(order);
-
     const orderItem = await order.item;
-
     const itemName: string | null =
       orderItem === null ? order.itemName : orderItem.name;
-
     const currentUser = await AuthController.getCurrentUser(req);
 
     if (await AuthController.checkAdmin(req)) {
@@ -492,6 +488,8 @@ export class OrderController {
       'Updated Order',
       '/orders/all'
     );
+
+    res.status(200).json(order);
   }
 
   /**
@@ -531,13 +529,8 @@ export class OrderController {
     }
 
     const orderItem = await order.item;
-
     const itemName: string | null =
       orderItem === null ? order.itemName : orderItem.name;
-
-    await orderRepository.delete(order.id).then(() => {
-      res.sendStatus(204);
-    });
 
     if (currentUser === order.user) {
       await MessagingController.sendMessage(
@@ -562,5 +555,9 @@ export class OrderController {
         order.user.lastName +
         ' was deleted.'
     );
+
+    await orderRepository.delete(order.id).then(() => {
+      res.sendStatus(204);
+    });
   }
 }
