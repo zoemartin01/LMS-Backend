@@ -12,6 +12,7 @@ import sinonChai from 'sinon-chai';
 import { Order } from '../models/order.entity';
 import { OrderStatus } from '../types/enums/order-status';
 import { MessagingController } from './messaging.controller';
+import { InventoryItem } from '../models/inventory-item.entity';
 
 chai.use(chaiHttp);
 chai.use(sinonChai);
@@ -793,7 +794,7 @@ describe('OrderController', () => {
       );
       const response = await chai
         .request(app.app)
-        .get(uri.replace(':id', order.id))
+        .patch(uri.replace(':id', order.id))
         .set('Authorization', visitorHeader);
 
       response.should.have.status(403);
@@ -808,7 +809,7 @@ describe('OrderController', () => {
       );
       const response = await chai
         .request(app.app)
-        .get(uri.replace(':id', order.id))
+        .patch(uri.replace(':id', order.id))
         .set('Authorization', visitorHeader)
         .send({ status: OrderStatus.ordered });
 
@@ -824,7 +825,7 @@ describe('OrderController', () => {
       );
       const response = await chai
         .request(app.app)
-        .get(uri.replace(':id', order.id))
+        .patch(uri.replace(':id', order.id))
         .set('Authorization', visitorHeader);
 
       response.should.have.status(403);
@@ -839,7 +840,7 @@ describe('OrderController', () => {
       );
       const response = await chai
         .request(app.app)
-        .get(uri.replace(':id', order.id))
+        .patch(uri.replace(':id', order.id))
         .set('Authorization', adminHeader);
 
       response.should.have.status(403);
@@ -854,7 +855,7 @@ describe('OrderController', () => {
       );
       const response = await chai
         .request(app.app)
-        .get(uri.replace(':id', order.id))
+        .patch(uri.replace(':id', order.id))
         .set('Authorization', adminHeader);
 
       response.should.have.status(403);
@@ -869,7 +870,7 @@ describe('OrderController', () => {
       );
       const response = await chai
         .request(app.app)
-        .get(uri.replace(':id', order.id))
+        .patch(uri.replace(':id', order.id))
         .set('Authorization', adminHeader)
         .send({ user: visitor });
 
@@ -955,14 +956,17 @@ describe('OrderController', () => {
           { relations: ['item', 'user'] }
         )
       );
+      const inventoryItem = Helpers.JSONify(
+        await factory(InventoryItem)().create()
+      );
       const res = await chai
         .request(app.app)
         .patch(uri.replace(':id', order.id))
         .set('Authorization', adminHeader)
-        .send({ itemName: 'testOrderUpdate' });
+        .send({ itemName: inventoryItem.name });
 
       expect(res.status).to.equal(200);
-      expect(res.body).to.deep.equal({ ...order, itemName: 'testOrderUpdate' });
+      expect(res.body).to.deep.equal({ ...order, item: inventoryItem });
     });
 
     it('should fail to update a specific order with itemName, existing item, invalid name', async () => {
@@ -977,6 +981,7 @@ describe('OrderController', () => {
           { relations: ['item', 'user'] }
         )
       );
+      const item = await factory(InventoryItem)().create();
       const res = await chai
         .request(app.app)
         .patch(uri.replace(':id', order.id))
@@ -992,12 +997,13 @@ describe('OrderController', () => {
           (
             await factory(Order)({
               user: admin,
-              status: OrderStatus.pending,
-            }).make()
+              status: OrderStatus.ordered,
+            }).create()
           ).id,
           { relations: ['item', 'user'] }
         )
       );
+
       const res = await chai
         .request(app.app)
         .patch(uri.replace(':id', order.id))
@@ -1014,10 +1020,9 @@ describe('OrderController', () => {
           (
             await factory(Order)({
               user: admin,
-              status: OrderStatus.pending,
-            }).make()
-          ).id,
-          { relations: ['item', 'user'] }
+              status: OrderStatus.ordered,
+            }).create()
+          ).id
         )
       );
       const res = await chai
@@ -1047,7 +1052,7 @@ describe('OrderController', () => {
         .set('Authorization', adminHeader)
         .send({ quantity: 20 });
 
-      res.should.have.status(204);
+      res.should.have.status(200);
       expect(spy).to.have.been.calledWith(
         await getRepository(User).findOneOrFail(admin.id)
       );
@@ -1071,7 +1076,7 @@ describe('OrderController', () => {
         .set('Authorization', adminHeader)
         .send({ quantity: 20 });
 
-      res.should.have.status(204);
+      res.should.have.status(200);
       expect(spy).to.have.been.calledWith(
         await getRepository(User).findOneOrFail(visitor.id)
       );
@@ -1095,7 +1100,7 @@ describe('OrderController', () => {
         .set('Authorization', adminHeader)
         .send({ quantity: 20 });
 
-      res.should.have.status(204);
+      res.should.have.status(200);
       expect(spy).to.have.been.called;
     });
   });
@@ -1220,7 +1225,10 @@ describe('OrderController', () => {
 
     it('should send a message to all admins that a user deleted their order', async () => {
       const spy = sandbox.spy(MessagingController, 'sendMessageToAllAdmins');
-      const order = await factory(Order)({ user: visitor }).create();
+      const order = await factory(Order)({
+        user: visitor,
+        status: OrderStatus.pending,
+      }).create();
       expect(
         (async () => {
           return await repository.findOneOrFail(order.id);
