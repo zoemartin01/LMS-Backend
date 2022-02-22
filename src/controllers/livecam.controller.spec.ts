@@ -146,20 +146,20 @@ describe('LivecamController', () => {
   describe('PATCH /livecam/recordings/:id', () => {
     const uri = `${environment.apiRoutes.base}${environment.apiRoutes.livecam.updateRecording}`;
 
-    // it('should fail without authentication', (done) => {
-    //   chai
-    //     .request(app.app)
-    //     .patch(uri.replace(':id', uuidv4()))
-    //     .end((err, res) => {
-    //       expect(res.status).to.equal(401);
-    //       done();
-    //     });
-    // });
+    it(
+      'should return 401 if not authenticated',
+      Helpers.checkAuthentication(
+        'PATCH',
+        'fails',
+        app,
+        uri.replace(':id', v4())
+      )
+    );
 
     it('should fail with invalid id', (done) => {
       chai
         .request(app.app)
-        .patch(uri.replace(':id', 'invalid'))
+        .patch(uri.replace(':id', v4()))
         .set('Authorization', adminHeader)
         .end((err, res) => {
           expect(res.status).to.equal(404);
@@ -167,31 +167,31 @@ describe('LivecamController', () => {
         });
     });
 
-    // it('should fail with negative size', async () => {
-    //   const recording = await factory(Recording)(user).create();
+    it('should fail with invalid parameters', async () => {
+      const recording = await factory(Recording)({ user: admin }).create();
 
-    //   chai
-    //     .request(app.app)
-    //     .patch(uri.replace(':id', recording.id))
-    //     .set('Authorization', auth_header)
-    //     .send({ size: -1 })
-    //     .end((err, res) => {
-    //       expect(res.status).to.equal(400);
-    //     });
-    // });
-
-    it('should update a specific recording', async () => {
-      const recording = await factory(Recording)(admin).create();
-
-      chai
+      const response = await chai
         .request(app.app)
         .patch(uri.replace(':id', recording.id))
         .set('Authorization', adminHeader)
-        .send({ size: 1 })
-        .end((err, res) => {
-          expect(res.status).to.equal(200);
-          expect(res.body.size).to.be.equal(1);
-        });
+        .send({ size: -1 });
+
+      response.should.have.status(400);
+    });
+
+    it('should update a specific recording', async () => {
+      const recording = Helpers.JSONify(
+        await factory(Recording)({ user: admin }).create()
+      );
+
+      const res = await chai
+        .request(app.app)
+        .patch(uri.replace(':id', recording.id))
+        .set('Authorization', adminHeader)
+        .send({ size: 1 });
+
+      res.status.should.equal(200);
+      res.body.should.deep.equal({ ...recording, size: 1 });
     });
   });
 
@@ -230,7 +230,7 @@ describe('LivecamController', () => {
       );
     });
 
-    it('should fail if max recording per user have been reached', async () => {
+    it('should fail with invalid parameters', async () => {
       await getRepository(GlobalSetting).save({
         key: 'user.max_recordings',
         value: '1',
@@ -246,7 +246,7 @@ describe('LivecamController', () => {
     });
 
     it('should fail to schedule a recording if the livecam server is not available', async () => {
-      const recording = await factory(Recording)(admin).make();
+      const recording = await factory(Recording)({ user: admin }).make();
 
       sandbox.stub(axios, 'post').throws('Timeout');
 
@@ -262,7 +262,7 @@ describe('LivecamController', () => {
     });
 
     it('should schedule a recording', async () => {
-      const recording = await factory(Recording)(admin).make();
+      const recording = await factory(Recording)({ user: admin }).make();
 
       sandbox.stub(axios, 'post').resolves({ status: 201 });
 
@@ -297,7 +297,7 @@ describe('LivecamController', () => {
     });
 
     it('should return 503 if the livecam server is not available', async () => {
-      const recording = await factory(Recording)(admin).create();
+      const recording = await factory(Recording)({ user: admin }).create();
       sandbox.stub(axios, 'get').throws('Timeout');
 
       const res = await chai
@@ -309,7 +309,7 @@ describe('LivecamController', () => {
     });
 
     it('should relay the error codes from the livecam server', async () => {
-      const recording = await factory(Recording)(admin).create();
+      const recording = await factory(Recording)({ user: admin }).create();
       sandbox.stub(axios, 'get').resolves({ status: 500 });
 
       const res = await chai
@@ -321,7 +321,7 @@ describe('LivecamController', () => {
     });
 
     it('should relay the download', async () => {
-      const recording = await factory(Recording)(admin).create();
+      const recording = await factory(Recording)({ user: admin }).create();
       sandbox.stub(axios, 'get').resolves({ status: 200, data: 'test' });
 
       const res = await chai
@@ -368,7 +368,7 @@ describe('LivecamController', () => {
     });
 
     it('should delete a specific recording', async () => {
-      const recording = await factory(Recording)(admin).create();
+      const recording = await factory(Recording)({ user: admin }).create();
 
       await repository.findOneOrFail({ id: recording.id }).should.eventually.be
         .fulfilled;
@@ -387,7 +387,7 @@ describe('LivecamController', () => {
     });
 
     it('should fail to delete a recording if the livecam server is not available', async () => {
-      const recording = await factory(Recording)(admin).create();
+      const recording = await factory(Recording)({ user: admin }).create();
 
       await repository.findOneOrFail({ id: recording.id }).should.eventually.be
         .fulfilled;

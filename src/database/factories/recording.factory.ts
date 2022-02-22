@@ -6,7 +6,8 @@ import { User } from '../../models/user.entity';
 import { getRepository } from 'typeorm';
 
 define(Recording, (faker: typeof Faker, context?: { user: User }) => {
-  if (!context) throw new Error('Factory Recording requires user');
+  if (!context || !context.user)
+    throw new Error('Factory Recording requires user');
   const user = context.user;
   const start = faker.date.future().toISOString();
   const end = faker.date
