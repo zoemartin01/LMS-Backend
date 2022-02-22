@@ -24,14 +24,6 @@ export class UserController {
    */
   public static async getUser(req: Request, res: Response) {
     const user = await AuthController.getCurrentUser(req);
-
-    if (user === null) {
-      res.status(404).json({
-        message: 'User not found.',
-      });
-      return;
-    }
-
     res.json(user);
   }
 
@@ -48,12 +40,6 @@ export class UserController {
     const user = await AuthController.getCurrentUser(req);
     const repository = getRepository(User);
 
-    if (user === null) {
-      res.status(404).json({
-        message: 'user not found.',
-      });
-      return;
-    }
     if (req.body.role !== undefined) {
       res.status(403).json({
         message: 'No permission to change role.',
@@ -158,12 +144,6 @@ export class UserController {
       'recordings',
     ]);
 
-    if (user === null) {
-      res.status(404).json({
-        message: 'User not found.',
-      });
-      return;
-    }
     const userRepository = getRepository(User);
     const slimUser = await userRepository.findOneOrFail(user.id);
 

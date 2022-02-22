@@ -143,12 +143,6 @@ export class LivecamController {
    */
   public static async scheduleRecording(req: Request, res: Response) {
     const user = await AuthController.getCurrentUser(req, ['recordings']);
-
-    if (user === null) {
-      res.status(401).json({ message: 'Not logged in' });
-      return;
-    }
-
     const limit = await getRepository(GlobalSetting).findOne({
       where: { key: 'user.max_recordings' },
     });

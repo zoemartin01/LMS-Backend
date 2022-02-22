@@ -112,14 +112,6 @@ export class AppointmentController {
     res: Response
   ) {
     const currentUser = await AuthController.getCurrentUser(req);
-
-    if (currentUser === null) {
-      res.status(404).json({
-        message: 'User not found.',
-      });
-      return;
-    }
-
     const { offset, limit } = req.query;
     const repository = getRepository(AppointmentTimeslot);
 
@@ -186,12 +178,6 @@ export class AppointmentController {
     });
 
     const user = await AuthController.getCurrentUser(req);
-
-    if (user === null) {
-      res.status(404).json({ message: 'Not logged in.' });
-      return;
-    }
-
     const query = repository
       .createQueryBuilder('appointment')
       .select('*')
@@ -299,12 +285,6 @@ export class AppointmentController {
     const repository = getRepository(AppointmentTimeslot);
 
     const user = await AuthController.getCurrentUser(req);
-
-    if (user === null) {
-      res.status(401).json({ message: 'Not logged in' });
-      return;
-    }
-
     const room = await getRepository(Room).findOne(roomId);
 
     if (room === undefined) {
@@ -487,11 +467,6 @@ export class AppointmentController {
     const { roomId, start, end, timeSlotRecurrence, amount, force } = req.body;
     const seriesId = uuidv4();
     const user = await AuthController.getCurrentUser(req);
-
-    if (user === null) {
-      res.status(401).json({ message: 'Not logged in' });
-      return;
-    }
 
     if (timeSlotRecurrence === TimeSlotRecurrence.single) {
       res.status(400).json({ message: 'Series can only be recurring' });
@@ -715,13 +690,7 @@ export class AppointmentController {
 
     const isAdmin = await AuthController.checkAdmin(req);
     const isSeries = appointment.seriesId !== undefined;
-
     const user = await AuthController.getCurrentUser(req);
-
-    if (user === null) {
-      return;
-    }
-
     const confirmationStatus =
       req.body.confirmationStatus || appointment.confirmationStatus;
     const onlyStatusPatch =
@@ -1179,12 +1148,7 @@ export class AppointmentController {
       res.status(404).json({ message: 'appointment not found' });
       return;
     }
-
     const currentUser = await AuthController.getCurrentUser(req);
-    if (currentUser === null) {
-      res.status(404).json({ message: 'no user logged in' });
-      return;
-    }
 
     if (
       !(await AuthController.checkAdmin(req)) &&
@@ -1270,10 +1234,6 @@ export class AppointmentController {
     }
 
     const currentUser = await AuthController.getCurrentUser(req);
-    if (currentUser === null) {
-      res.status(404).json({ message: 'no user logged in' });
-      return;
-    }
 
     if (
       !(await AuthController.checkAdmin(req)) &&
