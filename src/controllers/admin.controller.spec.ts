@@ -335,7 +335,7 @@ describe('AdminController', () => {
     it(
       'should fail without authentication',
       Helpers.checkAuthentication(
-        'GET',
+        'POST',
         'fails',
         app,
         uri.replace(':id', uuidv4())
