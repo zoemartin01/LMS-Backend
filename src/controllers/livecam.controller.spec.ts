@@ -143,6 +143,40 @@ describe('LivecamController', () => {
     });
   });
 
+  describe('GET /livecam/recordings/:id', () => {
+    const uri = `${environment.apiRoutes.base}${environment.apiRoutes.livecam.getSingleRecording}`;
+
+    it(
+      'should return 401 if not authenticated',
+      Helpers.checkAuthentication('GET', 'fails', app, uri.replace(':id', v4()))
+    );
+
+    it('should fail with invalid id', (done) => {
+      chai
+        .request(app.app)
+        .get(uri.replace(':id', v4()))
+        .set('Authorization', adminHeader)
+        .end((err, res) => {
+          expect(res.status).to.equal(404);
+          done();
+        });
+    });
+
+    it('should return a recording', async () => {
+      const recording = Helpers.JSONify(
+        await factory(Recording)({ user: admin }).create()
+      );
+
+      const res = await chai
+        .request(app.app)
+        .get(uri.replace(':id', recording.id))
+        .set('Authorization', adminHeader);
+
+      res.status.should.equal(200);
+      res.body.should.deep.equal(recording);
+    });
+  });
+
   describe('PATCH /livecam/recordings/:id', () => {
     const uri = `${environment.apiRoutes.base}${environment.apiRoutes.livecam.updateRecording}`;
 
