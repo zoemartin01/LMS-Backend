@@ -61,7 +61,7 @@ describe('InventoryController', () => {
 
     it('should get all inventory items without limit/offset', async () => {
       const count = 10;
-      const rooms = Helpers.JSONify(
+      const inventoryItems = Helpers.JSONify(
         await factory(InventoryItem)().createMany(count)
       );
 
@@ -75,7 +75,7 @@ describe('InventoryController', () => {
       expect(res.body.data)
         .to.be.an('array')
         .that.has.a.lengthOf(count)
-        .and.that.has.same.deep.members(rooms);
+        .and.that.has.same.deep.members(inventoryItems);
     });
 
     it('should sort inventory items by name in ascending order', async () => {

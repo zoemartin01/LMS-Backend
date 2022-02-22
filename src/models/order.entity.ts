@@ -1,4 +1,11 @@
-import { IsEnum, IsNumber, IsOptional, IsUrl, Min } from 'class-validator';
+import {
+  IsEnum,
+  IsNotEmpty,
+  IsNumber,
+  IsOptional,
+  IsUrl,
+  Min,
+} from 'class-validator';
 import { Column, Entity, ManyToOne } from 'typeorm';
 import { OrderStatus } from '../types/enums/order-status';
 import { BaseEntity } from './base.entity';
@@ -27,7 +34,10 @@ export class Order extends BaseEntity {
    * @type {InventoryItem}
    * @nullable if item does not yet exist.
    */
-  @ManyToOne(() => InventoryItem, (item) => item.orders, { nullable: true, onDelete: 'CASCADE', })
+  @ManyToOne(() => InventoryItem, (item) => item.orders, {
+    nullable: true,
+    onDelete: 'CASCADE',
+  })
   @IsOptional()
   item: InventoryItem;
 
@@ -39,6 +49,7 @@ export class Order extends BaseEntity {
    */
   @Column({ nullable: true })
   @IsOptional()
+  @IsNotEmpty()
   itemName: string;
 
   /**

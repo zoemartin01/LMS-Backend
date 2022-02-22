@@ -366,7 +366,7 @@ export class OrderController {
         // check if order status is still pending, visitors aren't allowed to change order after that
         order.status !== OrderStatus.pending ||
         // check if no admin user tried to change order status
-        'status' in req.body
+        req.body.status !== undefined
       ) {
         res.sendStatus(403);
         return;
@@ -407,7 +407,7 @@ export class OrderController {
         await inventoryRepository.findOne({
           where: { name: req.body.itemName },
         });
-      // case: existing inventory item for updated order item
+      // case: no existing inventory item for updated order item
       if (inventoryItem === undefined) {
         try {
           await orderRepository.update(
@@ -421,7 +421,7 @@ export class OrderController {
           res.status(400).json(err);
           return;
         }
-      } // case: no existing inventory item for updated order item
+      } // case: existing inventory item for updated order item
       else {
         try {
           await orderRepository.update(
@@ -454,13 +454,9 @@ export class OrderController {
       return;
     }
 
-    res.status(200).json(order);
-
     const orderItem = await order.item;
-
     const itemName: string | null =
       orderItem === null ? order.itemName : orderItem.name;
-
     const currentUser = await AuthController.getCurrentUser(req);
 
     if (await AuthController.checkAdmin(req)) {
@@ -492,6 +488,8 @@ export class OrderController {
       'Updated Order',
       '/orders/all'
     );
+
+    res.status(200).json(order);
   }
 
   /**
@@ -522,22 +520,17 @@ export class OrderController {
     if (
       !(await AuthController.checkAdmin(req)) &&
       // check if non admin user tried to delete an other users order
-      order.user.id !== currentUser.id &&
-      // check if non admin user tried to delete an order that is not pending
-      order.status !== OrderStatus.pending
+      (order.user.id !== currentUser.id ||
+        // check if non admin user tried to delete an order that is not pending
+        order.status !== OrderStatus.pending)
     ) {
       res.sendStatus(403);
       return;
     }
 
     const orderItem = await order.item;
-
     const itemName: string | null =
       orderItem === null ? order.itemName : orderItem.name;
-
-    await orderRepository.delete(order.id).then(() => {
-      res.sendStatus(204);
-    });
 
     if (currentUser === order.user) {
       await MessagingController.sendMessage(
@@ -562,5 +555,9 @@ export class OrderController {
         order.user.lastName +
         ' was deleted.'
     );
+
+    await orderRepository.delete(order.id).then(() => {
+      res.sendStatus(204);
+    });
   }
 }
