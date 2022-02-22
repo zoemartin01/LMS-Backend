@@ -407,7 +407,7 @@ export class OrderController {
         await inventoryRepository.findOne({
           where: { name: req.body.itemName },
         });
-      // case: existing inventory item for updated order item
+      // case: no existing inventory item for updated order item
       if (inventoryItem === undefined) {
         try {
           await orderRepository.update(
@@ -421,7 +421,7 @@ export class OrderController {
           res.status(400).json(err);
           return;
         }
-      } // case: no existing inventory item for updated order item
+      } // case: existing inventory item for updated order item
       else {
         try {
           await orderRepository.update(
