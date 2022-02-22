@@ -522,9 +522,9 @@ export class OrderController {
     if (
       !(await AuthController.checkAdmin(req)) &&
       // check if non admin user tried to delete an other users order
-      order.user.id !== currentUser.id &&
-      // check if non admin user tried to delete an order that is not pending
-      order.status !== OrderStatus.pending
+      (order.user.id !== currentUser.id ||
+        // check if non admin user tried to delete an order that is not pending
+        order.status !== OrderStatus.pending)
     ) {
       res.sendStatus(403);
       return;
