@@ -11,6 +11,7 @@ import * as Sinon from 'sinon';
 import sinonChai from 'sinon-chai';
 import { Order } from '../models/order.entity';
 import { OrderStatus } from '../types/enums/order-status';
+import { MessagingController } from './messaging.controller';
 
 chai.use(chaiHttp);
 chai.use(sinonChai);
@@ -783,7 +784,97 @@ describe('OrderController', () => {
       )
     );
 
-    //todo wrong user access test
+    it('should return 403 as non-admin changes another users orders', async () => {
+      const order = Helpers.JSONify(
+        await factory(Order)({
+          user: admin,
+          status: OrderStatus.pending,
+        }).create()
+      );
+      const response = await chai
+        .request(app.app)
+        .get(uri.replace(':id', order.id))
+        .set('Authorization', visitorHeader);
+
+      response.should.have.status(403);
+    });
+
+    it('should return 403 as non-admin requesting to change status', async () => {
+      const order = Helpers.JSONify(
+        await factory(Order)({
+          user: visitor,
+          status: OrderStatus.pending,
+        }).create()
+      );
+      const response = await chai
+        .request(app.app)
+        .get(uri.replace(':id', order.id))
+        .set('Authorization', visitorHeader)
+        .send({ status: OrderStatus.ordered });
+
+      response.should.have.status(403);
+    });
+
+    it('should return 403 as non-admin requests to change non pending order', async () => {
+      const order = Helpers.JSONify(
+        await factory(Order)({
+          user: visitor,
+          status: OrderStatus.ordered,
+        }).create()
+      );
+      const response = await chai
+        .request(app.app)
+        .get(uri.replace(':id', order.id))
+        .set('Authorization', visitorHeader);
+
+      response.should.have.status(403);
+    });
+
+    it('should return 403 as admin changes inventoried order', async () => {
+      const order = Helpers.JSONify(
+        await factory(Order)({
+          user: admin,
+          status: OrderStatus.inventoried,
+        }).create()
+      );
+      const response = await chai
+        .request(app.app)
+        .get(uri.replace(':id', order.id))
+        .set('Authorization', adminHeader);
+
+      response.should.have.status(403);
+    });
+
+    it('should return 403 as admin changes sent back order', async () => {
+      const order = Helpers.JSONify(
+        await factory(Order)({
+          user: admin,
+          status: OrderStatus.sent_back,
+        }).create()
+      );
+      const response = await chai
+        .request(app.app)
+        .get(uri.replace(':id', order.id))
+        .set('Authorization', adminHeader);
+
+      response.should.have.status(403);
+    });
+
+    it('should return 403 as affiliated user is changed', async () => {
+      const order = Helpers.JSONify(
+        await factory(Order)({
+          user: admin,
+          status: OrderStatus.inventoried,
+        }).create()
+      );
+      const response = await chai
+        .request(app.app)
+        .get(uri.replace(':id', order.id))
+        .set('Authorization', adminHeader)
+        .send({ user: visitor });
+
+      response.should.have.status(403);
+    });
 
     it('should fail with invalid id', (done) => {
       chai
@@ -809,7 +900,50 @@ describe('OrderController', () => {
       expect(res.status).to.equal(400);
     });
 
-    it('should update a specific order', async () => {
+    it('should fail to update a specific order, invalid input', async () => {
+      const order = Helpers.JSONify(
+        await repository.findOneOrFail(
+          (
+            await factory(Order)({
+              user: admin,
+              status: OrderStatus.pending,
+            }).create()
+          ).id,
+          { relations: ['item', 'user'] }
+        )
+      );
+      const res = await chai
+        .request(app.app)
+        .patch(uri.replace(':id', order.id))
+        .set('Authorization', adminHeader)
+        .send({ quantity: -1 });
+
+      expect(res.status).to.equal(400);
+    });
+
+    it('should update a specific order without itemName', async () => {
+      const order = Helpers.JSONify(
+        await repository.findOneOrFail(
+          (
+            await factory(Order)({
+              user: admin,
+              status: OrderStatus.pending,
+            }).create()
+          ).id,
+          { relations: ['item', 'user'] }
+        )
+      );
+      const res = await chai
+        .request(app.app)
+        .patch(uri.replace(':id', order.id))
+        .set('Authorization', adminHeader)
+        .send({ quantity: 20 });
+
+      expect(res.status).to.equal(200);
+      expect(res.body).to.deep.equal({ ...order, quantity: 20 });
+    });
+
+    it('should update a specific order with itemName, existing item', async () => {
       const order = Helpers.JSONify(
         await repository.findOneOrFail(
           (
@@ -830,6 +964,140 @@ describe('OrderController', () => {
       expect(res.status).to.equal(200);
       expect(res.body).to.deep.equal({ ...order, itemName: 'testOrderUpdate' });
     });
+
+    it('should fail to update a specific order with itemName, existing item, invalid name', async () => {
+      const order = Helpers.JSONify(
+        await repository.findOneOrFail(
+          (
+            await factory(Order)({
+              user: admin,
+              status: OrderStatus.pending,
+            }).create()
+          ).id,
+          { relations: ['item', 'user'] }
+        )
+      );
+      const res = await chai
+        .request(app.app)
+        .patch(uri.replace(':id', order.id))
+        .set('Authorization', adminHeader)
+        .send({ itemName: '' });
+
+      expect(res.status).to.equal(400);
+    });
+
+    it('should update a specific order with itemName, non existing item', async () => {
+      const order = Helpers.JSONify(
+        await repository.findOneOrFail(
+          (
+            await factory(Order)({
+              user: admin,
+              status: OrderStatus.pending,
+            }).make()
+          ).id,
+          { relations: ['item', 'user'] }
+        )
+      );
+      const res = await chai
+        .request(app.app)
+        .patch(uri.replace(':id', order.id))
+        .set('Authorization', adminHeader)
+        .send({ itemName: 'testOrderUpdate' });
+
+      expect(res.status).to.equal(200);
+      expect(res.body).to.deep.equal({ ...order, itemName: 'testOrderUpdate' });
+    });
+
+    it('should fail to update a specific order with itemName, non existing item, invalid name', async () => {
+      const order = Helpers.JSONify(
+        await repository.findOneOrFail(
+          (
+            await factory(Order)({
+              user: admin,
+              status: OrderStatus.pending,
+            }).make()
+          ).id,
+          { relations: ['item', 'user'] }
+        )
+      );
+      const res = await chai
+        .request(app.app)
+        .patch(uri.replace(':id', order.id))
+        .set('Authorization', adminHeader)
+        .send({ itemName: '' });
+
+      expect(res.status).to.equal(400);
+    });
+
+    it('should send a confirmation message to the admin', async () => {
+      const spy = sandbox.spy(MessagingController, 'sendMessage');
+      const order = await factory(Order)({
+        user: visitor,
+        status: OrderStatus.ordered,
+      }).create();
+      expect(
+        (async () => {
+          return await repository.findOneOrFail(order.id);
+        })()
+      ).to.be.fulfilled;
+
+      const res = await chai
+        .request(app.app)
+        .patch(uri.replace(':id', order.id))
+        .set('Authorization', adminHeader)
+        .send({ quantity: 20 });
+
+      res.should.have.status(204);
+      expect(spy).to.have.been.calledWith(
+        await getRepository(User).findOneOrFail(admin.id)
+      );
+    });
+
+    it('should send a message to the user the admin edited the order from', async () => {
+      const spy = sandbox.spy(MessagingController, 'sendMessage');
+      const order = await factory(Order)({
+        user: visitor,
+        status: OrderStatus.ordered,
+      }).create();
+      expect(
+        (async () => {
+          return await repository.findOneOrFail(order.id);
+        })()
+      ).to.be.fulfilled;
+
+      const res = await chai
+        .request(app.app)
+        .patch(uri.replace(':id', order.id))
+        .set('Authorization', adminHeader)
+        .send({ quantity: 20 });
+
+      res.should.have.status(204);
+      expect(spy).to.have.been.calledWith(
+        await getRepository(User).findOneOrFail(visitor.id)
+      );
+    });
+
+    it('should send a message to all admins that a order has been edited', async () => {
+      const spy = sandbox.spy(MessagingController, 'sendMessageToAllAdmins');
+      const order = await factory(Order)({
+        user: visitor,
+        status: OrderStatus.ordered,
+      }).create();
+      expect(
+        (async () => {
+          return await repository.findOneOrFail(order.id);
+        })()
+      ).to.be.fulfilled;
+
+      const res = await chai
+        .request(app.app)
+        .patch(uri.replace(':id', order.id))
+        .set('Authorization', adminHeader)
+        .send({ quantity: 20 });
+
+      res.should.have.status(204);
+      expect(spy).to.have.been.called;
+    });
   });
 
   describe('DELETE /orders/:id', () => {
@@ -845,7 +1113,35 @@ describe('OrderController', () => {
       )
     );
 
-    //todo wrong user access test
+    it('should return 403 as non-admin deletes another users orders', async () => {
+      const order = Helpers.JSONify(
+        await factory(Order)({
+          user: admin,
+          status: OrderStatus.ordered,
+        }).create()
+      );
+      const response = await chai
+        .request(app.app)
+        .delete(uri.replace(':id', order.id))
+        .set('Authorization', visitorHeader);
+
+      response.should.have.status(403);
+    });
+
+    it('should return 403 as non-admin deletes his non-pending order', async () => {
+      const order = Helpers.JSONify(
+        await factory(Order)({
+          user: visitor,
+          status: OrderStatus.inventoried,
+        }).create()
+      );
+      const response = await chai
+        .request(app.app)
+        .delete(uri.replace(':id', order.id))
+        .set('Authorization', visitorHeader);
+
+      response.should.have.status(403);
+    });
 
     it('should fail with invalid id', (done) => {
       chai
@@ -877,6 +1173,67 @@ describe('OrderController', () => {
           return await repository.findOneOrFail(order.id);
         })()
       ).to.be.rejected;
+    });
+
+    it('should send a confirmation message to the user', async () => {
+      const spy = sandbox.spy(MessagingController, 'sendMessage');
+      const order = await factory(Order)({
+        user: visitor,
+        status: OrderStatus.pending,
+      }).create();
+      expect(
+        (async () => {
+          return await repository.findOneOrFail(order.id);
+        })()
+      ).to.be.fulfilled;
+
+      const res = await chai
+        .request(app.app)
+        .delete(uri.replace(':id', order.id))
+        .set('Authorization', visitorHeader);
+
+      res.should.have.status(204);
+      expect(spy).to.have.been.calledWith(
+        await getRepository(User).findOneOrFail(visitor.id)
+      );
+    });
+
+    it('should send a message to the user the admin deleted the order from', async () => {
+      const spy = sandbox.spy(MessagingController, 'sendMessage');
+      const order = await factory(Order)({ user: visitor }).create();
+      expect(
+        (async () => {
+          return await repository.findOneOrFail(order.id);
+        })()
+      ).to.be.fulfilled;
+
+      const res = await chai
+        .request(app.app)
+        .delete(uri.replace(':id', order.id))
+        .set('Authorization', adminHeader);
+
+      res.should.have.status(204);
+      expect(spy).to.have.been.calledWith(
+        await getRepository(User).findOneOrFail(visitor.id)
+      );
+    });
+
+    it('should send a message to all admins that a user deleted their order', async () => {
+      const spy = sandbox.spy(MessagingController, 'sendMessageToAllAdmins');
+      const order = await factory(Order)({ user: visitor }).create();
+      expect(
+        (async () => {
+          return await repository.findOneOrFail(order.id);
+        })()
+      ).to.be.fulfilled;
+
+      const res = await chai
+        .request(app.app)
+        .delete(uri.replace(':id', order.id))
+        .set('Authorization', visitorHeader);
+
+      res.should.have.status(204);
+      expect(spy).to.have.been.called;
     });
   });
 });
