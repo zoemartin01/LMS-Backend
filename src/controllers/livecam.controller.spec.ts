@@ -1,16 +1,11 @@
+/* eslint-disable @typescript-eslint/ban-types */
 import { Connection, getRepository } from 'typeorm';
-import {
-  factory,
-  runSeeder,
-  useRefreshDatabase,
-  useSeeding,
-} from 'typeorm-seeding';
+import { factory, useRefreshDatabase, useSeeding } from 'typeorm-seeding';
 import App from '../app';
 import chai, { expect } from 'chai';
 import chaiHttp from 'chai-http';
 import environment from '../environment';
 import { v4 as uuidv4 } from 'uuid';
-import CreateTestUsers from '../database/seeds/create-test-users.seed';
 import { Recording } from '../models/recording.entity';
 import { Helpers } from '../test.spec';
 import { User } from '../models/user.entity';
@@ -19,6 +14,10 @@ import { VideoResolution } from '../types/enums/video-resolution';
 import Sinon from 'sinon';
 import sinonChai from 'sinon-chai';
 import chaiAsPromised from 'chai-as-promised';
+import { LivecamController } from './livecam.controller';
+import { WebSocket } from 'ws';
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const MockExpressRequest = require('mock-express-request');
 
 chai.use(chaiHttp);
 chai.use(sinonChai);
@@ -235,5 +234,63 @@ describe('LivecamController', () => {
     });
   });
 
-  describe('WS /livecam/stream', () => {});
+  describe('WS /livecam/stream', () => {
+    const WebSocketMock = (): WebSocket & { register: Function } => {
+      const socket: { [key: string]: any } = {};
+      for (const prop in WebSocket.prototype) {
+        socket[prop] = function () {};
+      }
+
+      socket.clients = [];
+
+      socket.register = (ws: WebSocket) => {
+        socket.clients.push(ws);
+      };
+
+      socket.send = (msg: any) => {
+        socket.clients.forEach((client: WebSocket) => {
+          client.onmessage({
+            data: msg,
+            type: 'binary',
+            target: socket as WebSocket,
+          });
+        });
+      };
+
+      return socket as WebSocket & { register: Function };
+    };
+
+    let frontend_client_ws: WebSocket & { register: Function };
+    let frontend_server_ws: WebSocket & { register: Function };
+    let livecam_client_ws: WebSocket & { register: Function };
+    let livecam_server_ws: WebSocket & { register: Function };
+
+    beforeEach(() => {
+      frontend_client_ws = WebSocketMock();
+      frontend_server_ws = WebSocketMock();
+
+      livecam_client_ws = WebSocketMock();
+      livecam_server_ws = WebSocketMock();
+
+      frontend_server_ws.register(frontend_client_ws);
+      livecam_server_ws.register(livecam_client_ws);
+    });
+
+    it('should relay websocket messages from the livecam server', async () => {
+      const req = new MockExpressRequest();
+      const spy = sandbox.spy(frontend_client_ws, 'onmessage');
+
+      livecam_client_ws.onmessage = (event) => {
+        LivecamController.wss.forEach(function each(client) {
+          client.send(event.data);
+        });
+      };
+
+      LivecamController.ws = livecam_client_ws;
+      LivecamController.getLiveCameraFeed(frontend_server_ws, req);
+
+      livecam_server_ws.send('message');
+      expect(spy).to.have.been.called;
+    });
+  });
 });
