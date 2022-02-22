@@ -485,43 +485,35 @@ export class AuthController {
   }
 
   /**
-   * Returns current user
+   * Returns current user. May only be used in routes in conjunction with
+   * AuthController#checkAuthenticationMiddleware()
    *
    * @param {Request} req current http-request
    */
   public static async getCurrentUser(
     req: Request,
     relations: string[] = []
-  ): Promise<User | null> {
+  ): Promise<User> {
     const authHeader = req.headers['authorization'];
 
     if (authHeader) {
       const token = authHeader.split(' ')[1];
 
-      return getRepository(Token)
-        .findOne({
-          where: [
-            { token, type: TokenType.authenticationToken },
-            { token, type: TokenType.apiKey },
-          ],
-        })
-        .then(
-          async (tokenObject: Token | undefined) => {
-            if (tokenObject === undefined) {
-              return null;
-            }
-            return (
-              (await getRepository(User).findOne(tokenObject.userId, {
-                relations,
-              })) || null
-            );
-          },
-          () => {
-            return null;
-          }
-        );
+      const tokenEntity = await getRepository(Token).findOne({
+        where: [
+          { token, type: TokenType.authenticationToken },
+          { token, type: TokenType.apiKey },
+        ],
+      });
+
+      if (tokenEntity === undefined) throw 'Not logged in!';
+
+      return await getRepository(User).findOneOrFail(tokenEntity.userId, {
+        relations,
+      });
+    } else {
+      throw 'Not logged in!';
     }
-    return null;
   }
 
   /**
@@ -531,9 +523,9 @@ export class AuthController {
    * @private
    */
   public static async checkAdmin(req: Request): Promise<boolean> {
-    const user: User | null = await AuthController.getCurrentUser(req);
+    const user = await AuthController.getCurrentUser(req);
 
-    return user === null || user.role === UserRole.admin;
+    return user.role === UserRole.admin;
   }
 
   /**
