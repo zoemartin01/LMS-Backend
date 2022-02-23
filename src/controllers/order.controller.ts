@@ -310,8 +310,6 @@ export class OrderController {
       }
     }
 
-    res.status(201).json(order);
-
     await MessagingController.sendMessage(
       user,
       'Order Request Confirmation',
@@ -326,6 +324,8 @@ export class OrderController {
       'Order Requests',
       '/orders/all'
     );
+
+    res.status(201).json(order);
   }
 
   /**
