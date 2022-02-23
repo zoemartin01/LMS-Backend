@@ -208,6 +208,8 @@ describe('MessagingController', () => {
   //todo zoe AuthController.checkWebSocketAuthenticationMiddleware,
   //todo zoe MessagingController.registerUnreadMessagesSocket
 
+  //todo test sendMessageViaEmail
+
   describe('PATCH /messages/:id', () => {
     const uri = `${environment.apiRoutes.base}${environment.apiRoutes.messages.updateMessage}`;
 
