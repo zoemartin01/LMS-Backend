@@ -9,18 +9,14 @@ import { v4 } from 'uuid';
 import { Recording } from '../models/recording.entity';
 import { Helpers } from '../test.spec';
 import { User } from '../models/user.entity';
-import Faker from 'faker';
-import { VideoResolution } from '../types/enums/video-resolution';
 import Sinon from 'sinon';
 import sinonChai from 'sinon-chai';
 import chaiAsPromised from 'chai-as-promised';
 import { LivecamController } from './livecam.controller';
-import { WebSocket } from 'ws';
+import { WebSocket, WebSocketServer } from 'ws';
 import { Request } from 'express';
 import axios from 'axios';
-import * as util from 'util';
 import { GlobalSetting } from '../models/global_settings.entity';
-import moment from 'moment';
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const MockExpressRequest = require('mock-express-request');
 
@@ -609,12 +605,19 @@ describe('LivecamController', () => {
         });
       };
 
-      socket.on = (event: 'close', fn: Function) => {
-        socket.onclose = fn;
+      socket.close = () => {
+        socket.onclose();
       };
 
-      socket.emit = (event: 'close') => {
-        socket.onclose();
+      socket.on = (event: 'close' | 'error' | 'message', fn: Function) => {
+        if (event === 'close') socket.onclose = fn;
+        else if (event === 'error') socket.onerror = fn;
+        else if (event === 'message') socket.onmessage = fn;
+      };
+
+      socket.emit = (event: 'close' | 'error') => {
+        if (event === 'close') socket.onclose();
+        else if (event === 'error') socket.onerror();
       };
 
       return socket as WebSocket & { register: Function };
@@ -645,11 +648,7 @@ describe('LivecamController', () => {
     it('should relay websocket messages from the livecam server', async () => {
       const spy = sandbox.spy(frontend_client_ws, 'onmessage');
 
-      livecam_client_ws.onmessage = (event) => {
-        LivecamController.wss.forEach(function each(client) {
-          client.send(event.data);
-        });
-      };
+      LivecamController.setupWebSocket(livecam_client_ws);
 
       LivecamController.ws = livecam_client_ws;
       await LivecamController.getLiveCameraFeed(frontend_server_ws, req);
@@ -668,11 +667,47 @@ describe('LivecamController', () => {
     });
 
     it('should try to initialize a connection with the backend if no connection was established yet', async () => {
+      const wss = new WebSocketServer({ port: 9999 });
+
+      await new Promise((resolve) => {
+        setTimeout(resolve, 1000);
+      });
+
       const spy = sandbox
-        .stub(LivecamController, 'initBackendConnection')
-        .resolves();
+        .stub(LivecamController, 'setupWebSocket')
+        .callsFake(async (ws) => {
+          ws.onopen = () => ws.close();
+        });
+
       LivecamController.ws = undefined;
       await LivecamController.getLiveCameraFeed(frontend_server_ws, req);
+
+      await new Promise((resolve) => {
+        setTimeout(resolve, 1000);
+      });
+
+      wss.close();
+      LivecamController.ws = undefined;
+      spy.should.have.been.called;
+    }).timeout(10000);
+
+    it('should setup a new websocket connection to the livecam server', async () => {
+      const ws = WebSocketMock();
+      const spy = sandbox.spy(ws, 'on');
+
+      await LivecamController.setupWebSocket(ws);
+
+      spy.should.have.been.calledThrice;
+    });
+
+    it('should reconnect on error', async () => {
+      const ws = WebSocketMock();
+      const spy = sandbox.spy(ws, 'close');
+      sandbox.stub(console, 'error').returns();
+
+      await LivecamController.setupWebSocket(ws);
+      ws.emit('error');
+
       spy.should.have.been.called;
     });
   });
