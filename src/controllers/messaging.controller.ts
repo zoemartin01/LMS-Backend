@@ -205,7 +205,7 @@ export class MessagingController {
   ): Promise<void> {
     const messageRepository = getRepository(Message);
 
-    if (req.body === {}) {
+    if (Object.keys(req.body).length === 0) {
       res.sendStatus(204);
       return;
     }
@@ -230,7 +230,7 @@ export class MessagingController {
 
     await messageRepository.update({ id: message.id }, req.body);
 
-    res.json(message);
+    res.json(await messageRepository.findOneOrFail(message.id));
 
     const ws = MessagingController.messageSockets[message.recipient.id];
 
