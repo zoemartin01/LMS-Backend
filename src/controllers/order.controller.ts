@@ -441,18 +441,10 @@ export class OrderController {
     }
 
     // get updated data of order to return for order view page
-    order = await orderRepository.findOne({
+    order = await orderRepository.findOneOrFail({
       where: { id: req.params.id },
       relations: ['user', 'item'],
     });
-
-    // should not happen
-    if (order === undefined) {
-      res.status(404).json({
-        message: 'Order not found.',
-      });
-      return;
-    }
 
     const orderItem = await order.item;
     const itemName: string | null =

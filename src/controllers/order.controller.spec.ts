@@ -688,7 +688,7 @@ describe('OrderController', () => {
     it('should fail with invalid id', (done) => {
       chai
         .request(app.app)
-        .get(uri.replace(':id', 'invalid'))
+        .get(uri.replace(':id', uuidv4()))
         .set('Authorization', adminHeader)
         .end((err, res) => {
           expect(res.status).to.equal(404);
@@ -724,7 +724,20 @@ describe('OrderController', () => {
       Helpers.checkAuthentication('POST', 'fails', app, uri)
     );
 
-    //todo wrong user access test
+    it('should fail to create with changed status', async () => {
+      const order = Helpers.JSONify(
+        await factory(Order)({
+          user: admin,
+        }).make()
+      );
+      const res = await chai
+        .request(app.app)
+        .post(uri)
+        .set('Authorization', adminHeader)
+        .send({ ...order, status: OrderStatus.ordered });
+
+      expect(res.status).to.equal(403);
+    });
 
     it('should fail to change the id', async () => {
       const order = Helpers.JSONify(
@@ -752,7 +765,7 @@ describe('OrderController', () => {
       expect(res.status).to.equal(400);
     });
 
-    it('should successfully create a new order with valid data', async () => {
+    it('should successfully create a new order with valid data, non existing item', async () => {
       const res = await chai
         .request(app.app)
         .post(uri)
@@ -769,6 +782,52 @@ describe('OrderController', () => {
           await repository.findOneOrFail(res.body.id, { relations: ['user'] })
         )
       );
+    });
+
+    it('should successfully create a new order with valid data, existing item', async () => {
+      const inventoryItem = Helpers.JSONify(
+        await factory(InventoryItem)().create()
+      );
+      const res = await chai
+        .request(app.app)
+        .post(uri)
+        .set('Authorization', adminHeader)
+        .send({
+          itemName: inventoryItem.name,
+          quantity: 1,
+          url: 'https://www.example.com/',
+        });
+
+      expect(res.status).to.equal(201);
+
+      expect(res.body).to.deep.equal(
+        Helpers.JSONify(
+          await repository.findOneOrFail(res.body.id, {
+            relations: ['user', 'item'],
+          })
+        )
+      );
+    });
+
+    it('should fail create a new order with invalid data, but existing item', async () => {
+      const inventoryItem = Helpers.JSONify(
+        await getRepository(InventoryItem).findOneOrFail(
+          (
+            await factory(InventoryItem)().create()
+          ).id
+        )
+      );
+      const res = await chai
+        .request(app.app)
+        .post(uri)
+        .set('Authorization', adminHeader)
+        .send({
+          itemName: inventoryItem.name,
+          quantity: 1,
+          url: 'notAnURL',
+        });
+
+      expect(res.status).to.equal(400);
     });
   });
 
@@ -865,7 +924,7 @@ describe('OrderController', () => {
       const order = Helpers.JSONify(
         await factory(Order)({
           user: admin,
-          status: OrderStatus.inventoried,
+          status: OrderStatus.ordered,
         }).create()
       );
       const response = await chai
@@ -990,6 +1049,33 @@ describe('OrderController', () => {
 
       expect(res.status).to.equal(400);
     });
+
+    /*
+    it('should fail to update a specific order with itemName, existing item, invalid url', async () => {
+      const order = Helpers.JSONify(
+        await repository.findOneOrFail(
+          (
+            await factory(Order)({
+              user: admin,
+              status: OrderStatus.pending,
+              url: 'NotAnUrl'
+            }).create()
+          ).id,
+          { relations: ['item', 'user'] }
+        )
+      );
+      //todo ne
+      const item = await factory(InventoryItem)().create();
+      const res = await chai
+        .request(app.app)
+        .patch(uri.replace(':id', order.id))
+        .set('Authorization', adminHeader)
+        .send({ itemName: item.name });
+
+      expect(res.status).to.equal(400);
+    });
+
+     */
 
     it('should update a specific order with itemName, non existing item', async () => {
       const order = Helpers.JSONify(
