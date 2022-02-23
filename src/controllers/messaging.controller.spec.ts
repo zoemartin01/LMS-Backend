@@ -59,7 +59,21 @@ describe('MessagingController', () => {
       Helpers.checkAuthentication('GET', 'fails', app, uri)
     );
 
-    //todo wrong user test
+    it('should get no messages of other users', async () => {
+      const count = 10;
+      const messages = Helpers.JSONify(
+        await factory(Message)({ recipient: admin }).createMany(count)
+      );
+
+      const res = await chai
+        .request(app.app)
+        .get(uri)
+        .set('Authorization', visitorHeader);
+
+      expect(res.status).to.equal(200);
+      expect(res.body.total).to.equal(0);
+      expect(res.body.data).to.be.an('array').that.has.a.lengthOf(0);
+    });
 
     it('should get all messages without limit/offset', async () => {
       const count = 10;
@@ -80,7 +94,7 @@ describe('MessagingController', () => {
         .and.that.has.same.deep.members(messages);
     });
 
-    it('should sort inventory items by createdAt in descending order', async () => {
+    it('should sort messages by createdAt in descending order', async () => {
       const count = 10;
       await factory(Message)({ recipient: visitor }).createMany(count);
       const messages = Helpers.JSONify(
@@ -100,7 +114,7 @@ describe('MessagingController', () => {
         .and.that.has.same.deep.ordered.members(messages);
     });
 
-    it('should get correct inventory items with limit', async () => {
+    it('should get messages with limit', async () => {
       const count = 10;
       const limit = 3;
 
@@ -123,7 +137,7 @@ describe('MessagingController', () => {
         .and.that.has.same.deep.members(messages);
     });
 
-    it('should get correct inventory items with offset', async () => {
+    it('should get messages with offset', async () => {
       const count = 10;
       const offset = 3;
 
@@ -147,16 +161,222 @@ describe('MessagingController', () => {
     });
   });
 
-  /*
-  messages: {
-      getCurrentUserUnreadMessagesAmounts: '/user/messages/unread-amounts',
-
-      deleteMessage: '/messages/:id',
-      updateMessage: '/messages/:id',
-    },
-   */
-
   describe('GET /user/messages/unread-amounts', () => {
     const uri = `${environment.apiRoutes.base}${environment.apiRoutes.messages.getCurrentUserUnreadMessagesAmounts}`;
+
+    it(
+      'should fail without authentication',
+      Helpers.checkAuthentication('GET', 'fails', app, uri)
+    );
+
+    it('should fail to get wrong user unread messages', async () => {
+      const count = 10;
+      await factory(Message)({ recipient: admin }).createMany(count);
+      const messages = Helpers.JSONify(
+        await repository.find({ order: { createdAt: 'DESC' } })
+      );
+
+      const res = await chai
+        .request(app.app)
+        .get(uri)
+        .set('Authorization', visitorHeader);
+
+      //todo zoe test getUnreadMessagesAmountsUtil, get 0
+    });
+
+    it('should get 3 unread messages', async () => {
+      const count = 3;
+      await factory(Message)({ recipient: visitor }).createMany(count);
+      const messages = Helpers.JSONify(
+        await repository.find({ order: { createdAt: 'DESC' } })
+      );
+
+      const res = await chai
+        .request(app.app)
+        .get(uri)
+        .set('Authorization', visitorHeader);
+
+      //todo zoe test getUnreadMessagesAmountsUtil, get 3
+    });
+
+    //todo zoe test get
+    //todo zoe AuthController.checkWebSocketAuthenticationMiddleware,
+    //todo zoe MessagingController.registerUnreadMessagesSocket
+  });
+
+  //todo zoe test ws
+  //todo zoe AuthController.checkWebSocketAuthenticationMiddleware,
+  //todo zoe MessagingController.registerUnreadMessagesSocket
+
+  //todo test sendMessageViaEmail
+
+  describe('PATCH /messages/:id', () => {
+    const uri = `${environment.apiRoutes.base}${environment.apiRoutes.messages.updateMessage}`;
+
+    it(
+      'should fail without authentication',
+      Helpers.checkAuthentication(
+        'PATCH',
+        'fails',
+        app,
+        uri.replace(':id', uuidv4())
+      )
+    );
+
+    it('should fail to patch other users messages', async () => {
+      const message = Helpers.JSONify(
+        await factory(Message)({ recipient: admin }).create()
+      );
+
+      const res = await chai
+        .request(app.app)
+        .patch(uri.replace(':id', message.id))
+        .set('Authorization', visitorHeader)
+        .send({ readStatus: true, content: 'test' });
+
+      expect(res.status).to.equal(403);
+    });
+
+    it('should fail with malformed request', (done) => {
+      chai
+        .request(app.app)
+        .patch(uri.replace(':id', uuidv4()))
+        .set('Authorization', adminHeader)
+        .send({ readStatus: 1 })
+        .end((err, res) => {
+          expect(res.status).to.equal(400);
+          done();
+        });
+    });
+
+    it('should fail with invalid input', (done) => {
+      chai
+        .request(app.app)
+        .patch(uri.replace(':id', uuidv4()))
+        .set('Authorization', adminHeader)
+        .send({ readStatus: true, title: '' })
+        .end((err, res) => {
+          expect(res.status).to.equal(404);
+          done();
+        });
+    });
+
+    it('should fail with invalid id', (done) => {
+      chai
+        .request(app.app)
+        .patch(uri.replace(':id', uuidv4()))
+        .set('Authorization', adminHeader)
+        .send({ readStatus: true })
+        .end((err, res) => {
+          expect(res.status).to.equal(404);
+          done();
+        });
+    });
+
+    it('should fail to update the id', async () => {
+      const message = Helpers.JSONify(
+        await factory(Message)({ recipient: visitor }).create()
+      );
+      const res = await chai
+        .request(app.app)
+        .patch(uri.replace(':id', message.id))
+        .set('Authorization', adminHeader)
+        .send({ id: uuidv4(), readStatus: true });
+
+      expect(res.status).to.equal(400);
+    });
+
+    it('should update nothing', async () => {
+      const message = Helpers.JSONify(
+        await factory(Message)({ recipient: visitor }).create()
+      );
+      const res = await chai
+        .request(app.app)
+        .patch(uri.replace(':id', message.id))
+        .set('Authorization', adminHeader);
+
+      expect(res.status).to.equal(204);
+      expect(message).to.deep.equal(
+        Helpers.JSONify(await repository.findOneOrFail(message.id))
+      );
+    });
+
+    it('should update a specific message', async () => {
+      const message = Helpers.JSONify(
+        await factory(Message)({ recipient: visitor }).create()
+      );
+      const res = await chai
+        .request(app.app)
+        .patch(uri.replace(':id', message.id))
+        .set('Authorization', visitorHeader)
+        .send({ content: 'testContent', readStatus: message.readStatus });
+
+      expect(res.status).to.equal(200);
+      expect(res.body).to.deep.equal({
+        ...message,
+        content: 'testContent',
+        updatedAt: res.body.updatedAt,
+      });
+    });
+  });
+
+  describe('DELETE /messages/:id', () => {
+    const uri = `${environment.apiRoutes.base}${environment.apiRoutes.messages.deleteMessage}`;
+
+    it(
+      'should fail without authentication',
+      Helpers.checkAuthentication(
+        'DELETE',
+        'fails',
+        app,
+        uri.replace(':id', uuidv4())
+      )
+    );
+
+    it('should fail to delete other users messages', async () => {
+      const message = Helpers.JSONify(
+        await factory(Message)({ recipient: admin }).create()
+      );
+
+      const res = await chai
+        .request(app.app)
+        .delete(uri.replace(':id', message.id))
+        .set('Authorization', visitorHeader)
+        .send({ readStatus: 1, content: 'test' });
+
+      expect(res.status).to.equal(403);
+    });
+
+    it('should fail with invalid id', (done) => {
+      chai
+        .request(app.app)
+        .delete(uri.replace(':id', uuidv4()))
+        .set('Authorization', adminHeader)
+        .end((err, res) => {
+          expect(res.status).to.equal(404);
+          done();
+        });
+    });
+
+    it('should delete a specific message', async () => {
+      const message = await factory(Message)({ recipient: visitor }).create();
+      expect(
+        (async () => {
+          return await repository.findOneOrFail(message.id);
+        })()
+      ).to.be.fulfilled;
+
+      const res = await chai
+        .request(app.app)
+        .delete(uri.replace(':id', message.id))
+        .set('Authorization', visitorHeader);
+
+      expect(res.status).to.equal(204);
+      expect(
+        (async () => {
+          return await repository.findOneOrFail(message.id);
+        })()
+      ).to.be.rejected;
+    });
   });
 });
