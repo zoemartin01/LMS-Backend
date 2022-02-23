@@ -14,19 +14,31 @@ export async function createTimeslots(room: Room, weeks = 6) {
   for (let i = 0; i < 5; i++) {
     const aSeriesId = v4();
     const uSeriesId = v4();
-    const aStart = moment('2022-01-03')
+    const aStart = moment()
+      .weekday(1)
+      .hours(0)
+      .minutes(0)
+      .seconds(0)
+      .milliseconds(0)
+      .subtract(1, 'week')
       .add(i, 'days')
       .add(faker.random.number({ min: 4, max: 8 }), 'hours');
     const aEnd = aStart
       .clone()
       .add(faker.random.number({ min: 4, max: 10 }), 'hours');
 
-    const uStart = moment('2022-01-03')
+    const uStart = moment()
+      .weekday(1)
+      .hours(0)
+      .minutes(0)
+      .seconds(0)
+      .milliseconds(0)
+      .subtract(1, 'week')
       .add(i, 'days')
       .add(faker.random.number({ min: 4, max: 16 }), 'hours');
     const uEnd = uStart
       .clone()
-      .add(faker.random.number({ min: 0, max: 3 }), 'hours');
+      .add(faker.random.number({ min: 1, max: 3 }), 'hours');
 
     for (let j = 0; j < weeks; j++) {
       aTimeslots.push(
