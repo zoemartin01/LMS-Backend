@@ -4,13 +4,15 @@ import {
   DeepPartial,
   Equal,
   getRepository,
+  LessThan,
   LessThanOrEqual,
+  MoreThan,
   MoreThanOrEqual,
   Not,
 } from 'typeorm';
 import { AppointmentTimeslot } from '../models/appointment.timeslot.entity';
 import { AuthController } from './auth.controller';
-import { validateOrReject } from 'class-validator';
+import { isISO8601, validateOrReject } from 'class-validator';
 import { Room } from '../models/room.entity';
 import { v4 as uuidv4 } from 'uuid';
 import { MessagingController } from './messaging.controller';
@@ -309,26 +311,37 @@ export class AppointmentController {
       return;
     }
 
-    let appointment;
-
-    try {
-      appointment = repository.create(<DeepPartial<AppointmentTimeslot>>{
-        start: moment(start).toDate(),
-        end: moment(end).toDate(),
-        confirmationStatus: room.autoAcceptBookings
-          ? ConfirmationStatus.accepted
-          : ConfirmationStatus.pending,
-        user,
-        room,
-        amount: 1,
-        timeSlotRecurrence: TimeSlotRecurrence.single,
-      });
-
-      await validateOrReject(appointment);
-    } catch (err) {
-      res.status(400).json(err);
+    if (!isISO8601(start)) {
+      res.status(400).json({ message: 'Invalid start format.' });
       return;
     }
+
+    if (!isISO8601(end)) {
+      res.status(400).json({ message: 'Invalid end format.' });
+      return;
+    }
+
+    const mStart = moment(start).minutes(0).seconds(0).milliseconds(0);
+    const mEnd = moment(end).minutes(0).seconds(0).milliseconds(0);
+
+    const duration = moment.duration(mEnd.diff(mStart));
+
+    if (duration.asHours() < 1) {
+      res.status(400).json({ message: 'Duration must be at least 1h.' });
+      return;
+    }
+
+    const appointment = repository.create({
+      start: mStart.toDate(),
+      end: mEnd.toDate(),
+      confirmationStatus: room.autoAcceptBookings
+        ? ConfirmationStatus.accepted
+        : ConfirmationStatus.pending,
+      user,
+      room,
+      amount: 1,
+      timeSlotRecurrence: TimeSlotRecurrence.single,
+    });
 
     const availableConflict =
       (await getRepository(AvailableTimeslot).findOne({
@@ -342,7 +355,7 @@ export class AppointmentController {
     if (availableConflict) {
       res
         .status(409)
-        .json({ message: 'Appointment conflicts with available timeslot' });
+        .json({ message: 'Appointment conflicts with available timeslot.' });
       return;
     }
 
@@ -363,13 +376,26 @@ export class AppointmentController {
               moment(appointment.end).subtract(1, 'ms').toDate()
             ),
           },
+          {
+            room,
+            start: appointment.start,
+          },
+          {
+            room,
+            end: appointment.end,
+          },
+          {
+            room,
+            start: LessThan(appointment.end),
+            end: MoreThan(appointment.end),
+          },
         ],
       })) !== undefined;
 
     if (unavailableConflict) {
       res
         .status(409)
-        .json({ message: 'Appointment conflicts with unavailable timeslot' });
+        .json({ message: 'Appointment conflicts with unavailable timeslot.' });
       return;
     }
 
