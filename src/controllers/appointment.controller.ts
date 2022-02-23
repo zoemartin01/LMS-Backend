@@ -474,24 +474,26 @@ export class AppointmentController {
       '/appointments'
     );
 
-    await MessagingController.sendMessageToAllAdmins(
-      'Accept Appointment Series Request',
-      'You have an open appointment series request at ' +
-        moment(start).format('DD.MM.YY') +
-        ' from ' +
-        moment(start).format('HH:mm') +
-        ' to ' +
-        moment(end).format('HH:mm') +
-        ' in room ' +
-        room.name +
-        ' from user ' +
-        user.firstName +
-        ' ' +
-        user.lastName +
-        '.',
-      'Appointment Requests',
-      '/appointments/all'
-    );
+    if (!room.autoAcceptBookings) {
+      await MessagingController.sendMessageToAllAdmins(
+        'Accept Appointment Series Request',
+        'You have an open appointment series request at ' +
+          moment(start).format('DD.MM.YY') +
+          ' from ' +
+          moment(start).format('HH:mm') +
+          ' to ' +
+          moment(end).format('HH:mm') +
+          ' in room ' +
+          room.name +
+          ' from user ' +
+          user.firstName +
+          ' ' +
+          user.lastName +
+          '.',
+        'Appointment Requests',
+        '/appointments/all'
+      );
+    }
 
     res.status(201).json(await repository.save(appointment));
   }

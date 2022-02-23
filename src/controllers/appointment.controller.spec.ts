@@ -1846,6 +1846,169 @@ describe('AppointmentController', () => {
         });
       });
     });
+
+    it('should successfully create an appointment', async () => {
+      const start = moment('2022-02-23T12:00:00Z');
+      const end = moment(start).add(4, 'hour');
+
+      const appointment = Helpers.JSONify({
+        user: admin,
+        start: start.toDate(),
+        end: end.toDate(),
+        room: room,
+      });
+
+      await getRepository(AvailableTimeslot).save({
+        start: moment(start).hour(0).toDate(),
+        end: moment(end).hour(0).add(1, 'day').toDate(),
+        room,
+      });
+
+      const res = await chai
+        .request(app.app)
+        .post(uri)
+        .set('Authorization', adminHeader)
+        .send({ roomId: room.id, start, end });
+
+      res.should.have.status(201);
+      res.body.should.deep.include(appointment);
+    });
+
+    it('should automatically accept bookings if autoAcceptBookings is true', async () => {
+      const start = moment('2022-02-23T12:00:00Z');
+      const end = moment(start).add(4, 'hour');
+
+      const appointment = Helpers.JSONify({
+        user: admin,
+        start: start.toDate(),
+        end: end.toDate(),
+        confirmationStatus: ConfirmationStatus.accepted,
+      });
+
+      await getRepository(Room).update(room.id, {
+        autoAcceptBookings: true,
+      });
+
+      await getRepository(AvailableTimeslot).save({
+        start: moment(start).hour(0).toDate(),
+        end: moment(end).hour(0).add(1, 'day').toDate(),
+        room,
+      });
+
+      const res = await chai
+        .request(app.app)
+        .post(uri)
+        .set('Authorization', adminHeader)
+        .send({ roomId: room.id, start, end });
+
+      res.should.have.status(201);
+      res.body.should.deep.include(appointment);
+    });
+
+    it('should not automatically accept bookings if autoAcceptBookings is false', async () => {
+      const start = moment('2022-02-23T12:00:00Z');
+      const end = moment(start).add(4, 'hour');
+
+      const appointment = Helpers.JSONify({
+        user: admin,
+        start: start.toDate(),
+        end: end.toDate(),
+        confirmationStatus: ConfirmationStatus.pending,
+      });
+
+      await getRepository(Room).update(room.id, {
+        autoAcceptBookings: false,
+      });
+
+      await getRepository(AvailableTimeslot).save({
+        start: moment(start).hour(0).toDate(),
+        end: moment(end).hour(0).add(1, 'day').toDate(),
+        room,
+      });
+
+      const res = await chai
+        .request(app.app)
+        .post(uri)
+        .set('Authorization', adminHeader)
+        .send({ roomId: room.id, start, end });
+
+      res.should.have.status(201);
+      res.body.should.deep.include(appointment);
+    });
+
+    it('should send a message to the user the appointment belongs to', async () => {
+      const spy = sandbox.spy(MessagingController, 'sendMessage');
+
+      const start = moment('2022-02-23T12:00:00Z');
+      const end = moment(start).add(4, 'hour');
+
+      await getRepository(AvailableTimeslot).save({
+        start: moment(start).hour(0).toDate(),
+        end: moment(end).hour(0).add(1, 'day').toDate(),
+        room,
+      });
+
+      const res = await chai
+        .request(app.app)
+        .post(uri)
+        .set('Authorization', adminHeader)
+        .send({ roomId: room.id, start, end });
+
+      res.should.have.status(201);
+      spy.should.have.been.calledWith(admin);
+    });
+
+    it('should send a message to all admins if a visitor requests an appointment', async () => {
+      const spy = sandbox.spy(MessagingController, 'sendMessageToAllAdmins');
+
+      const start = moment('2022-02-23T12:00:00Z');
+      const end = moment(start).add(4, 'hour');
+
+      await getRepository(Room).update(room.id, {
+        autoAcceptBookings: false,
+      });
+
+      await getRepository(AvailableTimeslot).save({
+        start: moment(start).hour(0).toDate(),
+        end: moment(end).hour(0).add(1, 'day').toDate(),
+        room,
+      });
+
+      const res = await chai
+        .request(app.app)
+        .post(uri)
+        .set('Authorization', adminHeader)
+        .send({ roomId: room.id, start, end });
+
+      res.should.have.status(201);
+      spy.should.have.been.called;
+    });
+
+    it('should not send a message to all admins if a visitor creates an appointment with autoAcceptBookings enabled', async () => {
+      const spy = sandbox.spy(MessagingController, 'sendMessageToAllAdmins');
+
+      const start = moment('2022-02-23T12:00:00Z');
+      const end = moment(start).add(4, 'hour');
+
+      await getRepository(Room).update(room.id, {
+        autoAcceptBookings: true,
+      });
+
+      await getRepository(AvailableTimeslot).save({
+        start: moment(start).hour(0).toDate(),
+        end: moment(end).hour(0).add(1, 'day').toDate(),
+        room,
+      });
+
+      const res = await chai
+        .request(app.app)
+        .post(uri)
+        .set('Authorization', adminHeader)
+        .send({ roomId: room.id, start, end });
+
+      res.should.have.status(201);
+      spy.should.not.have.been.called;
+    });
   });
 
   describe('POST /appointments/series', () => {
