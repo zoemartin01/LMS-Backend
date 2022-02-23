@@ -59,7 +59,21 @@ describe('MessagingController', () => {
       Helpers.checkAuthentication('GET', 'fails', app, uri)
     );
 
-    //todo wrong user test
+    it('should get no messages of other users', async () => {
+      const count = 10;
+      const messages = Helpers.JSONify(
+        await factory(Message)({ recipient: admin }).createMany(count)
+      );
+
+      const res = await chai
+        .request(app.app)
+        .get(uri)
+        .set('Authorization', visitorHeader);
+
+      expect(res.status).to.equal(200);
+      expect(res.body.total).to.equal(0);
+      expect(res.body.data).to.be.an('array').that.has.a.lengthOf(0);
+    });
 
     it('should get all messages without limit/offset', async () => {
       const count = 10;
@@ -155,8 +169,44 @@ describe('MessagingController', () => {
       Helpers.checkAuthentication('GET', 'fails', app, uri)
     );
 
-    //todo wrong user test
+    it('should fail to get wrong user unread messages', async () => {
+      const count = 10;
+      await factory(Message)({ recipient: admin }).createMany(count);
+      const messages = Helpers.JSONify(
+        await repository.find({ order: { createdAt: 'DESC' } })
+      );
+
+      const res = await chai
+        .request(app.app)
+        .get(uri)
+        .set('Authorization', visitorHeader);
+
+      //todo zoe test getUnreadMessagesAmountsUtil, get 0
+    });
+
+    it('should get 3 unread messages', async () => {
+      const count = 3;
+      await factory(Message)({ recipient: visitor }).createMany(count);
+      const messages = Helpers.JSONify(
+        await repository.find({ order: { createdAt: 'DESC' } })
+      );
+
+      const res = await chai
+        .request(app.app)
+        .get(uri)
+        .set('Authorization', visitorHeader);
+
+      //todo zoe test getUnreadMessagesAmountsUtil, get 3
+    });
+
+    //todo zoe test get
+    //todo zoe AuthController.checkWebSocketAuthenticationMiddleware,
+    //todo zoe MessagingController.registerUnreadMessagesSocket
   });
+
+  //todo zoe test ws
+  //todo zoe AuthController.checkWebSocketAuthenticationMiddleware,
+  //todo zoe MessagingController.registerUnreadMessagesSocket
 
   describe('PATCH /messages/:id', () => {
     const uri = `${environment.apiRoutes.base}${environment.apiRoutes.messages.updateMessage}`;
@@ -171,9 +221,19 @@ describe('MessagingController', () => {
       )
     );
 
-    //todo wrong user test
+    it('should fail to patch other users messages', async () => {
+      const message = Helpers.JSONify(
+        await factory(Message)({ recipient: admin }).create()
+      );
 
-    //todo wrong patch test (patch content/title etc)
+      const res = await chai
+        .request(app.app)
+        .patch(uri.replace(':id', message.id))
+        .set('Authorization', visitorHeader)
+        .send({ readStatus: true, content: 'test' });
+
+      expect(res.status).to.equal(403);
+    });
 
     it('should fail with malformed request', (done) => {
       chai
@@ -183,6 +243,18 @@ describe('MessagingController', () => {
         .send({ readStatus: 1 })
         .end((err, res) => {
           expect(res.status).to.equal(400);
+          done();
+        });
+    });
+
+    it('should fail with invalid input', (done) => {
+      chai
+        .request(app.app)
+        .patch(uri.replace(':id', uuidv4()))
+        .set('Authorization', adminHeader)
+        .send({ readStatus: true, title: '' })
+        .end((err, res) => {
+          expect(res.status).to.equal(404);
           done();
         });
     });
@@ -234,7 +306,7 @@ describe('MessagingController', () => {
       const res = await chai
         .request(app.app)
         .patch(uri.replace(':id', message.id))
-        .set('Authorization', adminHeader)
+        .set('Authorization', visitorHeader)
         .send({ content: 'testContent', readStatus: message.readStatus });
 
       expect(res.status).to.equal(200);
@@ -259,7 +331,19 @@ describe('MessagingController', () => {
       )
     );
 
-    //todo wrong user test
+    it('should fail to delete other users messages', async () => {
+      const message = Helpers.JSONify(
+        await factory(Message)({ recipient: admin }).create()
+      );
+
+      const res = await chai
+        .request(app.app)
+        .delete(uri.replace(':id', message.id))
+        .set('Authorization', visitorHeader)
+        .send({ readStatus: 1, content: 'test' });
+
+      expect(res.status).to.equal(403);
+    });
 
     it('should fail with invalid id', (done) => {
       chai
@@ -283,7 +367,7 @@ describe('MessagingController', () => {
       const res = await chai
         .request(app.app)
         .delete(uri.replace(':id', message.id))
-        .set('Authorization', adminHeader);
+        .set('Authorization', visitorHeader);
 
       expect(res.status).to.equal(204);
       expect(
@@ -293,7 +377,4 @@ describe('MessagingController', () => {
       ).to.be.rejected;
     });
   });
-
-  //todo router.ts check tests
-  //todo message send tests
 });
