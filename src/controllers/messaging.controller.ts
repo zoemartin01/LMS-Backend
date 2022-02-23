@@ -170,6 +170,14 @@ export class MessagingController {
       });
       return;
     }
+    const currentUser = await AuthController.getCurrentUser(req);
+
+    if (currentUser.id !== message.recipient.id) {
+      res.status(403).json({
+        message: 'No permission to delete other users message.',
+      });
+      return;
+    }
 
     await messageRepository.delete(message.id);
 
@@ -224,6 +232,15 @@ export class MessagingController {
     if (message === undefined) {
       res.status(404).json({
         message: 'Message not found.',
+      });
+      return;
+    }
+
+    const currentUser = await AuthController.getCurrentUser(req);
+
+    if (currentUser.id !== message.recipient.id) {
+      res.status(403).json({
+        message: 'No permission to edit other users message.',
       });
       return;
     }
