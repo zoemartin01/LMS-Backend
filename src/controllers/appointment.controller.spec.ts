@@ -1399,7 +1399,7 @@ describe('AppointmentController', () => {
         /*
          * The two existing appointments overlap by 2 hours.
          *
-         * The early appointment is 4 hours long. 2 hours after the early one starts
+         * Each appointment is 4 hours long. 2 hours after the early one starts
          * the late one starts. It ends two hours after the early one.
          */
 
@@ -1570,6 +1570,271 @@ describe('AppointmentController', () => {
         it('should succeed if new appointment starts before early start and ends on late start', async () => {
           const start = moment(early.start).subtract(2, 'hours').toISOString();
           const end = moment(late.start).toISOString();
+
+          const res = await chai
+            .request(app.app)
+            .post(uri)
+            .set('Authorization', adminHeader)
+            .send({ roomId: room.id, start, end });
+
+          res.should.have.status(201);
+        });
+      });
+
+      describe('Case 2', () => {
+        /*
+         * The two existing appointments are adjacent to each other.
+         *
+         * Each appointment is 4 hours long. The late one starts 4 hours
+         * after the early one.
+         */
+
+        beforeEach(async () => {
+          const time = moment('2022-02-23T12:00:00Z');
+
+          await getRepository(Room).update(room.id, {
+            maxConcurrentBookings: 2,
+          });
+
+          await getRepository(AvailableTimeslot).save({
+            start: moment(time).hour(0).toDate(),
+            end: moment(time).hour(0).add(1, 'day').toDate(),
+            room,
+          });
+
+          early = await repository.save({
+            room,
+            start: moment(time).subtract(4, 'hours').toISOString(),
+            end: moment(time).toISOString(),
+          });
+
+          late = await repository.save({
+            room,
+            start: moment(time).toISOString(),
+            end: moment(time).add(4, 'hours').toISOString(),
+          });
+        });
+
+        it('should succeed if new appointment starts inside early and ends inside late', async () => {
+          const start = moment(early.start).add(2, 'hours').toISOString();
+          const end = moment(late.start).add(2, 'hours').toISOString();
+
+          const res = await chai
+            .request(app.app)
+            .post(uri)
+            .set('Authorization', adminHeader)
+            .send({ roomId: room.id, start, end });
+
+          res.should.have.status(201);
+        });
+
+        it('should succeed if new appointment starts on early start and ends on late end', async () => {
+          const start = moment(early.start).toISOString();
+          const end = moment(late.end).toISOString();
+
+          const res = await chai
+            .request(app.app)
+            .post(uri)
+            .set('Authorization', adminHeader)
+            .send({ roomId: room.id, start, end });
+
+          res.should.have.status(201);
+        });
+
+        it('should succeed if new appointment starts before early and ends after late', async () => {
+          const start = moment(early.start).subtract(2, 'hours').toISOString();
+          const end = moment(late.end).add(2, 'hours').toISOString();
+
+          const res = await chai
+            .request(app.app)
+            .post(uri)
+            .set('Authorization', adminHeader)
+            .send({ roomId: room.id, start, end });
+
+          res.should.have.status(201);
+        });
+
+        it('should succeed if new appointment starts before early and ends inside late', async () => {
+          const start = moment(early.start).subtract(2, 'hours').toISOString();
+          const end = moment(late.start).add(2, 'hours').toISOString();
+
+          const res = await chai
+            .request(app.app)
+            .post(uri)
+            .set('Authorization', adminHeader)
+            .send({ roomId: room.id, start, end });
+
+          res.should.have.status(201);
+        });
+
+        it('should succeed if new appointment starts inside early and ends outside late', async () => {
+          const start = moment(early.start).add(2, 'hours').toISOString();
+          const end = moment(late.end).add(2, 'hours').toISOString();
+
+          const res = await chai
+            .request(app.app)
+            .post(uri)
+            .set('Authorization', adminHeader)
+            .send({ roomId: room.id, start, end });
+
+          res.should.have.status(201);
+        });
+      });
+
+      describe('Case 3', () => {
+        /*
+         * The two existing appointments are not adjacent or overlapping.
+         *
+         * Each appointment is 4 hours long. The late one starts 6 hours
+         * after the early one.
+         */
+
+        beforeEach(async () => {
+          const time = moment('2022-02-23T12:00:00Z');
+
+          await getRepository(Room).update(room.id, {
+            maxConcurrentBookings: 2,
+          });
+
+          await getRepository(AvailableTimeslot).save({
+            start: moment(time).hour(0).toDate(),
+            end: moment(time).hour(0).add(1, 'day').toDate(),
+            room,
+          });
+
+          early = await repository.save({
+            room,
+            start: moment(time).subtract(5, 'hours').toISOString(),
+            end: moment(time).subtract(1, 'hours').toISOString(),
+          });
+
+          late = await repository.save({
+            room,
+            start: moment(time).add(1, 'hours').toISOString(),
+            end: moment(time).add(5, 'hours').toISOString(),
+          });
+        });
+
+        it('should succeed if new appointment starts between both', async () => {
+          const start = moment(early.end).toISOString();
+          const end = moment(late.start).toISOString();
+
+          const res = await chai
+            .request(app.app)
+            .post(uri)
+            .set('Authorization', adminHeader)
+            .send({ roomId: room.id, start, end });
+
+          res.should.have.status(201);
+        });
+
+        it('should succeed if new appointment starts with early and ends with late', async () => {
+          const start = moment(early.start).toISOString();
+          const end = moment(late.end).toISOString();
+
+          const res = await chai
+            .request(app.app)
+            .post(uri)
+            .set('Authorization', adminHeader)
+            .send({ roomId: room.id, start, end });
+
+          res.should.have.status(201);
+        });
+
+        it('should succeed if new appointment starts before early and ends after late', async () => {
+          const start = moment(early.start).subtract(2, 'hours').toISOString();
+          const end = moment(late.end).add(2, 'hours').toISOString();
+
+          const res = await chai
+            .request(app.app)
+            .post(uri)
+            .set('Authorization', adminHeader)
+            .send({ roomId: room.id, start, end });
+
+          res.should.have.status(201);
+        });
+
+        it('should succeed if new appointment starts inside early and ends outside late', async () => {
+          const start = moment(early.start).add(2, 'hours').toISOString();
+          const end = moment(late.end).add(2, 'hours').toISOString();
+
+          const res = await chai
+            .request(app.app)
+            .post(uri)
+            .set('Authorization', adminHeader)
+            .send({ roomId: room.id, start, end });
+
+          res.should.have.status(201);
+        });
+
+        it('should succeed if new appointment starts before early and ends inside late', async () => {
+          const start = moment(early.start).subtract(2, 'hours').toISOString();
+          const end = moment(late.start).add(2, 'hours').toISOString();
+
+          const res = await chai
+            .request(app.app)
+            .post(uri)
+            .set('Authorization', adminHeader)
+            .send({ roomId: room.id, start, end });
+
+          res.should.have.status(201);
+        });
+
+        it('should succeed if new appointment starts inside early and ends after late', async () => {
+          const start = moment(early.start).add(2, 'hours').toISOString();
+          const end = moment(late.end).add(2, 'hours').toISOString();
+
+          const res = await chai
+            .request(app.app)
+            .post(uri)
+            .set('Authorization', adminHeader)
+            .send({ roomId: room.id, start, end });
+
+          res.should.have.status(201);
+        });
+
+        it('should succeed if new appointment starts before early and ends with early', async () => {
+          const start = moment(early.start).subtract(2, 'hours').toISOString();
+          const end = moment(early.end).toISOString();
+
+          const res = await chai
+            .request(app.app)
+            .post(uri)
+            .set('Authorization', adminHeader)
+            .send({ roomId: room.id, start, end });
+
+          res.should.have.status(201);
+        });
+
+        it('should succeed if new appointment starts with early end and ends after late', async () => {
+          const start = moment(early.end).toISOString();
+          const end = moment(late.end).add(2, 'hours').toISOString();
+
+          const res = await chai
+            .request(app.app)
+            .post(uri)
+            .set('Authorization', adminHeader)
+            .send({ roomId: room.id, start, end });
+
+          res.should.have.status(201);
+        });
+
+        it('should succeed if new appointment starts with early start and ends with late start', async () => {
+          const start = moment(early.start).toISOString();
+          const end = moment(late.start).toISOString();
+
+          const res = await chai
+            .request(app.app)
+            .post(uri)
+            .set('Authorization', adminHeader)
+            .send({ roomId: room.id, start, end });
+
+          res.should.have.status(201);
+        });
+
+        it('should succeed if new appointment starts with early end and ends with late end', async () => {
+          const start = moment(early.end).toISOString();
+          const end = moment(late.end).toISOString();
 
           const res = await chai
             .request(app.app)

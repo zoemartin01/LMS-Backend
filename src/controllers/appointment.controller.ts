@@ -14,7 +14,7 @@ import { AppointmentTimeslot } from '../models/appointment.timeslot.entity';
 import { AuthController } from './auth.controller';
 import { isISO8601, validateOrReject } from 'class-validator';
 import { Room } from '../models/room.entity';
-import { v4 as uuidv4 } from 'uuid';
+import { v4 as uuidv4, v4 } from 'uuid';
 import { MessagingController } from './messaging.controller';
 import moment from 'moment';
 import { User } from '../models/user.entity';
@@ -399,44 +399,64 @@ export class AppointmentController {
       return;
     }
 
-    const conflictingBookings = await getRepository(AppointmentTimeslot).count({
-      where: [
-        {
-          room,
-          // @todo is there a better solution to this?
-          start: Between(
-            moment(appointment.start).add(1, 'ms').toDate(),
-            moment(appointment.end).subtract(1, 'ms').toDate()
-          ),
-          confirmationStatus: Not(ConfirmationStatus.denied),
-        },
-        {
-          room,
-          end: Between(
-            moment(appointment.start).add(1, 'ms').toDate(),
-            moment(appointment.end).subtract(1, 'ms').toDate()
-          ),
-          confirmationStatus: Not(ConfirmationStatus.denied),
-        },
-        {
-          room,
-          start: Equal(moment(appointment.start).toDate()),
-          confirmationStatus: Not(ConfirmationStatus.denied),
-        },
-        {
-          room,
-          end: Equal(moment(appointment.end).toDate()),
-          confirmationStatus: Not(ConfirmationStatus.denied),
-        },
-      ],
-    });
+    const findConflictingBookings = async (
+      appointment: AppointmentTimeslot
+    ) => {
+      const id = appointment.id ?? v4();
+      return await getRepository(AppointmentTimeslot).findAndCount({
+        where: [
+          {
+            id: Not(id),
+            room,
+            // @todo is there a better solution to this?
+            start: Between(
+              moment(appointment.start).add(1, 'ms').toDate(),
+              moment(appointment.end).subtract(1, 'ms').toDate()
+            ),
+            confirmationStatus: Not(ConfirmationStatus.denied),
+          },
+          {
+            id: Not(id),
+            room,
+            end: Between(
+              moment(appointment.start).add(1, 'ms').toDate(),
+              moment(appointment.end).subtract(1, 'ms').toDate()
+            ),
+            confirmationStatus: Not(ConfirmationStatus.denied),
+          },
+          {
+            id: Not(id),
+            room,
+            start: Equal(moment(appointment.start).toDate()),
+            confirmationStatus: Not(ConfirmationStatus.denied),
+          },
+          {
+            id: Not(id),
+            room,
+            end: Equal(moment(appointment.end).toDate()),
+            confirmationStatus: Not(ConfirmationStatus.denied),
+          },
+        ],
+      });
+    };
 
-    if (conflictingBookings >= room.maxConcurrentBookings) {
-      res.status(409).json({ message: 'Too many concurrent bookings.' });
-      return;
+    const conflictingBookings = await findConflictingBookings(appointment);
+
+    if (conflictingBookings[1] >= room.maxConcurrentBookings) {
+      const conflicts = conflictingBookings[0].map(
+        async (a: AppointmentTimeslot) => {
+          return (
+            (await findConflictingBookings(a))[1] >=
+            room.maxConcurrentBookings - 1
+          );
+        }
+      );
+
+      if ((await Promise.all(conflicts)).some((b) => b)) {
+        res.status(409).json({ message: 'Too many concurrent bookings.' });
+        return;
+      }
     }
-
-    res.status(201).json(await repository.save(appointment));
 
     await MessagingController.sendMessage(
       user,
@@ -472,6 +492,8 @@ export class AppointmentController {
       'Appointment Requests',
       '/appointments/all'
     );
+
+    res.status(201).json(await repository.save(appointment));
   }
 
   /**
