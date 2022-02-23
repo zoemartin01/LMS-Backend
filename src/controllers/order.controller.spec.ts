@@ -829,6 +829,46 @@ describe('OrderController', () => {
 
       expect(res.status).to.equal(400);
     });
+
+    it('should send a message to all admins that a order has been made', async () => {
+      const inventoryItem = Helpers.JSONify(
+        await factory(InventoryItem)().create()
+      );
+      const spy = sandbox.spy(MessagingController, 'sendMessageToAllAdmins');
+      const res = await chai
+        .request(app.app)
+        .post(uri)
+        .set('Authorization', visitorHeader)
+        .send({
+          itemName: inventoryItem.name,
+          quantity: 1,
+          url: 'https://www.example.com/',
+        });
+
+      expect(res.status).to.equal(201);
+      expect(spy).to.have.been.called;
+    });
+
+    it('should send a confirmation message that a order has been made', async () => {
+      const inventoryItem = Helpers.JSONify(
+        await factory(InventoryItem)().create()
+      );
+      const spy = sandbox.spy(MessagingController, 'sendMessage');
+      const res = await chai
+        .request(app.app)
+        .post(uri)
+        .set('Authorization', visitorHeader)
+        .send({
+          itemName: inventoryItem.name,
+          quantity: 1,
+          url: 'https://www.example.com/',
+        });
+
+      expect(res.status).to.equal(201);
+      expect(spy).to.have.been.calledWith(
+        await getRepository(User).findOneOrFail(visitor.id)
+      );
+    });
   });
 
   describe('PATCH /orders/:id', () => {
@@ -1050,7 +1090,6 @@ describe('OrderController', () => {
       expect(res.status).to.equal(400);
     });
 
-    /*
     it('should fail to update a specific order with itemName, existing item, invalid url', async () => {
       const order = Helpers.JSONify(
         await repository.findOneOrFail(
@@ -1058,24 +1097,20 @@ describe('OrderController', () => {
             await factory(Order)({
               user: admin,
               status: OrderStatus.pending,
-              url: 'NotAnUrl'
             }).create()
           ).id,
           { relations: ['item', 'user'] }
         )
       );
-      //todo ne
       const item = await factory(InventoryItem)().create();
       const res = await chai
         .request(app.app)
         .patch(uri.replace(':id', order.id))
         .set('Authorization', adminHeader)
-        .send({ itemName: item.name });
+        .send({ itemName: item.name, quantity: -1 });
 
       expect(res.status).to.equal(400);
     });
-
-     */
 
     it('should update a specific order with itemName, non existing item', async () => {
       const order = Helpers.JSONify(
@@ -1120,8 +1155,8 @@ describe('OrderController', () => {
       expect(res.status).to.equal(400);
     });
 
+    //todo does not cover line 463 LIKE IT SHOULD
     it('should send a confirmation message to the admin', async () => {
-      const spy = sandbox.spy(MessagingController, 'sendMessage');
       const order = await factory(Order)({
         user: visitor,
         status: OrderStatus.ordered,
@@ -1132,6 +1167,7 @@ describe('OrderController', () => {
         })()
       ).to.be.fulfilled;
 
+      const spy = sandbox.spy(MessagingController, 'sendMessage');
       const res = await chai
         .request(app.app)
         .patch(uri.replace(':id', order.id))
@@ -1266,8 +1302,8 @@ describe('OrderController', () => {
       ).to.be.rejected;
     });
 
+    //todo does not cover line 522 LIKE IT SHOULD
     it('should send a confirmation message to the user', async () => {
-      const spy = sandbox.spy(MessagingController, 'sendMessage');
       const order = await factory(Order)({
         user: visitor,
         status: OrderStatus.pending,
@@ -1278,6 +1314,7 @@ describe('OrderController', () => {
         })()
       ).to.be.fulfilled;
 
+      const spy = sandbox.spy(MessagingController, 'sendMessage');
       const res = await chai
         .request(app.app)
         .delete(uri.replace(':id', order.id))
