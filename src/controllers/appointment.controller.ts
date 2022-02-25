@@ -400,59 +400,146 @@ export class AppointmentController {
     }
 
     const findConflictingBookings = async (
-      appointment: AppointmentTimeslot
+      appointment: AppointmentTimeslot,
+      earlyBorder?: Date,
+      lateBorder?: Date
     ) => {
       const id = appointment.id ?? v4();
-      return await getRepository(AppointmentTimeslot).findAndCount({
+      const start = new Date(
+        Math.max(
+          appointment.start.getTime(),
+          earlyBorder?.getTime() ?? appointment.start.getTime()
+        )
+      );
+      const end = new Date(
+        Math.min(
+          appointment.end.getTime(),
+          lateBorder?.getTime() ?? appointment.end.getTime()
+        )
+      );
+      const c = await getRepository(AppointmentTimeslot).find({
         where: [
           {
             id: Not(id),
             room,
-            // @todo is there a better solution to this?
-            start: Between(
-              moment(appointment.start).add(1, 'ms').toDate(),
-              moment(appointment.end).subtract(1, 'ms').toDate()
-            ),
             confirmationStatus: Not(ConfirmationStatus.denied),
+            start: Between(start, end),
+            end: Between(start, end),
           },
           {
             id: Not(id),
             room,
-            end: Between(
-              moment(appointment.start).add(1, 'ms').toDate(),
-              moment(appointment.end).subtract(1, 'ms').toDate()
-            ),
             confirmationStatus: Not(ConfirmationStatus.denied),
+            start: start,
+            end: end,
           },
           {
             id: Not(id),
             room,
-            start: Equal(moment(appointment.start).toDate()),
             confirmationStatus: Not(ConfirmationStatus.denied),
+            start: LessThan(start),
+            end: Between(start, end),
           },
           {
             id: Not(id),
             room,
-            end: Equal(moment(appointment.end).toDate()),
             confirmationStatus: Not(ConfirmationStatus.denied),
+            start: LessThan(start),
+            end: end,
+          },
+          {
+            id: Not(id),
+            room,
+            confirmationStatus: Not(ConfirmationStatus.denied),
+            start: start,
+            end: MoreThan(end),
+          },
+          {
+            id: Not(id),
+            room,
+            confirmationStatus: Not(ConfirmationStatus.denied),
+            start: Between(start, end),
+            end: MoreThan(end),
+          },
+          {
+            id: Not(id),
+            room,
+            confirmationStatus: Not(ConfirmationStatus.denied),
+            start: LessThan(start),
+            end: MoreThan(end),
           },
         ],
       });
+
+      return c.filter(
+        (a) =>
+          start.getTime() !== a.end.getTime() &&
+          end.getTime() !== a.start.getTime()
+      );
     };
 
     const conflictingBookings = await findConflictingBookings(appointment);
 
-    if (conflictingBookings[1] >= room.maxConcurrentBookings) {
-      const conflicts = conflictingBookings[0].map(
-        async (a: AppointmentTimeslot) => {
-          return (
-            (await findConflictingBookings(a))[1] >=
-            room.maxConcurrentBookings - 1
-          );
-        }
-      );
+    // console.log(conflictingBookings)
 
-      if ((await Promise.all(conflicts)).some((b) => b)) {
+    // true if there are no conflicting bookings
+    const recursions = async (
+      previous: string[],
+      toCheck: AppointmentTimeslot,
+      original: AppointmentTimeslot
+    ): Promise<boolean> => {
+      const maxConcurrentBookings =
+        room.maxConcurrentBookings - (previous.length + 2);
+
+      if (maxConcurrentBookings < 0) {
+        return false;
+      }
+
+      const conflicts = (
+        await findConflictingBookings(
+          toCheck,
+          appointment.start,
+          appointment.end
+        )
+      ).filter((a: AppointmentTimeslot) => !previous.includes(a.id));
+
+      const count = conflicts.length;
+
+      const log = {
+        conflictNum: count,
+        level: previous.length + 1,
+        allowed: maxConcurrentBookings,
+        previous: previous,
+        toCheck: toCheck.id,
+        conflicts: conflicts.map((a: AppointmentTimeslot) => a.id),
+        isConflict: count > maxConcurrentBookings,
+      };
+
+      // console.log(JSON.stringify(log));
+
+      if (count > maxConcurrentBookings) {
+        return !(
+          await Promise.all(
+            conflicts.map(async (a: AppointmentTimeslot) =>
+              recursions([...previous, toCheck.id], a, original)
+            )
+          )
+        ).some((a) => !a);
+      } else {
+        return true;
+      }
+    };
+
+    if (conflictingBookings.length >= room.maxConcurrentBookings) {
+      if (
+        (
+          await Promise.all(
+            conflictingBookings.map(async (a: AppointmentTimeslot) =>
+              recursions([], a, appointment)
+            )
+          )
+        ).some((a) => !a)
+      ) {
         res.status(409).json({ message: 'Too many concurrent bookings.' });
         return;
       }
