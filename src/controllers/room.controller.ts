@@ -125,6 +125,7 @@ export class RoomController {
       return;
     }
 
+    //get separate lists of appointments and timeslots
     const timeSlotRepository = getRepository(TimeSlot);
     const appointmentRepository = getRepository(AppointmentTimeslot);
     const appointments = await appointmentRepository.find({
@@ -228,7 +229,7 @@ export class RoomController {
       }
     }
 
-    //set available timeslots
+    //add available timeslots to calendar
     for (availableTimespan of availableTimeSlots) {
       if (availableTimespan.start == null || availableTimespan.end == null) {
         continue;
@@ -252,10 +253,7 @@ export class RoomController {
 
     //set unavailable timeslots
     for (unavailableTimeSlot of unavailableTimeSlots) {
-      if (
-        unavailableTimeSlot.start == null ||
-        unavailableTimeSlot.end == null
-      ) {
+      if (unavailableTimeSlot.start == null || unavailableTimeSlot.end == null) {
         continue;
       }
 
@@ -288,11 +286,18 @@ export class RoomController {
         hour = +start.format('HH') - minTimeslot;
         day = (+start.format('e') + 6) % 7;
 
+        if (calendar[hour][day][0] === 'unavailable') {
+          continue;
+        }
+
+        //find next available index
         for (index = 0;
              typeof calendar[hour][day][index] !== 'string'
              || (<string>calendar[hour][day][index]).split(' ')[0] !== 'available';
              index++) {
-          //
+          if (index === room.maxConcurrentBookings) {
+            throw Error('max concurrent bookings violated');
+          }
         }
 
         timespanEnd = +moment(appointment.end).format('HH');
@@ -301,52 +306,30 @@ export class RoomController {
         }
 
         for (let i = hour; i < timespanEnd - minTimeslot; i++) {
-          let jumpToNext = false;
-          for (j = index - 1; 0 <= j; j--) {
+          //find starting block of available timeslot in which
+          for (j = index; 0 <= j; j--) {
             if (typeof calendar[i][day][j] === 'string'
               && (<string>calendar[i][day][j]).split(' ')[0] === 'available') {
-              if (index === j + +(<string>calendar[i][day][j]).split(' ')[1] - 1) {
-                jumpToNext = true;
-              }
               break;
             }
           }
 
-          if (jumpToNext) {
-            continue;
+          //add available timeslots on right side of timeslots if needed
+          const availableTimeslotLength = +(<string>calendar[i][day][j]).split(' ')[1];
+          if (0 < j + availableTimeslotLength - index - 1) {
+            calendar[i][day][index + 1] = `available ${j + availableTimeslotLength - index - 1}`;
           }
 
-          if (calendar[i][day][index] === undefined || calendar[i][day][index] === null) {
-            calendar[i][day][index + 1] = `available ${+(<string>calendar[i][day][j]).split(' ')[1] - index - 1}`;
+          //shorten available timeslots on left side of timeslots
+          if (index !== j) {
+            calendar[i][day][j] = `available ${index - j}`;
           }
 
-          if (index < room.maxConcurrentBookings - 1) {
-            for (let i = hour; i < timespanEnd - minTimeslot; i++) {
-              if (typeof calendar[i][day][index] === 'string'
-                && (<string>calendar[i][day][index]).split(' ')[0] === 'available'
-                && +(<string>calendar[i][day][index]).split(' ')[1] > 1) {
-                calendar[i][day][index + 1] = `available ${+(<string>calendar[i][day][index]).split(' ')[1] - 1}`;
-              }
-            }
-          }
-
-          calendar[hour][day][index] = appointment;
-
-          if (0 < index) {
-            for (let i = hour; i < timespanEnd - minTimeslot; i++) {
-              for (j = index - 1; 0 <= j; j--) {
-                if (typeof calendar[i][day][j] === 'string'
-                  && (<string>calendar[i][day][j]).split(' ')[0] === 'available') {
-                  if (index < j + +(<string>calendar[i][day][j]).split(' ')[1]) {
-                    calendar[i][day][j] = `available ${index - j}`;
-                  }
-                  break;
-                }
-                break;
-              }
-            }
-          }
+          //mark fields blocked by the appointment
+          calendar[i][day][index] = 'appointment_blocked';
         }
+
+        calendar[hour][day][index] = appointment;
       }
     } catch (e) {
       res.status(500).json({
