@@ -116,7 +116,8 @@ export class RoomController {
       req.query.date === undefined ? moment() : moment(+req.query.date * 1000);
 
     const from: string = date.day(1).format('YYYY-MM-DD');
-    const to: string = date.day(1).add(7, 'days').format('YYYY-MM-DD');
+    const to: string = date.day(1).add(7, 'days').subtract(1, 'minute')
+      .format('YYYY-MM-DD');
 
     const room = await getRepository(Room).findOne(req.params.id);
 
@@ -306,7 +307,7 @@ export class RoomController {
         }
 
         for (let i = hour; i < timespanEnd - minTimeslot; i++) {
-          //find starting block of available timeslot in which
+          //find starting block of available timeslot that hits this appointment
           for (j = index; 0 <= j; j--) {
             if (typeof calendar[i][day][j] === 'string'
               && (<string>calendar[i][day][j]).split(' ')[0] === 'available') {
@@ -355,7 +356,8 @@ export class RoomController {
       req.query.date === undefined ? moment() : moment(+req.query.date * 1000);
 
     const from: string = date.day(1).format('YYYY-MM-DD');
-    const to: string = date.day(1).add(7, 'days').format('YYYY-MM-DD');
+    const to: string = date.day(1).add(7, 'days').subtract(1, 'minute')
+      .format('YYYY-MM-DD');
 
     const room = await getRepository(Room).findOne(req.params.id);
 
