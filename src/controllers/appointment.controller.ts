@@ -486,8 +486,15 @@ export class AppointmentController {
     const recursions = async (
       previous: string[],
       toCheck: AppointmentTimeslot,
-      original: AppointmentTimeslot
+      original: { start: Date; end: Date }
     ): Promise<boolean> => {
+      const early = new Date(
+        Math.max(original.start.getTime(), toCheck.start.getTime())
+      );
+      const late = new Date(
+        Math.min(original.end.getTime(), toCheck.end.getTime())
+      );
+
       const maxConcurrentBookings =
         room.maxConcurrentBookings - (previous.length + 2);
 
@@ -496,11 +503,7 @@ export class AppointmentController {
       }
 
       const conflicts = (
-        await findConflictingBookings(
-          toCheck,
-          appointment.start,
-          appointment.end
-        )
+        await findConflictingBookings(toCheck, early, late)
       ).filter((a: AppointmentTimeslot) => !previous.includes(a.id));
 
       const count = conflicts.length;
@@ -521,7 +524,10 @@ export class AppointmentController {
         return !(
           await Promise.all(
             conflicts.map(async (a: AppointmentTimeslot) =>
-              recursions([...previous, toCheck.id], a, original)
+              recursions([...previous, toCheck.id], a, {
+                start: early,
+                end: late,
+              })
             )
           )
         ).some((a) => !a);
