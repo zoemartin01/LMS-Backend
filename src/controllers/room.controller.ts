@@ -239,7 +239,11 @@ export class RoomController {
         timespanEnd = 24;
       }
 
-      for (let i = +moment(availableTimespan.start).format('HH'); i < timespanEnd; i++) {
+      for (
+        let i = +moment(availableTimespan.start).format('HH');
+        i < timespanEnd;
+        i++
+      ) {
         calendar[i - minTimeslot][
           (+moment(availableTimespan.start).format('e') + 6) % 7
         ][0] = `available ${room.maxConcurrentBookings}`;
@@ -248,7 +252,10 @@ export class RoomController {
 
     //set unavailable timeslots
     for (unavailableTimeSlot of unavailableTimeSlots) {
-      if (unavailableTimeSlot.start == null || unavailableTimeSlot.end == null) {
+      if (
+        unavailableTimeSlot.start == null ||
+        unavailableTimeSlot.end == null
+      ) {
         continue;
       }
 
@@ -257,7 +264,11 @@ export class RoomController {
         timespanEnd = 24;
       }
 
-      for (let i = +moment(unavailableTimeSlot.start).format('HH'); i < timespanEnd; i++) {
+      for (
+        let i = +moment(unavailableTimeSlot.start).format('HH');
+        i < timespanEnd;
+        i++
+      ) {
         if (minTimeslot <= i && i < maxTimeslot) {
           calendar[i - minTimeslot][
             (+moment(unavailableTimeSlot.start).format('e') + 6) % 7
@@ -415,7 +426,11 @@ export class RoomController {
         timespanEnd = 24;
       }
 
-      for (let i = +moment(availableTimespan.start).format('HH'); i < timespanEnd; i++) {
+      for (
+        let i = +moment(availableTimespan.start).format('HH');
+        i < timespanEnd;
+        i++
+      ) {
         calendar[i][
           (+moment(availableTimespan.start).format('e') + 6) % 7
         ] = `available ${availableTimespan.id}`;
@@ -424,7 +439,10 @@ export class RoomController {
 
     //set unavailable timeslots
     for (unavailableTimeSlot of unavailableTimeSlots) {
-      if (unavailableTimeSlot.start == null || unavailableTimeSlot.end == null) {
+      if (
+        unavailableTimeSlot.start == null ||
+        unavailableTimeSlot.end == null
+      ) {
         continue;
       }
 
@@ -433,7 +451,11 @@ export class RoomController {
         timespanEnd = 24;
       }
 
-      for (let i = +moment(unavailableTimeSlot.start).format('HH'); i < timespanEnd; i++) {
+      for (
+        let i = +moment(unavailableTimeSlot.start).format('HH');
+        i < timespanEnd;
+        i++
+      ) {
         calendar[i][
           (+moment(unavailableTimeSlot.start).format('e') + 6) % 7
         ] = `unavailable ${unavailableTimeSlot.id}`;
@@ -476,7 +498,7 @@ export class RoomController {
    * @routeParam {string} id - id of the room
    * @bodyParam {string [Optional]} name - name of the room
    * @bodyParam {string [Optional]} description - description of the room
-   * @bodyParam {number [Optional]} maxConcurrentBooking - max number of concurrent bookings
+   * @bodyParam {number [Optional]} maxConcurrentBookings - max number of concurrent bookings
    * @bodyParam {boolean [Optional]} autoAcceptBookings - if bookings are automatically accepted
    * @param {Request} req frontend request to change data about one room
    * @param {Response} res backend response with data change of one room
@@ -487,6 +509,17 @@ export class RoomController {
 
     if (room === undefined) {
       res.status(404).json({ message: 'Room not found' });
+      return;
+    }
+
+    //todo please fix max concurrent bookings edit check
+    if (
+      req.body.maxConcurrentBookings !== undefined &&
+      +req.body.maxConcurrentBookings < room.maxConcurrentBookings
+    ) {
+      res
+        .status(409)
+        .json({ message: 'Maximum concurrent bookings can not be set lower.' });
       return;
     }
 
