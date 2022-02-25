@@ -637,19 +637,6 @@ export class AppointmentController {
     const { roomId, start, end, timeSlotRecurrence, amount, force } = req.body;
     const seriesId = uuidv4();
     const user = await AuthController.getCurrentUser(req);
-
-    if (timeSlotRecurrence === TimeSlotRecurrence.single) {
-      res.status(400).json({ message: 'Series can only be recurring' });
-      return;
-    }
-
-    if (amount <= 1) {
-      res
-        .status(400)
-        .json({ message: 'Series needs to have at least 2 appointments' });
-      return;
-    }
-
     const room = await getRepository(Room).findOne(roomId);
 
     if (room === undefined) {
@@ -657,8 +644,38 @@ export class AppointmentController {
       return;
     }
 
-    const mStart = moment(start);
-    const mEnd = moment(end);
+    if (timeSlotRecurrence === TimeSlotRecurrence.single) {
+      res.status(400).json({ message: 'Series can only be recurring' });
+      return;
+    }
+
+    if (+amount <= 1) {
+      res
+        .status(400)
+        .json({ message: 'Series needs to have at least 2 appointments' });
+      return;
+    }
+
+    if (!isISO8601(start)) {
+      res.status(400).json({ message: 'Invalid start format.' });
+      return;
+    }
+
+    if (!isISO8601(end)) {
+      res.status(400).json({ message: 'Invalid end format.' });
+      return;
+    }
+
+    const mStart = moment(start).minutes(0).seconds(0).milliseconds(0);
+    const mEnd = moment(end).minutes(0).seconds(0).milliseconds(0);
+
+    const duration = moment.duration(mEnd.diff(mStart));
+
+    if (duration.asHours() < 1) {
+      res.status(400).json({ message: 'Duration must be at least 1h.' });
+      return;
+    }
+
     let recurrence: DurationConstructor;
 
     // parse recurrence
@@ -688,9 +705,7 @@ export class AppointmentController {
     // create all appointments
 
     for (let i = 0; i < +amount; i++) {
-      const appointment: AppointmentTimeslot = repository.create(<
-        DeepPartial<AppointmentTimeslot>
-      >{
+      const appointment: AppointmentTimeslot = repository.create({
         room,
         user,
         confirmationStatus: room.autoAcceptBookings
@@ -700,99 +715,34 @@ export class AppointmentController {
         end: mEnd.add(i > 0 ? 1 : 0, recurrence).toDate(),
         timeSlotRecurrence,
         seriesId,
-        amount,
+        amount: +amount,
       });
 
-      try {
-        await validateOrReject(appointment);
-      } catch (err) {
-        res.status(400).json(err);
-        return;
-      }
-
-      // check for available & unavailable timeslot conflicts
-
-      const availableConflict =
-        (await getRepository(AvailableTimeslot).findOne({
-          where: {
-            room,
-            start: LessThanOrEqual(appointment.start),
-            end: MoreThanOrEqual(appointment.end),
-          },
-        })) === undefined;
-
-      if (availableConflict) {
+      if (await AppointmentController.checkForAvaliableConflicts(appointment)) {
         if (force) continue;
         res
           .status(409)
-          .json({ message: 'Appointment conflicts with available timeslot' });
+          .json({ message: 'Appointment conflicts with available timeslot.' });
         return;
       }
 
-      const unavailableConflict =
-        (await getRepository(UnavailableTimeslot).findOne({
-          where: [
-            {
-              room,
-              end: Between(
-                moment(appointment.start).add(1, 'ms').toDate(),
-                moment(appointment.end).subtract(1, 'ms').toDate()
-              ),
-            },
-            {
-              room,
-              start: Between(
-                moment(appointment.start).add(1, 'ms').toDate(),
-                moment(appointment.end).subtract(1, 'ms').toDate()
-              ),
-            },
-          ],
-        })) !== undefined;
-
-      if (unavailableConflict) {
+      if (
+        await AppointmentController.checkForUnavaliableConflicts(appointment)
+      ) {
         if (force) continue;
         res
           .status(409)
-          .json({ message: 'Appointment conflicts with unavailable timeslot' });
+          .json({
+            message: 'Appointment conflicts with unavailable timeslot.',
+          });
         return;
       }
 
-      const conflictingBookings = await getRepository(
-        AppointmentTimeslot
-      ).count({
-        where: [
-          {
-            room,
-            start: Between(
-              moment(appointment.start).add(1, 'ms').toDate(),
-              moment(appointment.end).subtract(1, 'ms').toDate()
-            ),
-            confirmationStatus: Not(ConfirmationStatus.denied),
-          },
-          {
-            room,
-            end: Between(
-              moment(appointment.start).add(1, 'ms').toDate(),
-              moment(appointment.end).subtract(1, 'ms').toDate()
-            ),
-            confirmationStatus: Not(ConfirmationStatus.denied),
-          },
-          {
-            room,
-            start: Equal(moment(appointment.start).toDate()),
-            confirmationStatus: Not(ConfirmationStatus.denied),
-          },
-          {
-            room,
-            end: Equal(moment(appointment.end).toDate()),
-            confirmationStatus: Not(ConfirmationStatus.denied),
-          },
-        ],
-      });
-
-      if (conflictingBookings >= room.maxConcurrentBookings) {
+      if (
+        await AppointmentController.checkForConflictingBookings(appointment)
+      ) {
         if (force) continue;
-        res.status(409).json({ message: 'Too many concurrent bookings' });
+        res.status(409).json({ message: 'Too many concurrent bookings.' });
         return;
       }
 
@@ -800,7 +750,6 @@ export class AppointmentController {
     }
 
     const savedAppointments = await repository.save(appointments);
-    res.status(201).json(savedAppointments);
 
     await MessagingController.sendMessage(
       user,
@@ -836,6 +785,8 @@ export class AppointmentController {
       'Appointment Requests',
       '/appointments/all'
     );
+
+    res.status(201).json(savedAppointments);
   }
 
   /**
@@ -876,9 +827,8 @@ export class AppointmentController {
     }
 
     if (onlyStatusPatch) {
-      // @todo this might cause issues
+      // @todo this might cause issues (eg status not valid)
       await repository.update(appointment.id, { confirmationStatus });
-      res.json(await repository.findOne(appointment.id));
 
       await MessagingController.sendMessage(
         user,
@@ -895,12 +845,34 @@ export class AppointmentController {
         'View Appointments',
         '/appointments'
       );
+
+      res.json(await repository.findOne(appointment.id));
       return;
     }
 
     const { start, end } = req.body;
 
-    const newAppointment = repository.create(<DeepPartial<AppointmentTimeslot>>{
+    if (!isISO8601(start)) {
+      res.status(400).json({ message: 'Invalid start format.' });
+      return;
+    }
+
+    if (!isISO8601(end)) {
+      res.status(400).json({ message: 'Invalid end format.' });
+      return;
+    }
+
+    const mStart = moment(start).minutes(0).seconds(0).milliseconds(0);
+    const mEnd = moment(end).minutes(0).seconds(0).milliseconds(0);
+
+    const duration = moment.duration(mEnd.diff(mStart));
+
+    if (duration.asHours() < 1) {
+      res.status(400).json({ message: 'Duration must be at least 1h.' });
+      return;
+    }
+
+    const newAppointment = repository.create({
       ...appointment,
       start: moment(start).toDate(),
       end: moment(end).toDate(),
@@ -912,99 +884,28 @@ export class AppointmentController {
         : ConfirmationStatus.pending,
     });
 
-    try {
-      await validateOrReject(newAppointment);
-    } catch (err) {
-      res.status(400).json(err);
-      return;
-    }
-
-    const availableConflict =
-      (await getRepository(AvailableTimeslot).findOne({
-        where: {
-          room: appointment.room,
-          start: LessThanOrEqual(newAppointment.start),
-          end: MoreThanOrEqual(newAppointment.end),
-        },
-      })) === undefined;
-
-    if (availableConflict) {
+    if (await AppointmentController.checkForAvaliableConflicts(appointment)) {
       res
         .status(409)
-        .json({ message: 'Appointment conflicts with available timeslot' });
+        .json({ message: 'Appointment conflicts with available timeslot.' });
       return;
     }
 
-    const unavailableConflict =
-      (await getRepository(UnavailableTimeslot).findOne({
-        where: [
-          {
-            room: appointment.room,
-            end: Between(
-              moment(newAppointment.start).add(1, 'ms').toDate(),
-              moment(newAppointment.end).subtract(1, 'ms').toDate()
-            ),
-          },
-          {
-            room: appointment.room,
-            start: Between(
-              moment(newAppointment.start).add(1, 'ms').toDate(),
-              moment(newAppointment.end).subtract(1, 'ms').toDate()
-            ),
-          },
-        ],
-      })) !== undefined;
-
-    if (unavailableConflict) {
+    if (await AppointmentController.checkForUnavaliableConflicts(appointment)) {
       res
         .status(409)
-        .json({ message: 'Appointment conflicts with unavailable timeslot' });
+        .json({ message: 'Appointment conflicts with unavailable timeslot.' });
       return;
     }
 
-    const conflictingBookings = await getRepository(AppointmentTimeslot).count({
-      where: [
-        {
-          room: appointment.room,
-          // @todo is there a better solution to this?
-          start: Between(
-            moment(newAppointment.start).add(1, 'ms').toDate(),
-            moment(newAppointment.end).subtract(1, 'ms').toDate()
-          ),
-          confirmationStatus: Not(ConfirmationStatus.denied),
-          id: Not(appointment.id),
-        },
-        {
-          room: appointment.room,
-          end: Between(
-            moment(newAppointment.start).add(1, 'ms').toDate(),
-            moment(newAppointment.end).subtract(1, 'ms').toDate()
-          ),
-          confirmationStatus: Not(ConfirmationStatus.denied),
-          id: Not(appointment.id),
-        },
-        {
-          room: appointment.room,
-          start: Equal(moment(newAppointment.start).toDate()),
-          confirmationStatus: Not(ConfirmationStatus.denied),
-        },
-        {
-          room: appointment.room,
-          end: Equal(moment(newAppointment.end).toDate()),
-          confirmationStatus: Not(ConfirmationStatus.denied),
-        },
-      ],
-    });
-
-    if (conflictingBookings >= appointment.room.maxConcurrentBookings) {
-      res.status(409).json({ message: 'Too many concurrent bookings' });
+    if (await AppointmentController.checkForConflictingBookings(appointment)) {
+      res.status(409).json({ message: 'Too many concurrent bookings.' });
       return;
     }
 
     await repository.update({ id: appointment.id }, newAppointment);
 
     appointment = await repository.findOneOrFail(req.params.id);
-    res.json(appointment);
 
     await MessagingController.sendMessage(
       appointment.user,
@@ -1021,6 +922,8 @@ export class AppointmentController {
       'View Appointment',
       '/appointments'
     );
+
+    res.json(appointment);
   }
 
   /**
@@ -1056,8 +959,8 @@ export class AppointmentController {
     const { room, user, seriesId } = first;
     const confirmationStatus =
       req.body.confirmationStatus || first.confirmationStatus;
-    const start = req.body.start || first.start;
-    const end = req.body.end || first.end;
+    const start = req.body.start || first.start.toISOString();
+    const end = req.body.end || first.end.toISOString();
     const timeSlotRecurrence =
       req.body.timeSlotRecurrence || first.timeSlotRecurrence;
     const amount = req.body.amount || first.amount;
@@ -1107,15 +1010,33 @@ export class AppointmentController {
       return;
     }
 
-    if (amount <= 1) {
+    if (+amount <= 1) {
       res
         .status(400)
         .json({ message: 'Series needs to have at least 2 appointments' });
       return;
     }
 
-    const mStart = moment(start);
-    const mEnd = moment(end);
+    if (!isISO8601(start)) {
+      res.status(400).json({ message: 'Invalid start format.' });
+      return;
+    }
+
+    if (!isISO8601(end)) {
+      res.status(400).json({ message: 'Invalid end format.' });
+      return;
+    }
+
+    const mStart = moment(start).minutes(0).seconds(0).milliseconds(0);
+    const mEnd = moment(end).minutes(0).seconds(0).milliseconds(0);
+
+    const duration = moment.duration(mEnd.diff(mStart));
+
+    if (duration.asHours() < 1) {
+      res.status(400).json({ message: 'Duration must be at least 1h.' });
+      return;
+    }
+
     let recurrence: DurationConstructor;
 
     // parse recurrence
@@ -1147,9 +1068,7 @@ export class AppointmentController {
     const newAppointments = [];
 
     for (let i = 0; i < +amount; i++) {
-      const appointment: AppointmentTimeslot = repository.create(<
-        DeepPartial<AppointmentTimeslot>
-      >{
+      const appointment: AppointmentTimeslot = repository.create({
         room,
         user,
         confirmationStatus: isAdmin
@@ -1161,28 +1080,10 @@ export class AppointmentController {
         end: mEnd.add(i > 0 ? 1 : 0, recurrence).toDate(),
         timeSlotRecurrence,
         seriesId,
-        amount,
+        amount: +amount,
       });
 
-      try {
-        await validateOrReject(appointment);
-      } catch (err) {
-        res.status(400).json(err);
-        return;
-      }
-
-      // check for available & unavailable timeslot conflicts
-
-      const availableConflict =
-        (await getRepository(AvailableTimeslot).findOne({
-          where: {
-            room,
-            start: LessThanOrEqual(appointment.start),
-            end: MoreThanOrEqual(appointment.end),
-          },
-        })) === undefined;
-
-      if (availableConflict) {
+      if (await AppointmentController.checkForAvaliableConflicts(appointment)) {
         if (force) continue;
         res
           .status(409)
@@ -1190,27 +1091,9 @@ export class AppointmentController {
         return;
       }
 
-      const unavailableConflict =
-        (await getRepository(UnavailableTimeslot).findOne({
-          where: [
-            {
-              room,
-              end: Between(
-                moment(appointment.start).add(1, 'ms').toDate(),
-                moment(appointment.end).subtract(1, 'ms').toDate()
-              ),
-            },
-            {
-              room,
-              start: Between(
-                moment(appointment.start).add(1, 'ms').toDate(),
-                moment(appointment.end).subtract(1, 'ms').toDate()
-              ),
-            },
-          ],
-        })) !== undefined;
-
-      if (unavailableConflict) {
+      if (
+        await AppointmentController.checkForUnavaliableConflicts(appointment)
+      ) {
         if (force) continue;
         res
           .status(409)
@@ -1218,50 +1101,9 @@ export class AppointmentController {
         return;
       }
 
-      const conflictingBookings = await getRepository(
-        AppointmentTimeslot
-      ).count({
-        where: [
-          {
-            room,
-            start: Between(
-              moment(appointment.start).add(1, 'ms').toDate(),
-              moment(appointment.end).subtract(1, 'ms').toDate()
-            ),
-            confirmationStatus: Not(ConfirmationStatus.denied),
-            seriesId: Not(seriesId),
-          },
-          {
-            room,
-            end: Between(
-              moment(appointment.start).add(1, 'ms').toDate(),
-              moment(appointment.end).subtract(1, 'ms').toDate()
-            ),
-            confirmationStatus: Not(ConfirmationStatus.denied),
-            seriesId: Not(seriesId),
-          },
-          {
-            room,
-            start: Between(
-              moment(appointment.start).add(1, 'ms').toDate(),
-              moment(appointment.end).subtract(1, 'ms').toDate()
-            ),
-            confirmationStatus: Not(ConfirmationStatus.denied),
-            seriesId: null,
-          },
-          {
-            room,
-            end: Between(
-              moment(appointment.start).add(1, 'ms').toDate(),
-              moment(appointment.end).subtract(1, 'ms').toDate()
-            ),
-            confirmationStatus: Not(ConfirmationStatus.denied),
-            seriesId: null,
-          },
-        ],
-      });
-
-      if (conflictingBookings >= room.maxConcurrentBookings) {
+      if (
+        await AppointmentController.checkForConflictingBookings(appointment)
+      ) {
         if (force) continue;
         res.status(409).json({ message: 'Too many concurrent bookings' });
         return;
@@ -1272,8 +1114,6 @@ export class AppointmentController {
 
     await repository.remove(originalAppointments);
     const savedAppointments = await repository.save(newAppointments);
-
-    res.status(200).json(savedAppointments);
 
     await MessagingController.sendMessage(
       user,
@@ -1290,6 +1130,8 @@ export class AppointmentController {
       'View Appointments',
       '/appointments'
     );
+
+    res.status(200).json(savedAppointments);
   }
 
   /**
