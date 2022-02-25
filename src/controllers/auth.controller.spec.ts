@@ -79,6 +79,31 @@ describe('AuthController', () => {
       expect(res.status).to.equal(401);
     });
 
+    it('should fail to find user, login activeDir', async () => {
+      const res = await chai.request(app.app).post(uri).send({
+        email: 'test.email',
+        password: 'pass',
+        isActiveDirectory: true,
+      });
+      expect(res.status).to.equal(400);
+    });
+
+    it('should fail with no email verification', async () => {
+      const noVerifyUser = Helpers.JSONify(
+        await factory(User)({
+          isActiveDirectory: false,
+          emailVerification: true,
+        }).create()
+      );
+
+      const res = await chai.request(app.app).post(uri).send({
+        email: noVerifyUser.email,
+        password: noVerifyUser.password,
+        isActiveDirectory: noVerifyUser.isActiveDirectory,
+      });
+      expect(res.status).to.equal(400);
+    });
+
     it('should login with ActiveDirectory', async () => {
       const res = await chai.request(app.app).post(uri).send({
         email: activeDirVisitor.email,
@@ -87,6 +112,84 @@ describe('AuthController', () => {
       });
 
       //todo
+    });
+
+    it('should create pending user with ActiveDirectory', async () => {
+      const activeDirPendingUser = Helpers.JSONify(
+        await factory(User)({
+          isActiveDirectory: true,
+          emailVerification: true,
+          role: UserRole.pending,
+        }).make()
+      );
+
+      const res = await chai.request(app.app).post(uri).send({
+        email: activeDirPendingUser.email,
+        password: activeDirPendingUser.password,
+        isActiveDirectory: activeDirPendingUser.isActiveDirectory,
+      });
+
+      expect(res.status).to.equal(201);
+      expect(await repository.findOneOrFail(res.body.userId)).to.deep.equal(
+        activeDirPendingUser
+      );
+      /*
+      email,
+            firstName: userObj.givenName,
+            lastName: userObj.sn,
+            emailVerification: true,
+            isActiveDirectory: true,
+            password: '',
+       */
+      //todo send message to admin test
+      //todo
+    });
+
+    //todo no verification with aktive dir possible?
+
+    it('should fail to login with active dir when credentials', async () => {
+      const res = await chai.request(app.app).post(uri).send({
+        email: credentialsVisitor.email,
+        password: credentialsVisitor.password,
+        isActiveDirectory: true,
+      });
+      expect(res.status).to.equal(400);
+    });
+
+    it('should fail to login with not an email, login active dir', async () => {
+      const res = await chai.request(app.app).post(uri).send({
+        email: 'notWorking',
+        password: activeDirVisitor.password,
+        isActiveDirectory: true,
+      });
+      expect(res.status).to.equal(400);
+    });
+
+    it('should fail to login with not an email, login credentials', async () => {
+      const res = await chai.request(app.app).post(uri).send({
+        email: 'notWorking',
+        password: credentialsVisitor.password,
+        isActiveDirectory: false,
+      });
+      expect(res.status).to.equal(400);
+    });
+
+    it('should fail to login with wrong password, login active dir', async () => {
+      const res = await chai.request(app.app).post(uri).send({
+        email: activeDirVisitor.email,
+        password: 'wrong',
+        isActiveDirectory: true,
+      });
+      expect(res.status).to.equal(400);
+    });
+
+    it('should fail to login with wrong password, login credentials', async () => {
+      const res = await chai.request(app.app).post(uri).send({
+        email: credentialsVisitor.email,
+        password: 'wrong',
+        isActiveDirectory: false,
+      });
+      expect(res.status).to.equal(400);
     });
 
     it('should fail to login with credentials when active dir', async () => {
@@ -107,7 +210,7 @@ describe('AuthController', () => {
       expect(res.status).to.equal(400);
     });
 
-    it('should fail because no email verification', async () => {
+    it('should fail with no email verification', async () => {
       const noVerifyUser = Helpers.JSONify(
         await factory(User)({
           isActiveDirectory: false,
@@ -123,12 +226,36 @@ describe('AuthController', () => {
       expect(res.status).to.equal(400);
     });
 
+    it('should fail as pending, login cred', async () => {
+      const pendingUser = Helpers.JSONify(
+        await factory(User)({
+          isActiveDirectory: false,
+          emailVerification: true,
+          role: UserRole.pending,
+        }).create()
+      );
+
+      const res = await chai.request(app.app).post(uri).send({
+        email: pendingUser.email,
+        password: pendingUser.password,
+        isActiveDirectory: pendingUser.isActiveDirectory,
+      });
+      expect(res.status).to.equal(400);
+    });
+
     it('should login with credentials', async () => {
       const res = await chai.request(app.app).post(uri).send({
         email: credentialsVisitor.email,
         password: credentialsVisitor.password,
         isActiveDirectory: credentialsVisitor.isActiveDirectory,
       });
+
+      expect(res.status).to.equal(201);
+      expect(res.body.accessToken || res.body.refreshToken).to.deep.equal(
+        credentialsVisitor.tokens[0] || credentialsVisitor.tokens[1]
+      );
+      expect(res.body.role).to.deep.equal({ role: credentialsVisitor.role });
+      expect(res.body.userId).to.deep.equal({ userId: credentialsVisitor.id });
     });
   });
 
