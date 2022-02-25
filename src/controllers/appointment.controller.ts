@@ -1,8 +1,6 @@
 import { Request, Response } from 'express';
 import {
   Between,
-  DeepPartial,
-  Equal,
   getRepository,
   LessThan,
   LessThanOrEqual,
@@ -12,7 +10,7 @@ import {
 } from 'typeorm';
 import { AppointmentTimeslot } from '../models/appointment.timeslot.entity';
 import { AuthController } from './auth.controller';
-import { isISO8601, validateOrReject } from 'class-validator';
+import { isISO8601 } from 'class-validator';
 import { Room } from '../models/room.entity';
 import { v4 as uuidv4, v4 } from 'uuid';
 import { MessagingController } from './messaging.controller';
@@ -730,11 +728,9 @@ export class AppointmentController {
         await AppointmentController.checkForUnavaliableConflicts(appointment)
       ) {
         if (force) continue;
-        res
-          .status(409)
-          .json({
-            message: 'Appointment conflicts with unavailable timeslot.',
-          });
+        res.status(409).json({
+          message: 'Appointment conflicts with unavailable timeslot.',
+        });
         return;
       }
 
