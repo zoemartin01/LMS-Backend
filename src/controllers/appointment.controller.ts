@@ -10,7 +10,7 @@ import {
 } from 'typeorm';
 import { AppointmentTimeslot } from '../models/appointment.timeslot.entity';
 import { AuthController } from './auth.controller';
-import { isEnum, isISO8601 } from 'class-validator';
+import { isEnum, isISO8601, isUUID } from 'class-validator';
 import { Room } from '../models/room.entity';
 import { v4 as uuidv4, v4 } from 'uuid';
 import { MessagingController } from './messaging.controller';
@@ -276,7 +276,8 @@ export class AppointmentController {
    * @returns true if the appointment has conflicts with other appointments
    */
   private static async checkForConflictingBookings(
-    appointment: AppointmentTimeslot
+    appointment: AppointmentTimeslot,
+    seriesId?: string
   ) {
     const room = appointment.room;
 
@@ -298,7 +299,7 @@ export class AppointmentController {
           lateBorder?.getTime() ?? appointment.end.getTime()
         )
       );
-      const c = await getRepository(AppointmentTimeslot).find({
+      let c = await getRepository(AppointmentTimeslot).find({
         where: [
           {
             id: Not(id),
@@ -351,6 +352,10 @@ export class AppointmentController {
           },
         ],
       });
+
+      if (seriesId !== undefined && isUUID(seriesId)) {
+        c = c.filter((a) => a.seriesId !== seriesId);
+      }
 
       return c.filter(
         (a) =>
@@ -1001,7 +1006,9 @@ export class AppointmentController {
     const start = req.body.start || first.start.toISOString();
     const end = req.body.end || first.end.toISOString();
     const timeSlotRecurrence =
-      req.body.timeSlotRecurrence || first.timeSlotRecurrence;
+      req.body.timeSlotRecurrence !== undefined
+        ? req.body.timeSlotRecurrence
+        : first.timeSlotRecurrence;
     const amount = req.body.amount || first.amount;
     const force = req.body.force || false;
 
@@ -1009,9 +1016,10 @@ export class AppointmentController {
       req.body.confirmationStatus !== undefined &&
       Object.keys(req.body).length === 1;
     const isAdmin = await AuthController.checkAdmin(req);
+    const currentUser = await AuthController.getCurrentUser(req);
 
     if (
-      (first.user.id !== user.id || req.body.confirmationStatus) &&
+      (user.id !== currentUser.id || req.body.confirmationStatus) &&
       !isAdmin
     ) {
       res.sendStatus(403);
@@ -1024,11 +1032,11 @@ export class AppointmentController {
         return;
       }
 
-      const updatedAppointments = await repository.update(
+      await repository.update(
         originalAppointments.map((appointment) => appointment.id),
         { confirmationStatus }
       );
-      res.json(updatedAppointments);
+      res.json(await repository.find({ where: { seriesId: seriesId } }));
 
       await MessagingController.sendMessage(
         user,
@@ -1049,14 +1057,16 @@ export class AppointmentController {
     }
 
     if (timeSlotRecurrence === TimeSlotRecurrence.single) {
-      res.status(400).json({ message: 'Series can only be recurring' });
+      res
+        .status(400)
+        .json({ message: 'timeSlotRecurrence must be some reccuring value.' });
       return;
     }
 
     if (+amount <= 1) {
       res
         .status(400)
-        .json({ message: 'Series needs to have at least 2 appointments' });
+        .json({ message: 'Series needs to have at least 2 appointments.' });
       return;
     }
 
@@ -1102,7 +1112,7 @@ export class AppointmentController {
         break;
 
       default:
-        res.status(400).json({ message: 'Illegal recurrence' });
+        res.status(400).json({ message: 'Illegal recurrence.' });
         return;
     }
 
@@ -1130,7 +1140,7 @@ export class AppointmentController {
         if (force) continue;
         res
           .status(409)
-          .json({ message: 'Appointment conflicts with available timeslot' });
+          .json({ message: 'Appointment conflicts with available timeslot.' });
         return;
       }
 
@@ -1140,15 +1150,20 @@ export class AppointmentController {
         if (force) continue;
         res
           .status(409)
-          .json({ message: 'Appointment conflicts with unavailable timeslot' });
+          .json({
+            message: 'Appointment conflicts with unavailable timeslot.',
+          });
         return;
       }
 
       if (
-        await AppointmentController.checkForConflictingBookings(appointment)
+        await AppointmentController.checkForConflictingBookings(
+          appointment,
+          seriesId
+        )
       ) {
         if (force) continue;
-        res.status(409).json({ message: 'Too many concurrent bookings' });
+        res.status(409).json({ message: 'Too many concurrent bookings.' });
         return;
       }
 
@@ -1173,6 +1188,32 @@ export class AppointmentController {
       'View Appointments',
       '/appointments'
     );
+
+    if (
+      savedAppointments.some(
+        (appointment) =>
+          appointment.confirmationStatus === ConfirmationStatus.pending
+      )
+    ) {
+      await MessagingController.sendMessageToAllAdmins(
+        'Accept Appointment Series Request',
+        'You have an open appointment series request at ' +
+          moment(req.body.start).format('DD.MM.YY') +
+          ' from ' +
+          moment(req.body.start).format('HH:mm') +
+          ' to ' +
+          moment(req.body.start).format('HH:mm') +
+          ' in room ' +
+          room.name +
+          ' from user ' +
+          user.firstName +
+          ' ' +
+          user.lastName +
+          '.',
+        'Appointment Requests',
+        '/appointments/all'
+      );
+    }
 
     res.status(200).json(savedAppointments);
   }

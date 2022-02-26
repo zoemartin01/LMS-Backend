@@ -5050,6 +5050,1599 @@ describe('AppointmentController', () => {
 
   describe('PATCH /appointments/series/:id', () => {
     const uri = `${environment.apiRoutes.base}${environment.apiRoutes.appointments.updateAppointmentSeries}`;
+
+    let appointment: AppointmentTimeslot;
+
+    beforeEach(async () => {
+      await expect(repository.count()).to.eventually.equal(0);
+
+      appointment = await repository.save({
+        user: admin,
+        room: room,
+        start: moment('2022-02-23T12:00:00Z').toDate(),
+        end: moment('2022-02-23T14:00:00Z').toDate(),
+        ConfirmationStatus: ConfirmationStatus.pending,
+        seriesId: v4(),
+        timeSlotRecurrence: TimeSlotRecurrence.daily,
+        amount: 2,
+      });
+    });
+
+    it(
+      'should return 401 if not authenticated',
+      Helpers.checkAuthentication(
+        'PATCH',
+        'fails',
+        app,
+        uri.replace(':id', v4())
+      )
+    );
+
+    it('should return 404 if no appointment series with id exists', async () => {
+      const response = await chai
+        .request(app.app)
+        .patch(uri.replace(':id', v4()))
+        .set('Authorization', adminHeader);
+
+      response.should.have.status(404);
+    });
+
+    it('should return 403 if non-admin tries to edit another users appointment series', async () => {
+      const response = await chai
+        .request(app.app)
+        .patch(uri.replace(':id', appointment.seriesId))
+        .set('Authorization', visitorHeader);
+
+      response.should.have.status(403);
+    });
+
+    it('should return 403 if non-admin tries to edit confirmation status of series', async () => {
+      const appointment = await factory(AppointmentTimeslot)({
+        user: visitor,
+        room: room,
+        ignoreRules: true,
+        seriesId: v4(),
+      }).create();
+
+      const response = await chai
+        .request(app.app)
+        .patch(uri.replace(':id', appointment.seriesId))
+        .set('Authorization', visitorHeader)
+        .send({ confirmationStatus: ConfirmationStatus.accepted });
+
+      response.should.have.status(403);
+    });
+
+    it('should allow admin to edit the confirmationStatus of series', async () => {
+      const response = await chai
+        .request(app.app)
+        .patch(uri.replace(':id', appointment.seriesId))
+        .set('Authorization', adminHeader)
+        .send({ confirmationStatus: ConfirmationStatus.accepted });
+
+      response.should.have.status(200);
+      response.body.should.be.an('array');
+      response.body.forEach((appointment: JSON) => {
+        appointment.should.have.property(
+          'confirmationStatus',
+          ConfirmationStatus.accepted
+        );
+      });
+    });
+
+    it('should return 400 if status only patch is invalid', async () => {
+      const response = await chai
+        .request(app.app)
+        .patch(uri.replace(':id', appointment.seriesId))
+        .set('Authorization', adminHeader)
+        .send({ confirmationStatus: 0 });
+
+      response.should.have.status(400);
+    });
+
+    it('should send a message to the user the appointment belongs to on status patch', async () => {
+      const spy = sandbox.spy(MessagingController, 'sendMessage');
+
+      const response = await chai
+        .request(app.app)
+        .patch(uri.replace(':id', appointment.seriesId))
+        .set('Authorization', adminHeader)
+        .send({ confirmationStatus: ConfirmationStatus.accepted });
+      response.should.have.status(200);
+
+      expect(spy).to.have.been.calledWith(appointment.user);
+    });
+
+    it('should return 400 if timeslotrecurrence is single', async () => {
+      const res = await chai
+        .request(app.app)
+        .patch(uri.replace(':id', appointment.seriesId))
+        .set('Authorization', adminHeader)
+        .send({
+          timeSlotRecurrence: TimeSlotRecurrence.single,
+        });
+
+      res.body.should.have.a.property(
+        'message',
+        'timeSlotRecurrence must be some reccuring value.'
+      );
+      res.should.have.status(400);
+    });
+
+    it('should return 400 if amount is <= 1', async () => {
+      const res = await chai
+        .request(app.app)
+        .patch(uri.replace(':id', appointment.seriesId))
+        .set('Authorization', adminHeader)
+        .send({
+          roomId: room.id,
+          timeSlotRecurrence: TimeSlotRecurrence.daily,
+          amount: 1,
+        });
+
+      res.body.should.have.a.property(
+        'message',
+        'Series needs to have at least 2 appointments.'
+      );
+      res.should.have.status(400);
+    });
+
+    it('should return 400 if start is invalid', async () => {
+      const response = await chai
+        .request(app.app)
+        .patch(uri.replace(':id', appointment.seriesId))
+        .set('Authorization', adminHeader)
+        .send({ start: 'invalid' });
+
+      response.should.have.status(400);
+      response.body.should.have.a.property('message', 'Invalid start format.');
+    });
+
+    it('should return 400 if end is invalid', async () => {
+      const response = await chai
+        .request(app.app)
+        .patch(uri.replace(':id', appointment.seriesId))
+        .set('Authorization', adminHeader)
+        .send({ end: 'invalid' });
+
+      response.should.have.status(400);
+      response.body.should.have.a.property('message', 'Invalid end format.');
+    });
+
+    it('should return 400 if start and end are less than 1h apart', async () => {
+      const response = await chai
+        .request(app.app)
+        .patch(uri.replace(':id', appointment.seriesId))
+        .set('Authorization', adminHeader)
+        .send({
+          start: moment().toISOString(),
+          end: moment().toISOString(),
+        });
+
+      response.should.have.status(400);
+      response.body.should.have.a.property(
+        'message',
+        'Duration must be at least 1h.'
+      );
+    });
+
+    it('should return 400 if recurrence is invalid', async () => {
+      const res = await chai
+        .request(app.app)
+        .patch(uri.replace(':id', appointment.seriesId))
+        .set('Authorization', adminHeader)
+        .send({
+          timeSlotRecurrence: 0,
+        });
+
+      res.should.have.status(400);
+      res.body.should.have.a.property('message', 'Illegal recurrence.');
+    });
+
+    describe('Available Timeslot Conflicts', () => {
+      it('should return 409 if some appointment of the series is outside of available timeslots', async () => {
+        const start = moment();
+        const end = moment(start).add(1, 'hour');
+        const res = await chai
+          .request(app.app)
+          .patch(uri.replace(':id', appointment.seriesId))
+          .set('Authorization', adminHeader)
+          .send({
+            start: start.toISOString(),
+            end: end.toISOString(),
+          });
+
+        res.should.have.status(409);
+        res.body.should.have.a.property(
+          'message',
+          'Appointment conflicts with available timeslot.'
+        );
+      });
+
+      it('should return 409 if some appointment of the series is partially outside an available timeslot (appointment starts before timeslot)', async () => {
+        const start = moment('2022-02-23T12:00:00Z');
+        const end = moment(start).add(3, 'hour');
+
+        for (let i = 0; i < 2; i++) {
+          await getRepository(AvailableTimeslot).save({
+            start: moment(start).add(i, 'day').add(1, 'hour').toISOString(),
+            end: moment(end).add(i, 'day').toISOString(),
+            room,
+          });
+        }
+
+        const res = await chai
+          .request(app.app)
+          .patch(uri.replace(':id', appointment.seriesId))
+          .set('Authorization', adminHeader)
+          .send({
+            start: start.toISOString(),
+            end: end.toISOString(),
+          });
+
+        res.should.have.status(409);
+        res.body.should.have.a.property(
+          'message',
+          'Appointment conflicts with available timeslot.'
+        );
+      });
+
+      it('should return 409 if if some appointment of the series is partially outside an available timeslot (appointment ends after timeslot)', async () => {
+        const start = moment('2022-02-23T12:00:00Z');
+        const end = moment(start).add(3, 'hour');
+
+        for (let i = 0; i < 2; i++) {
+          await getRepository(AvailableTimeslot).save({
+            start: moment(start).add(i, 'day').toISOString(),
+            end: moment(end).add(i, 'day').subtract(1, 'hour').toISOString(),
+            room,
+          });
+        }
+
+        const res = await chai
+          .request(app.app)
+          .patch(uri.replace(':id', appointment.seriesId))
+          .set('Authorization', adminHeader)
+          .send({
+            start: start.toISOString(),
+            end: end.toISOString(),
+          });
+
+        res.should.have.status(409);
+        res.body.should.have.a.property(
+          'message',
+          'Appointment conflicts with available timeslot.'
+        );
+      });
+
+      it('should succeed if all appointments are fully inside available timeslot', async () => {
+        const start = moment('2022-02-23T12:00:00Z');
+        const end = moment(start).add(3, 'hour');
+
+        for (let i = 0; i < 2; i++) {
+          await getRepository(AvailableTimeslot).save({
+            start: moment(start)
+              .add(i, 'day')
+              .subtract(1, 'hour')
+              .toISOString(),
+            end: moment(end).add(i, 'day').add(1, 'hour').toISOString(),
+            room,
+          });
+        }
+
+        const res = await chai
+          .request(app.app)
+          .patch(uri.replace(':id', appointment.seriesId))
+          .set('Authorization', adminHeader)
+          .send({
+            start: start.toISOString(),
+            end: end.toISOString(),
+          });
+
+        res.should.have.status(200);
+      });
+
+      it('should succeed if appointment equals available timeslot', async () => {
+        const start = moment('2022-02-23T12:00:00Z');
+        const end = moment(start).add(3, 'hour');
+
+        for (let i = 0; i < 2; i++) {
+          await getRepository(AvailableTimeslot).save({
+            start: moment(start).add(i, 'day').toISOString(),
+            end: moment(end).add(i, 'day').toISOString(),
+            room,
+          });
+        }
+
+        const res = await chai
+          .request(app.app)
+          .patch(uri.replace(':id', appointment.seriesId))
+          .set('Authorization', adminHeader)
+          .send({
+            start: start.toISOString(),
+            end: end.toISOString(),
+          });
+
+        res.should.have.status(200);
+      });
+    });
+
+    describe('Unavailable Timeslot Conflicts', () => {
+      let start: moment.Moment, end: moment.Moment;
+      const error = {
+        message: 'Appointment conflicts with unavailable timeslot.',
+      };
+
+      beforeEach(async () => {
+        start = moment('2022-02-23T12:00:00Z');
+        end = moment(start).add(3, 'hour');
+
+        for (let i = 0; i < 2; i++) {
+          await getRepository(AvailableTimeslot).save({
+            start: moment(start).hour(0).add(i, 'day').toISOString(),
+            end: moment(end).hour(0).add(1, 'day').add(i, 'day').toISOString(),
+            room,
+          });
+        }
+      });
+
+      it('should return 409 if some appointment in the series fully encloses a unavailable timeslot', async () => {
+        await getRepository(UnavailableTimeslot).save({
+          start: moment(start).add(1, 'hour').toDate(),
+          end: moment(end).subtract(1, 'hour').toDate(),
+          room,
+        });
+
+        const res = await chai
+          .request(app.app)
+          .patch(uri.replace(':id', appointment.seriesId))
+          .set('Authorization', adminHeader)
+          .send({ start, end });
+
+        res.should.have.status(409);
+        res.body.should.have.include(error);
+      });
+
+      it('should return 409 if some appointment in the series equals a unavailable timeslot', async () => {
+        await getRepository(UnavailableTimeslot).save({
+          start: moment(start).toDate(),
+          end: moment(end).toDate(),
+          room,
+        });
+
+        const res = await chai
+          .request(app.app)
+          .patch(uri.replace(':id', appointment.seriesId))
+          .set('Authorization', adminHeader)
+          .send({ start, end });
+
+        res.should.have.status(409);
+        res.body.should.have.include(error);
+      });
+
+      it('should return 409 if some appointment in the series starts inside and ends outside unavailable timeslot', async () => {
+        await getRepository(UnavailableTimeslot).save({
+          start: moment(start).subtract(1, 'hour').toDate(),
+          end: moment(end).subtract(1, 'hour').toDate(),
+          room,
+        });
+
+        const res = await chai
+          .request(app.app)
+          .patch(uri.replace(':id', appointment.seriesId))
+          .set('Authorization', adminHeader)
+          .send({ start, end });
+
+        res.should.have.status(409);
+        res.body.should.have.include(error);
+      });
+
+      it('should return 409 if some appointment in the series starts inside and ends equal with unavailable timeslot', async () => {
+        await getRepository(UnavailableTimeslot).save({
+          start: moment(start).subtract(1, 'hour').toDate(),
+          end: moment(end).toDate(),
+          room,
+        });
+
+        const res = await chai
+          .request(app.app)
+          .patch(uri.replace(':id', appointment.seriesId))
+          .set('Authorization', adminHeader)
+          .send({ start, end });
+
+        res.should.have.status(409);
+        res.body.should.have.include(error);
+      });
+
+      it('should return 409 if some appointment in the series starts equal with and ends inside unavailable timeslot', async () => {
+        await getRepository(UnavailableTimeslot).save({
+          start: moment(start).toDate(),
+          end: moment(end).add(1, 'hour').toDate(),
+          room,
+        });
+
+        const res = await chai
+          .request(app.app)
+          .patch(uri.replace(':id', appointment.seriesId))
+          .set('Authorization', adminHeader)
+          .send({ start, end });
+
+        res.should.have.status(409);
+        res.body.should.have.include(error);
+      });
+
+      it('should return 409 if some appointment in the series starts outside and ends inside unavailable timeslot', async () => {
+        await getRepository(UnavailableTimeslot).save({
+          start: moment(start).add(1, 'hour').toDate(),
+          end: moment(end).add(1, 'hour').toDate(),
+          room,
+        });
+
+        const res = await chai
+          .request(app.app)
+          .patch(uri.replace(':id', appointment.seriesId))
+          .set('Authorization', adminHeader)
+          .send({ start, end });
+
+        res.should.have.status(409);
+        res.body.should.have.include(error);
+      });
+
+      it('should return 409 if some appointment in the series starts inside and ends inside unavailable timeslot', async () => {
+        await getRepository(UnavailableTimeslot).save({
+          start: moment(start).subtract(1, 'hour').toDate(),
+          end: moment(end).add(1, 'hour').toDate(),
+          room,
+        });
+
+        const res = await chai
+          .request(app.app)
+          .patch(uri.replace(':id', appointment.seriesId))
+          .set('Authorization', adminHeader)
+          .send({ start, end });
+
+        res.should.have.status(409);
+        res.body.should.have.include(error);
+      });
+
+      it('should succeed if appointments starts equal to unavailable timeslot end', async () => {
+        await getRepository(UnavailableTimeslot).save({
+          start: moment(end).toDate(),
+          end: moment(end).add(1, 'hour').toDate(),
+          room,
+        });
+
+        const res = await chai
+          .request(app.app)
+          .patch(uri.replace(':id', appointment.seriesId))
+          .set('Authorization', adminHeader)
+          .send({ start, end });
+
+        res.should.have.status(200);
+      });
+
+      it('should succeed if appointments ends equal to unavailable timeslot start', async () => {
+        await getRepository(UnavailableTimeslot).save({
+          start: moment(start).subtract(1, 'hour'),
+          end: moment(start),
+          room,
+        });
+
+        const res = await chai
+          .request(app.app)
+          .patch(uri.replace(':id', appointment.seriesId))
+          .set('Authorization', adminHeader)
+          .send({ start, end });
+
+        res.should.have.status(200);
+      });
+    });
+
+    describe('Conflicting Bookings', () => {
+      let early: AppointmentTimeslot;
+      let late: AppointmentTimeslot;
+
+      const error = { message: 'Too many concurrent bookings.' };
+
+      describe('Case 1', () => {
+        /*
+         * The two existing appointments overlap by 2 hours.
+         *
+         * Each appointment is 4 hours long. 2 hours after the early one starts
+         * the late one starts. It ends two hours after the early one.
+         */
+
+        beforeEach(async () => {
+          const start = moment('2022-02-23T12:00:00Z');
+          const end = moment(start).add(4, 'hour');
+
+          await getRepository(Room).update(room.id, {
+            maxConcurrentBookings: 2,
+          });
+
+          early = await repository.save({
+            room,
+            start: moment(start).toISOString(),
+            end: moment(end).toISOString(),
+          });
+
+          late = await repository.save({
+            room,
+            start: moment(start).add(2, 'hours').toISOString(),
+            end: moment(end).add(2, 'hours').toISOString(),
+          });
+
+          for (let i = 0; i < 2; i++) {
+            await getRepository(AvailableTimeslot).save({
+              start: moment(start).add(i, 'day').hour(0).toDate(),
+              end: moment(end).add(i, 'day').hour(0).add(1, 'day').toDate(),
+              room,
+            });
+
+            if (i === 0) continue;
+
+            await repository.save({
+              room,
+              start: moment(early.start).add(i, 'day').toISOString(),
+              end: moment(early.end).add(i, 'day').toISOString(),
+            });
+
+            await repository.save({
+              room,
+              start: moment(late.start).add(i, 'day').toISOString(),
+              end: moment(late.end).add(i, 'day').toISOString(),
+            });
+          }
+        });
+
+        it('should return 409 if new appointment starts on late start', async () => {
+          const start = moment(late.start).toISOString();
+          const end = moment(start).add(4, 'hours').toISOString();
+
+          const res = await chai
+            .request(app.app)
+            .patch(uri.replace(':id', appointment.seriesId))
+            .set('Authorization', adminHeader)
+            .send({ start, end });
+
+          res.should.have.status(409);
+          res.body.should.have.include(error);
+        });
+
+        it('should return 409 if new appointment ends on early end', async () => {
+          const end = moment(early.end).toISOString();
+          const start = moment(end).subtract(4, 'hours').toISOString();
+
+          const res = await chai
+            .request(app.app)
+            .patch(uri.replace(':id', appointment.seriesId))
+            .set('Authorization', adminHeader)
+            .send({ start, end });
+
+          res.should.have.status(409);
+          res.body.should.have.include(error);
+        });
+
+        it('should return 409 if new appointment fully encloses early and late', async () => {
+          const start = moment(early.start).subtract(2, 'hours').toISOString();
+          const end = moment(late.end).add(2, 'hours').toISOString();
+
+          const res = await chai
+            .request(app.app)
+            .patch(uri.replace(':id', appointment.seriesId))
+            .set('Authorization', adminHeader)
+            .send({ start, end });
+
+          res.should.have.status(409);
+          res.body.should.have.include(error);
+        });
+
+        it('should return 409 if new appointment equals the overlap', async () => {
+          const start = moment(late.start).toISOString();
+          const end = moment(early.end).toISOString();
+
+          const res = await chai
+            .request(app.app)
+            .patch(uri.replace(':id', appointment.seriesId))
+            .set('Authorization', adminHeader)
+            .send({ start, end });
+
+          res.should.have.status(409);
+          res.body.should.have.include(error);
+        });
+
+        it('should return 409 if new appointment equals the sum of both', async () => {
+          const start = moment(early.start).toISOString();
+          const end = moment(late.end).toISOString();
+
+          const res = await chai
+            .request(app.app)
+            .patch(uri.replace(':id', appointment.seriesId))
+            .set('Authorization', adminHeader)
+            .send({ start, end });
+
+          res.should.have.status(409);
+          res.body.should.have.include(error);
+        });
+
+        it('should return 409 if new appointment equals early', async () => {
+          const start = moment(early.start).toISOString();
+          const end = moment(early.end).toISOString();
+
+          const res = await chai
+            .request(app.app)
+            .patch(uri.replace(':id', appointment.seriesId))
+            .set('Authorization', adminHeader)
+            .send({ start, end });
+
+          res.should.have.status(409);
+          res.body.should.have.include(error);
+        });
+
+        it('should return 409 if new appointment equals late', async () => {
+          const start = moment(late.start).toISOString();
+          const end = moment(late.end).toISOString();
+
+          const res = await chai
+            .request(app.app)
+            .patch(uri.replace(':id', appointment.seriesId))
+            .set('Authorization', adminHeader)
+            .send({ start, end });
+
+          res.should.have.status(409);
+          res.body.should.have.include(error);
+        });
+
+        it('should succeed if new appointment starts on early end and ends on late end', async () => {
+          const start = moment(early.end).toISOString();
+          const end = moment(late.end).toISOString();
+
+          const res = await chai
+            .request(app.app)
+            .patch(uri.replace(':id', appointment.seriesId))
+            .set('Authorization', adminHeader)
+            .send({ start, end });
+
+          res.should.have.status(200);
+        });
+
+        it('should succeed if new appointment starts on early start and ends on late start', async () => {
+          const start = moment(early.start).toISOString();
+          const end = moment(late.start).toISOString();
+
+          const res = await chai
+            .request(app.app)
+            .patch(uri.replace(':id', appointment.seriesId))
+            .set('Authorization', adminHeader)
+            .send({ start, end });
+
+          res.should.have.status(200);
+        });
+
+        it('should succeed if new appointment starts on early end and ends after late end', async () => {
+          const start = moment(early.end).toISOString();
+          const end = moment(late.end).add(2, 'hours').toISOString();
+
+          const res = await chai
+            .request(app.app)
+            .patch(uri.replace(':id', appointment.seriesId))
+            .set('Authorization', adminHeader)
+            .send({ start, end });
+
+          res.should.have.status(200);
+        });
+
+        it('should succeed if new appointment starts before early start and ends on late start', async () => {
+          const start = moment(early.start).subtract(2, 'hours').toISOString();
+          const end = moment(late.start).toISOString();
+
+          const res = await chai
+            .request(app.app)
+            .patch(uri.replace(':id', appointment.seriesId))
+            .set('Authorization', adminHeader)
+            .send({ start, end });
+
+          res.should.have.status(200);
+        });
+      });
+
+      describe('Case 2', () => {
+        /*
+         * The two existing appointments are adjacent to each other.
+         *
+         * Each appointment is 4 hours long. The late one starts 4 hours
+         * after the early one.
+         */
+
+        beforeEach(async () => {
+          const time = moment('2022-02-23T12:00:00Z');
+
+          await getRepository(Room).update(room.id, {
+            maxConcurrentBookings: 2,
+          });
+
+          early = await repository.save({
+            room,
+            start: moment(time).subtract(4, 'hours').toISOString(),
+            end: moment(time).toISOString(),
+          });
+
+          late = await repository.save({
+            room,
+            start: moment(time).toISOString(),
+            end: moment(time).add(4, 'hours').toISOString(),
+          });
+
+          for (let i = 0; i < 2; i++) {
+            await getRepository(AvailableTimeslot).save({
+              start: moment(time).add(i, 'day').hour(0).toDate(),
+              end: moment(time).add(i, 'day').hour(0).add(1, 'day').toDate(),
+              room,
+            });
+
+            if (i === 0) continue;
+
+            await repository.save({
+              room,
+              start: moment(early.start).add(i, 'day').toISOString(),
+              end: moment(early.end).add(i, 'day').toISOString(),
+            });
+
+            await repository.save({
+              room,
+              start: moment(late.start).add(i, 'day').toISOString(),
+              end: moment(late.end).add(i, 'day').toISOString(),
+            });
+          }
+        });
+
+        it('should succeed if new appointment starts inside early and ends inside late', async () => {
+          const start = moment(early.start).add(2, 'hours').toISOString();
+          const end = moment(late.start).add(2, 'hours').toISOString();
+
+          const res = await chai
+            .request(app.app)
+            .patch(uri.replace(':id', appointment.seriesId))
+            .set('Authorization', adminHeader)
+            .send({ start, end });
+
+          res.should.have.status(200);
+        });
+
+        it('should succeed if new appointment starts on early start and ends on late end', async () => {
+          const start = moment(early.start).toISOString();
+          const end = moment(late.end).toISOString();
+
+          const res = await chai
+            .request(app.app)
+            .patch(uri.replace(':id', appointment.seriesId))
+            .set('Authorization', adminHeader)
+            .send({ start, end });
+
+          res.should.have.status(200);
+        });
+
+        it('should succeed if new appointment starts before early and ends after late', async () => {
+          const start = moment(early.start).subtract(2, 'hours').toISOString();
+          const end = moment(late.end).add(2, 'hours').toISOString();
+
+          const res = await chai
+            .request(app.app)
+            .patch(uri.replace(':id', appointment.seriesId))
+            .set('Authorization', adminHeader)
+            .send({ start, end });
+
+          res.should.have.status(200);
+        });
+
+        it('should succeed if new appointment starts before early and ends inside late', async () => {
+          const start = moment(early.start).subtract(2, 'hours').toISOString();
+          const end = moment(late.start).add(2, 'hours').toISOString();
+
+          const res = await chai
+            .request(app.app)
+            .patch(uri.replace(':id', appointment.seriesId))
+            .set('Authorization', adminHeader)
+            .send({ start, end });
+
+          res.should.have.status(200);
+        });
+
+        it('should succeed if new appointment starts inside early and ends outside late', async () => {
+          const start = moment(early.start).add(2, 'hours').toISOString();
+          const end = moment(late.end).add(2, 'hours').toISOString();
+
+          const res = await chai
+            .request(app.app)
+            .patch(uri.replace(':id', appointment.seriesId))
+            .set('Authorization', adminHeader)
+            .send({ start, end });
+
+          res.should.have.status(200);
+        });
+      });
+
+      describe('Case 3', () => {
+        /*
+         * The two existing appointments are not adjacent or overlapping.
+         *
+         * Each appointment is 4 hours long. The late one starts 6 hours
+         * after the early one.
+         */
+
+        beforeEach(async () => {
+          const time = moment('2022-02-23T12:00:00Z');
+
+          await getRepository(Room).update(room.id, {
+            maxConcurrentBookings: 2,
+          });
+
+          early = await repository.save({
+            room,
+            start: moment(time).subtract(5, 'hours').toISOString(),
+            end: moment(time).subtract(1, 'hours').toISOString(),
+          });
+
+          late = await repository.save({
+            room,
+            start: moment(time).add(1, 'hours').toISOString(),
+            end: moment(time).add(5, 'hours').toISOString(),
+          });
+
+          for (let i = 0; i < 2; i++) {
+            await getRepository(AvailableTimeslot).save({
+              start: moment(time).add(i, 'day').hour(0).toDate(),
+              end: moment(time).add(i, 'day').hour(0).add(1, 'day').toDate(),
+              room,
+            });
+
+            if (i === 0) continue;
+
+            await repository.save({
+              room,
+              start: moment(early.start).add(i, 'day').toISOString(),
+              end: moment(early.end).add(i, 'day').toISOString(),
+            });
+
+            await repository.save({
+              room,
+              start: moment(late.start).add(i, 'day').toISOString(),
+              end: moment(late.end).add(i, 'day').toISOString(),
+            });
+          }
+        });
+
+        it('should succeed if new appointment starts between both', async () => {
+          const start = moment(early.end).toISOString();
+          const end = moment(late.start).toISOString();
+
+          const res = await chai
+            .request(app.app)
+            .patch(uri.replace(':id', appointment.seriesId))
+            .set('Authorization', adminHeader)
+            .send({ start, end });
+
+          res.should.have.status(200);
+        });
+
+        it('should succeed if new appointment starts with early and ends with late', async () => {
+          const start = moment(early.start).toISOString();
+          const end = moment(late.end).toISOString();
+
+          const res = await chai
+            .request(app.app)
+            .patch(uri.replace(':id', appointment.seriesId))
+            .set('Authorization', adminHeader)
+            .send({ start, end });
+
+          res.should.have.status(200);
+        });
+
+        it('should succeed if new appointment starts before early and ends after late', async () => {
+          const start = moment(early.start).subtract(2, 'hours').toISOString();
+          const end = moment(late.end).add(2, 'hours').toISOString();
+
+          const res = await chai
+            .request(app.app)
+            .patch(uri.replace(':id', appointment.seriesId))
+            .set('Authorization', adminHeader)
+            .send({ start, end });
+
+          res.should.have.status(200);
+        });
+
+        it('should succeed if new appointment starts inside early and ends outside late', async () => {
+          const start = moment(early.start).add(2, 'hours').toISOString();
+          const end = moment(late.end).add(2, 'hours').toISOString();
+
+          const res = await chai
+            .request(app.app)
+            .patch(uri.replace(':id', appointment.seriesId))
+            .set('Authorization', adminHeader)
+            .send({ start, end });
+
+          res.should.have.status(200);
+        });
+
+        it('should succeed if new appointment starts before early and ends inside late', async () => {
+          const start = moment(early.start).subtract(2, 'hours').toISOString();
+          const end = moment(late.start).add(2, 'hours').toISOString();
+
+          const res = await chai
+            .request(app.app)
+            .patch(uri.replace(':id', appointment.seriesId))
+            .set('Authorization', adminHeader)
+            .send({ start, end });
+
+          res.should.have.status(200);
+        });
+
+        it('should succeed if new appointment starts inside early and ends after late', async () => {
+          const start = moment(early.start).add(2, 'hours').toISOString();
+          const end = moment(late.end).add(2, 'hours').toISOString();
+
+          const res = await chai
+            .request(app.app)
+            .patch(uri.replace(':id', appointment.seriesId))
+            .set('Authorization', adminHeader)
+            .send({ start, end });
+
+          res.should.have.status(200);
+        });
+
+        it('should succeed if new appointment starts before early and ends with early', async () => {
+          const start = moment(early.start).subtract(2, 'hours').toISOString();
+          const end = moment(early.end).toISOString();
+
+          const res = await chai
+            .request(app.app)
+            .patch(uri.replace(':id', appointment.seriesId))
+            .set('Authorization', adminHeader)
+            .send({ start, end });
+
+          res.should.have.status(200);
+        });
+
+        it('should succeed if new appointment starts with early end and ends after late', async () => {
+          const start = moment(early.end).toISOString();
+          const end = moment(late.end).add(2, 'hours').toISOString();
+
+          const res = await chai
+            .request(app.app)
+            .patch(uri.replace(':id', appointment.seriesId))
+            .set('Authorization', adminHeader)
+            .send({ start, end });
+
+          res.should.have.status(200);
+        });
+
+        it('should succeed if new appointment starts with early start and ends with late start', async () => {
+          const start = moment(early.start).toISOString();
+          const end = moment(late.start).toISOString();
+
+          const res = await chai
+            .request(app.app)
+            .patch(uri.replace(':id', appointment.seriesId))
+            .set('Authorization', adminHeader)
+            .send({ start, end });
+
+          res.should.have.status(200);
+        });
+
+        it('should succeed if new appointment starts with early end and ends with late end', async () => {
+          const start = moment(early.end).toISOString();
+          const end = moment(late.end).toISOString();
+
+          const res = await chai
+            .request(app.app)
+            .patch(uri.replace(':id', appointment.seriesId))
+            .set('Authorization', adminHeader)
+            .send({ start, end });
+
+          res.should.have.status(200);
+        });
+      });
+    });
+
+    it('should successfully update the appointment series start', async () => {
+      const start = moment('2022-02-23T12:00:00Z');
+      const end = moment(start).add(4, 'hour');
+      const seriesId = v4();
+      await repository.clear();
+
+      const appointments = await repository.save([
+        {
+          user: admin,
+          start: moment(start).subtract(2, 'hours').toDate(),
+          end: moment(end).toDate(),
+          room: room,
+          timeSlotRecurrence: TimeSlotRecurrence.daily,
+          amount: 2,
+          seriesId: seriesId,
+        },
+        {
+          user: admin,
+          start: moment(start).add(1, 'day').subtract(2, 'hours').toDate(),
+          end: moment(end).add(1, 'day').toDate(),
+          room: room,
+          timeSlotRecurrence: TimeSlotRecurrence.daily,
+          amount: 2,
+          seriesId: seriesId,
+        },
+      ]);
+
+      for (let i = 0; i < 2; i++) {
+        await getRepository(AvailableTimeslot).save({
+          start: moment(start).add(i, 'day').hour(0).toDate(),
+          end: moment(end).add(i, 'day').hour(0).add(1, 'day').toDate(),
+          room,
+        });
+      }
+
+      const res = await chai
+        .request(app.app)
+        .patch(uri.replace(':id', seriesId))
+        .set('Authorization', adminHeader)
+        .send({
+          start: moment(start).toISOString(),
+        });
+
+      res.should.have.status(200);
+      res.body.should.be.an('array').with.lengthOf(2);
+      for (let i = 0; i < 2; i++) {
+        res.body[i].should.have
+          .property('start')
+          .equal(moment(start).add(i, 'days').toISOString());
+      }
+    });
+
+    it('should successfully update the appointment series end', async () => {
+      const start = moment('2022-02-23T12:00:00Z');
+      const end = moment(start).add(4, 'hour');
+      const seriesId = v4();
+      await repository.clear();
+
+      const appointments = await repository.save([
+        {
+          user: admin,
+          start: moment(start).toDate(),
+          end: moment(end).subtract(2, 'hours').toDate(),
+          room: room,
+          timeSlotRecurrence: TimeSlotRecurrence.daily,
+          amount: 2,
+          seriesId: seriesId,
+        },
+        {
+          user: admin,
+          start: moment(start).add(1, 'day').toDate(),
+          end: moment(end).add(1, 'day').subtract(2, 'hours').toDate(),
+          room: room,
+          timeSlotRecurrence: TimeSlotRecurrence.daily,
+          amount: 2,
+          seriesId: seriesId,
+        },
+      ]);
+
+      for (let i = 0; i < 2; i++) {
+        await getRepository(AvailableTimeslot).save({
+          start: moment(start).add(i, 'day').hour(0).toDate(),
+          end: moment(end).add(i, 'day').hour(0).add(1, 'day').toDate(),
+          room,
+        });
+      }
+
+      const res = await chai
+        .request(app.app)
+        .patch(uri.replace(':id', seriesId))
+        .set('Authorization', adminHeader)
+        .send({
+          end: moment(end).toISOString(),
+        });
+
+      res.should.have.status(200);
+      res.body.should.be.an('array').with.lengthOf(2);
+      for (let i = 0; i < 2; i++) {
+        res.body[i].should.have
+          .property('end')
+          .equal(moment(end).add(i, 'days').toISOString());
+      }
+    });
+
+    it('should successfully update the appointment series recurrence to weekly', async () => {
+      const start = moment('2022-02-23T12:00:00Z');
+      const end = moment(start).add(4, 'hour');
+      const seriesId = v4();
+      await repository.clear();
+
+      const appointments = await repository.save([
+        {
+          user: admin,
+          start: moment(start).toDate(),
+          end: moment(end).toDate(),
+          room: room,
+          timeSlotRecurrence: TimeSlotRecurrence.daily,
+          amount: 2,
+          seriesId: seriesId,
+        },
+        {
+          user: admin,
+          start: moment(start).add(1, 'day').toDate(),
+          end: moment(end).add(1, 'day').toDate(),
+          room: room,
+          timeSlotRecurrence: TimeSlotRecurrence.daily,
+          amount: 2,
+          seriesId: seriesId,
+        },
+      ]);
+
+      for (let i = 0; i < 2; i++) {
+        await getRepository(AvailableTimeslot).save({
+          start: moment(start).add(i, 'week').hour(0).toDate(),
+          end: moment(end).add(i, 'week').hour(0).add(1, 'day').toDate(),
+          room,
+        });
+      }
+
+      const res = await chai
+        .request(app.app)
+        .patch(uri.replace(':id', seriesId))
+        .set('Authorization', adminHeader)
+        .send({
+          timeSlotRecurrence: TimeSlotRecurrence.weekly,
+        });
+
+      res.should.have.status(200);
+      res.body.should.be.an('array').with.lengthOf(2);
+      for (let i = 0; i < 2; i++) {
+        res.body[i].should.have
+          .property('start')
+          .equal(moment(start).add(i, 'week').toISOString());
+        res.body[i].should.have
+          .property('end')
+          .equal(moment(end).add(i, 'week').toISOString());
+        res.body[i].should.have
+          .property('timeSlotRecurrence')
+          .equal(TimeSlotRecurrence.weekly);
+      }
+    });
+
+    it('should successfully update the appointment series recurrence to monthly', async () => {
+      const start = moment('2022-02-23T12:00:00Z');
+      const end = moment(start).add(4, 'hour');
+      const seriesId = v4();
+      await repository.clear();
+
+      const appointments = await repository.save([
+        {
+          user: admin,
+          start: moment(start).toDate(),
+          end: moment(end).toDate(),
+          room: room,
+          timeSlotRecurrence: TimeSlotRecurrence.daily,
+          amount: 2,
+          seriesId: seriesId,
+        },
+        {
+          user: admin,
+          start: moment(start).add(1, 'day').toDate(),
+          end: moment(end).add(1, 'day').toDate(),
+          room: room,
+          timeSlotRecurrence: TimeSlotRecurrence.daily,
+          amount: 2,
+          seriesId: seriesId,
+        },
+      ]);
+
+      for (let i = 0; i < 2; i++) {
+        await getRepository(AvailableTimeslot).save({
+          start: moment(start).add(i, 'month').hour(0).toDate(),
+          end: moment(end).add(i, 'month').hour(0).add(1, 'day').toDate(),
+          room,
+        });
+      }
+
+      const res = await chai
+        .request(app.app)
+        .patch(uri.replace(':id', seriesId))
+        .set('Authorization', adminHeader)
+        .send({
+          timeSlotRecurrence: TimeSlotRecurrence.monthly,
+        });
+
+      res.should.have.status(200);
+      res.body.should.be.an('array').with.lengthOf(2);
+      for (let i = 0; i < 2; i++) {
+        res.body[i].should.have
+          .property('start')
+          .equal(moment(start).add(i, 'month').toISOString());
+        res.body[i].should.have
+          .property('end')
+          .equal(moment(end).add(i, 'month').toISOString());
+        res.body[i].should.have
+          .property('timeSlotRecurrence')
+          .equal(TimeSlotRecurrence.monthly);
+      }
+    });
+
+    it('should successfully update the appointment series recurrence to yearly', async () => {
+      const start = moment('2022-02-23T12:00:00Z');
+      const end = moment(start).add(4, 'hour');
+      const seriesId = v4();
+      await repository.clear();
+
+      const appointments = await repository.save([
+        {
+          user: admin,
+          start: moment(start).toDate(),
+          end: moment(end).toDate(),
+          room: room,
+          timeSlotRecurrence: TimeSlotRecurrence.daily,
+          amount: 2,
+          seriesId: seriesId,
+        },
+        {
+          user: admin,
+          start: moment(start).add(1, 'day').toDate(),
+          end: moment(end).add(1, 'day').toDate(),
+          room: room,
+          timeSlotRecurrence: TimeSlotRecurrence.daily,
+          amount: 2,
+          seriesId: seriesId,
+        },
+      ]);
+
+      for (let i = 0; i < 2; i++) {
+        await getRepository(AvailableTimeslot).save({
+          start: moment(start).add(i, 'year').hour(0).toDate(),
+          end: moment(end).add(i, 'year').hour(0).add(1, 'day').toDate(),
+          room,
+        });
+      }
+
+      const res = await chai
+        .request(app.app)
+        .patch(uri.replace(':id', seriesId))
+        .set('Authorization', adminHeader)
+        .send({
+          timeSlotRecurrence: TimeSlotRecurrence.yearly,
+        });
+
+      res.should.have.status(200);
+      res.body.should.be.an('array').with.lengthOf(2);
+      for (let i = 0; i < 2; i++) {
+        res.body[i].should.have
+          .property('start')
+          .equal(moment(start).add(i, 'year').toISOString());
+        res.body[i].should.have
+          .property('end')
+          .equal(moment(end).add(i, 'year').toISOString());
+        res.body[i].should.have
+          .property('timeSlotRecurrence')
+          .equal(TimeSlotRecurrence.yearly);
+      }
+    });
+
+    it('should reset appointment to pending if non-admin edits appointment and autoAcceptBookings is false', async () => {
+      const start = moment('2022-02-23T12:00:00Z');
+      const end = moment(start).add(4, 'hour');
+      const seriesId = v4();
+      await repository.clear();
+
+      const appointments = await repository.save([
+        {
+          user: visitor,
+          start: moment(start).toDate(),
+          end: moment(end).subtract(2, 'hours').toDate(),
+          room: room,
+          timeSlotRecurrence: TimeSlotRecurrence.daily,
+          amount: 2,
+          seriesId: seriesId,
+          confirmationStatus: ConfirmationStatus.accepted,
+        },
+        {
+          user: visitor,
+          start: moment(start).add(1, 'day').toDate(),
+          end: moment(end).add(1, 'day').subtract(2, 'hours').toDate(),
+          room: room,
+          timeSlotRecurrence: TimeSlotRecurrence.daily,
+          amount: 2,
+          seriesId: seriesId,
+          confirmationStatus: ConfirmationStatus.accepted,
+        },
+      ]);
+
+      await getRepository(Room).update(room.id, {
+        autoAcceptBookings: false,
+      });
+
+      for (let i = 0; i < 2; i++) {
+        await getRepository(AvailableTimeslot).save({
+          start: moment(start).add(i, 'day').hour(0).toDate(),
+          end: moment(end).add(i, 'day').hour(0).add(1, 'day').toDate(),
+          room,
+        });
+      }
+
+      const res = await chai
+        .request(app.app)
+        .patch(uri.replace(':id', seriesId))
+        .set('Authorization', visitorHeader)
+        .send({
+          end: moment(end).toISOString(),
+        });
+
+      res.should.have.status(200);
+      res.body.should.be.an('array').with.lengthOf(2);
+      res.body.forEach((a: JSON) => {
+        a.should.have.property(
+          'confirmationStatus',
+          ConfirmationStatus.pending
+        );
+      });
+    });
+
+    it('should set confirmationStatus to accepted if non-admin edits appointment and autoAcceptBookings is true', async () => {
+      const start = moment('2022-02-23T12:00:00Z');
+      const end = moment(start).add(4, 'hour');
+      const seriesId = v4();
+      await repository.clear();
+
+      const appointments = await repository.save([
+        {
+          user: visitor,
+          start: moment(start).toDate(),
+          end: moment(end).subtract(2, 'hours').toDate(),
+          room: room,
+          timeSlotRecurrence: TimeSlotRecurrence.daily,
+          amount: 2,
+          seriesId: seriesId,
+          confirmationStatus: ConfirmationStatus.pending,
+        },
+        {
+          user: visitor,
+          start: moment(start).add(1, 'day').toDate(),
+          end: moment(end).add(1, 'day').subtract(2, 'hours').toDate(),
+          room: room,
+          timeSlotRecurrence: TimeSlotRecurrence.daily,
+          amount: 2,
+          seriesId: seriesId,
+          confirmationStatus: ConfirmationStatus.pending,
+        },
+      ]);
+
+      await getRepository(Room).update(room.id, {
+        autoAcceptBookings: true,
+      });
+
+      for (let i = 0; i < 2; i++) {
+        await getRepository(AvailableTimeslot).save({
+          start: moment(start).add(i, 'day').hour(0).toDate(),
+          end: moment(end).add(i, 'day').hour(0).add(1, 'day').toDate(),
+          room,
+        });
+      }
+
+      const res = await chai
+        .request(app.app)
+        .patch(uri.replace(':id', seriesId))
+        .set('Authorization', visitorHeader)
+        .send({
+          end: moment(end).toISOString(),
+        });
+
+      res.should.have.status(200);
+      res.body.should.be.an('array').with.lengthOf(2);
+      res.body.forEach((a: JSON) => {
+        a.should.have.property(
+          'confirmationStatus',
+          ConfirmationStatus.accepted
+        );
+      });
+    });
+
+    it('should not change the confirmation status if an admin updates an appointment', async () => {
+      const start = moment('2022-02-23T12:00:00Z');
+      const end = moment(start).add(4, 'hour');
+      const seriesId = v4();
+      await repository.clear();
+
+      const appointments = await repository.save([
+        {
+          user: visitor,
+          start: moment(start).toDate(),
+          end: moment(end).subtract(2, 'hours').toDate(),
+          room: room,
+          timeSlotRecurrence: TimeSlotRecurrence.daily,
+          amount: 2,
+          seriesId: seriesId,
+          confirmationStatus: ConfirmationStatus.denied,
+        },
+        {
+          user: visitor,
+          start: moment(start).add(1, 'day').toDate(),
+          end: moment(end).add(1, 'day').subtract(2, 'hours').toDate(),
+          room: room,
+          timeSlotRecurrence: TimeSlotRecurrence.daily,
+          amount: 2,
+          seriesId: seriesId,
+          confirmationStatus: ConfirmationStatus.denied,
+        },
+      ]);
+
+      for (let i = 0; i < 2; i++) {
+        await getRepository(AvailableTimeslot).save({
+          start: moment(start).add(i, 'day').hour(0).toDate(),
+          end: moment(end).add(i, 'day').hour(0).add(1, 'day').toDate(),
+          room,
+        });
+      }
+
+      const res = await chai
+        .request(app.app)
+        .patch(uri.replace(':id', seriesId))
+        .set('Authorization', adminHeader)
+        .send({
+          end: moment(end).toISOString(),
+        });
+
+      res.should.have.status(200);
+      res.body.should.be.an('array').with.lengthOf(2);
+      res.body.forEach((a: JSON) => {
+        a.should.have.property('confirmationStatus', ConfirmationStatus.denied);
+      });
+    });
+
+    it('should send a message to the user the appointment belongs to', async () => {
+      const spy = sandbox.spy(MessagingController, 'sendMessage');
+
+      const start = moment('2022-02-23T12:00:00Z');
+      const end = moment(start).add(4, 'hour');
+      const seriesId = v4();
+      await repository.clear();
+
+      const appointments = await repository.save([
+        {
+          user: admin,
+          start: moment(start).toDate(),
+          end: moment(end).subtract(2, 'hours').toDate(),
+          room: room,
+          timeSlotRecurrence: TimeSlotRecurrence.daily,
+          amount: 2,
+          seriesId: seriesId,
+        },
+        {
+          user: admin,
+          start: moment(start).add(1, 'day').toDate(),
+          end: moment(end).add(1, 'day').subtract(2, 'hours').toDate(),
+          room: room,
+          timeSlotRecurrence: TimeSlotRecurrence.daily,
+          amount: 2,
+          seriesId: seriesId,
+        },
+      ]);
+
+      for (let i = 0; i < 2; i++) {
+        await getRepository(AvailableTimeslot).save({
+          start: moment(start).add(i, 'day').hour(0).toDate(),
+          end: moment(end).add(i, 'day').hour(0).add(1, 'day').toDate(),
+          room,
+        });
+      }
+
+      const res = await chai
+        .request(app.app)
+        .patch(uri.replace(':id', seriesId))
+        .set('Authorization', adminHeader)
+        .send({
+          end: moment(end).toISOString(),
+        });
+
+      res.should.have.status(200);
+      spy.should.have.been.calledWith(admin);
+    });
+
+    it('should send a message to all admins if confirmationStatus is pending', async () => {
+      const spy = sandbox.spy(MessagingController, 'sendMessageToAllAdmins');
+
+      const start = moment('2022-02-23T12:00:00Z');
+      const end = moment(start).add(4, 'hour');
+      const seriesId = v4();
+      await repository.clear();
+
+      const appointments = await repository.save([
+        {
+          user: admin,
+          start: moment(start).toDate(),
+          end: moment(end).subtract(2, 'hours').toDate(),
+          room: room,
+          timeSlotRecurrence: TimeSlotRecurrence.daily,
+          amount: 2,
+          seriesId: seriesId,
+          confirmationStatus: ConfirmationStatus.pending,
+        },
+        {
+          user: admin,
+          start: moment(start).add(1, 'day').toDate(),
+          end: moment(end).add(1, 'day').subtract(2, 'hours').toDate(),
+          room: room,
+          timeSlotRecurrence: TimeSlotRecurrence.daily,
+          amount: 2,
+          seriesId: seriesId,
+          confirmationStatus: ConfirmationStatus.pending,
+        },
+      ]);
+
+      for (let i = 0; i < 2; i++) {
+        await getRepository(AvailableTimeslot).save({
+          start: moment(start).add(i, 'day').hour(0).toDate(),
+          end: moment(end).add(i, 'day').hour(0).add(1, 'day').toDate(),
+          room,
+        });
+      }
+
+      const res = await chai
+        .request(app.app)
+        .patch(uri.replace(':id', seriesId))
+        .set('Authorization', adminHeader)
+        .send({
+          end: moment(end).toISOString(),
+        });
+
+      res.should.have.status(200);
+      spy.should.have.been.called;
+    });
+
+    it('should send a message to all admins if confirmationStatus is not pending', async () => {
+      const spy = sandbox.spy(MessagingController, 'sendMessageToAllAdmins');
+
+      const start = moment('2022-02-23T12:00:00Z');
+      const end = moment(start).add(4, 'hour');
+
+      const seriesId = v4();
+
+      await repository.clear();
+
+      const appointments = await repository.save([
+        {
+          user: admin,
+          start: moment(start).toDate(),
+          end: moment(end).subtract(2, 'hours').toDate(),
+          room: room,
+          timeSlotRecurrence: TimeSlotRecurrence.daily,
+          amount: 2,
+          seriesId: seriesId,
+        },
+        {
+          user: admin,
+          start: moment(start).add(1, 'day').toDate(),
+          end: moment(end).add(1, 'day').subtract(2, 'hours').toDate(),
+          room: room,
+          timeSlotRecurrence: TimeSlotRecurrence.daily,
+          amount: 2,
+          seriesId: seriesId,
+        },
+      ]);
+
+      for (let i = 0; i < 2; i++) {
+        await getRepository(AvailableTimeslot).save({
+          start: moment(start).add(i, 'day').hour(0).toDate(),
+          end: moment(end).add(i, 'day').hour(0).add(1, 'day').toDate(),
+          room,
+        });
+      }
+
+      const res = await chai
+        .request(app.app)
+        .patch(uri.replace(':id', seriesId))
+        .set('Authorization', adminHeader)
+        .send({
+          end: moment(end).toISOString(),
+          confirmationStatus: ConfirmationStatus.accepted,
+        });
+
+      res.should.have.status(200);
+      spy.should.not.have.been.called;
+    });
   });
 
   describe('DELETE /appointments/:id', () => {
