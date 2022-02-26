@@ -250,8 +250,7 @@ export class AppointmentController {
 
     if (
       !(await AuthController.checkAdmin(req)) &&
-      appointment.user.id !==
-        ((await AuthController.getCurrentUser(req))?.id ?? '')
+      appointment.user.id !== (await AuthController.getCurrentUser(req)).id
     ) {
       res.sendStatus(403);
       return;
@@ -1148,11 +1147,9 @@ export class AppointmentController {
         await AppointmentController.checkForUnavaliableConflicts(appointment)
       ) {
         if (force) continue;
-        res
-          .status(409)
-          .json({
-            message: 'Appointment conflicts with unavailable timeslot.',
-          });
+        res.status(409).json({
+          message: 'Appointment conflicts with unavailable timeslot.',
+        });
         return;
       }
 
