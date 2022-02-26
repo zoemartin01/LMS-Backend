@@ -10,7 +10,7 @@ import {
 } from 'typeorm';
 import { AppointmentTimeslot } from '../models/appointment.timeslot.entity';
 import { AuthController } from './auth.controller';
-import { isISO8601 } from 'class-validator';
+import { isEnum, isISO8601 } from 'class-validator';
 import { Room } from '../models/room.entity';
 import { v4 as uuidv4, v4 } from 'uuid';
 import { MessagingController } from './messaging.controller';
@@ -808,15 +808,17 @@ export class AppointmentController {
     let appointment = await repository.findOne(req.params.id);
 
     if (appointment === undefined) {
-      res.status(404).json({ message: 'appointment not found' });
+      res.status(404).json({ message: 'Appointment not found.' });
       return;
     }
 
     const isAdmin = await AuthController.checkAdmin(req);
-    const isSeries = appointment.seriesId !== undefined;
+    const isSeries = appointment.seriesId !== null;
     const user = await AuthController.getCurrentUser(req);
     const confirmationStatus =
-      req.body.confirmationStatus || appointment.confirmationStatus;
+      req.body.confirmationStatus !== undefined
+        ? req.body.confirmationStatus
+        : appointment.confirmationStatus;
     const onlyStatusPatch =
       req.body.confirmationStatus !== undefined &&
       Object.keys(req.body).length === 1;
@@ -830,13 +832,17 @@ export class AppointmentController {
     }
 
     if (onlyStatusPatch) {
-      // @todo this might cause issues (eg status not valid)
+      if (!isEnum(confirmationStatus, ConfirmationStatus)) {
+        res.status(400).json({ message: 'Invalid confirmation status.' });
+        return;
+      }
+
       await repository.update(appointment.id, { confirmationStatus });
 
       await MessagingController.sendMessage(
-        user,
+        appointment.user,
         'Appointment Edited',
-        'Your appointment series at ' +
+        'Your appointment at ' +
           moment(appointment.start).format('DD.MM.YY') +
           ' from ' +
           moment(appointment.start).format('HH:mm') +
@@ -853,7 +859,8 @@ export class AppointmentController {
       return;
     }
 
-    const { start, end } = req.body;
+    const start = req.body.start || appointment.start.toISOString();
+    const end = req.body.end || appointment.end.toISOString();
 
     if (!isISO8601(start)) {
       res.status(400).json({ message: 'Invalid start format.' });
@@ -887,28 +894,34 @@ export class AppointmentController {
         : ConfirmationStatus.pending,
     });
 
-    if (await AppointmentController.checkForAvaliableConflicts(appointment)) {
+    if (
+      await AppointmentController.checkForAvaliableConflicts(newAppointment)
+    ) {
       res
         .status(409)
         .json({ message: 'Appointment conflicts with available timeslot.' });
       return;
     }
 
-    if (await AppointmentController.checkForUnavaliableConflicts(appointment)) {
+    if (
+      await AppointmentController.checkForUnavaliableConflicts(newAppointment)
+    ) {
       res
         .status(409)
         .json({ message: 'Appointment conflicts with unavailable timeslot.' });
       return;
     }
 
-    if (await AppointmentController.checkForConflictingBookings(appointment)) {
+    if (
+      await AppointmentController.checkForConflictingBookings(newAppointment)
+    ) {
       res.status(409).json({ message: 'Too many concurrent bookings.' });
       return;
     }
 
     await repository.update({ id: appointment.id }, newAppointment);
 
-    appointment = await repository.findOneOrFail(req.params.id);
+    appointment = await repository.findOneOrFail(appointment.id);
 
     await MessagingController.sendMessage(
       appointment.user,
@@ -925,6 +938,27 @@ export class AppointmentController {
       'View Appointment',
       '/appointments'
     );
+
+    if (appointment.confirmationStatus === ConfirmationStatus.pending) {
+      await MessagingController.sendMessageToAllAdmins(
+        'Accept Appointment Series Request',
+        'You have an open appointment series request at ' +
+          moment(req.body.start).format('DD.MM.YY') +
+          ' from ' +
+          moment(req.body.start).format('HH:mm') +
+          ' to ' +
+          moment(req.body.start).format('HH:mm') +
+          ' in room ' +
+          appointment.room.name +
+          ' from user ' +
+          user.firstName +
+          ' ' +
+          user.lastName +
+          '.',
+        'Appointment Requests',
+        '/appointments/all'
+      );
+    }
 
     res.json(appointment);
   }
@@ -961,7 +995,9 @@ export class AppointmentController {
     });
     const { room, user, seriesId } = first;
     const confirmationStatus =
-      req.body.confirmationStatus || first.confirmationStatus;
+      req.body.confirmationStatus !== undefined
+        ? req.body.confirmationStatus
+        : first.confirmationStatus;
     const start = req.body.start || first.start.toISOString();
     const end = req.body.end || first.end.toISOString();
     const timeSlotRecurrence =
@@ -983,7 +1019,11 @@ export class AppointmentController {
     }
 
     if (onlyStatusPatch) {
-      // @todo this might cause issues
+      if (!isEnum(confirmationStatus, ConfirmationStatus)) {
+        res.status(400).json({ message: 'Invalid confirmation status.' });
+        return;
+      }
+
       const updatedAppointments = await repository.update(
         originalAppointments.map((appointment) => appointment.id),
         { confirmationStatus }
