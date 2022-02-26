@@ -4118,27 +4118,3 @@ describe('AppointmentController', () => {
     });
   });
 });
-
-function createSeries(appointment: AppointmentTimeslot, id: string) {
-  const appointments = [];
-  const repo = getRepository(AppointmentTimeslot);
-  const amount = 3;
-
-  const start = moment(appointment.start);
-  const end = moment(appointment.end);
-
-  for (let i = 0; i < amount; i++) {
-    appointments.push(
-      repo.create({
-        ...appointment,
-        seriesId: id,
-        start: start.add(1, 'week').toDate(),
-        end: end.add(1, 'week').toDate(),
-        amount: amount,
-        timeSlotRecurrence: TimeSlotRecurrence.weekly,
-      })
-    );
-  }
-
-  return appointments;
-}
