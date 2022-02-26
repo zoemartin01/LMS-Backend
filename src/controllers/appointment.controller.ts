@@ -1163,10 +1163,10 @@ export class AppointmentController {
       return;
     }
 
-    if (appointment.seriesId === undefined) {
-      await repository.delete(req.params.id);
+    if (appointment.seriesId === null) {
+      await repository.delete(appointment.id);
     } else {
-      await repository.softDelete(req.params.id);
+      await repository.softDelete(appointment.id);
     }
 
     if (await AuthController.checkAdmin(req)) {

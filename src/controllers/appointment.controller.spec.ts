@@ -3845,8 +3845,8 @@ describe('AppointmentController', () => {
         .set('Authorization', visitorHeader);
 
       response.should.have.status(204);
-      (async () => repository.findOneOrFail(appointment.id))().should.eventually
-        .be.rejected;
+      await (async () => repository.findOneOrFail(appointment.id))().should
+        .eventually.be.rejected;
     });
 
     it('should return 204 as admin deleting another users appointment', async () => {
@@ -3864,8 +3864,8 @@ describe('AppointmentController', () => {
         .set('Authorization', adminHeader);
 
       response.should.have.status(204);
-      (async () => repository.findOneOrFail(appointment.id))().should.eventually
-        .be.rejected;
+      await (async () => repository.findOneOrFail(appointment.id))().should
+        .eventually.be.rejected;
     });
 
     it('should return 204 as admin deleting own appointment', async () => {
@@ -3883,8 +3883,53 @@ describe('AppointmentController', () => {
         .set('Authorization', adminHeader);
 
       response.should.have.status(204);
-      (async () => repository.findOneOrFail(appointment.id))().should.eventually
-        .be.rejected;
+      await (async () => repository.findOneOrFail(appointment.id))().should
+        .eventually.be.rejected;
+    });
+
+    it('should soft delete if appointment is part of a series', async () => {
+      const appointment = Helpers.JSONify(
+        await factory(AppointmentTimeslot)({
+          room: room,
+          user: admin,
+          ignoreRules: true,
+          seriesId: v4(),
+        }).create()
+      );
+
+      const response = await chai
+        .request(app.app)
+        .delete(uri.replace(':id', appointment.id))
+        .set('Authorization', adminHeader);
+
+      response.should.have.status(204);
+      await (async () => repository.findOneOrFail(appointment.id))().should
+        .eventually.be.rejected;
+      await (async () =>
+        repository.findOneOrFail(appointment.id, { withDeleted: true }))()
+        .should.eventually.be.fulfilled;
+    });
+
+    it('should hard delete if appointment is not part of a series', async () => {
+      const appointment = Helpers.JSONify(
+        await factory(AppointmentTimeslot)({
+          room: room,
+          user: admin,
+          ignoreRules: true,
+        }).create()
+      );
+
+      const response = await chai
+        .request(app.app)
+        .delete(uri.replace(':id', appointment.id))
+        .set('Authorization', adminHeader);
+
+      response.should.have.status(204);
+      await (async () => repository.findOneOrFail(appointment.id))().should
+        .eventually.be.rejected;
+      await (async () =>
+        repository.findOneOrFail(appointment.id, { withDeleted: true }))()
+        .should.eventually.be.rejected;
     });
 
     it('should send a message to the user the appointment belongs to', async () => {
@@ -3986,8 +4031,8 @@ describe('AppointmentController', () => {
         .set('Authorization', visitorHeader);
 
       response.should.have.status(204);
-      (async () => repository.findOneOrFail({ where: { seriesId } }))().should
-        .eventually.be.rejected;
+      await (async () => repository.findOneOrFail({ where: { seriesId } }))()
+        .should.eventually.be.rejected;
     });
 
     it('should return 204 as admin deleting another users appointment series', async () => {
@@ -4006,8 +4051,8 @@ describe('AppointmentController', () => {
         .set('Authorization', adminHeader);
 
       response.should.have.status(204);
-      (async () => repository.findOneOrFail({ where: { seriesId } }))().should
-        .eventually.be.rejected;
+      await (async () => repository.findOneOrFail({ where: { seriesId } }))()
+        .should.eventually.be.rejected;
     });
 
     it('should return 204 as admin deleting own appointment series', async () => {
@@ -4026,8 +4071,8 @@ describe('AppointmentController', () => {
         .set('Authorization', adminHeader);
 
       response.should.have.status(204);
-      (async () => repository.findOneOrFail({ where: { seriesId } }))().should
-        .eventually.be.rejected;
+      await (async () => repository.findOneOrFail({ where: { seriesId } }))()
+        .should.eventually.be.rejected;
     });
 
     it('should send a message to the user the appointment belongs to', async () => {
