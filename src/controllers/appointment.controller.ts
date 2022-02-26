@@ -642,15 +642,20 @@ export class AppointmentController {
       return;
     }
 
-    if (timeSlotRecurrence === TimeSlotRecurrence.single) {
-      res.status(400).json({ message: 'Series can only be recurring' });
+    if (
+      timeSlotRecurrence === undefined ||
+      timeSlotRecurrence === TimeSlotRecurrence.single
+    ) {
+      res
+        .status(400)
+        .json({ message: 'timeSlotRecurrence must be some reccuring value.' });
       return;
     }
 
-    if (+amount <= 1) {
+    if (amount === undefined || +amount <= 1) {
       res
         .status(400)
-        .json({ message: 'Series needs to have at least 2 appointments' });
+        .json({ message: 'Series needs to have at least 2 appointments.' });
       return;
     }
 
@@ -696,7 +701,7 @@ export class AppointmentController {
         break;
 
       default:
-        res.status(400).json({ message: 'Illegal recurrence' });
+        res.status(400).json({ message: 'Illegal recurrence.' });
         return;
     }
 
@@ -763,24 +768,26 @@ export class AppointmentController {
       '/appointments'
     );
 
-    await MessagingController.sendMessageToAllAdmins(
-      'Accept Appointment Series Request',
-      'You have an open appointment series request at ' +
-        moment(req.body.start).format('DD.MM.YY') +
-        ' from ' +
-        moment(req.body.start).format('HH:mm') +
-        ' to ' +
-        moment(req.body.start).format('HH:mm') +
-        ' in room ' +
-        room.name +
-        ' from user ' +
-        user.firstName +
-        ' ' +
-        user.lastName +
-        '.',
-      'Appointment Requests',
-      '/appointments/all'
-    );
+    if (!room.autoAcceptBookings) {
+      await MessagingController.sendMessageToAllAdmins(
+        'Accept Appointment Series Request',
+        'You have an open appointment series request at ' +
+          moment(req.body.start).format('DD.MM.YY') +
+          ' from ' +
+          moment(req.body.start).format('HH:mm') +
+          ' to ' +
+          moment(req.body.start).format('HH:mm') +
+          ' in room ' +
+          room.name +
+          ' from user ' +
+          user.firstName +
+          ' ' +
+          user.lastName +
+          '.',
+        'Appointment Requests',
+        '/appointments/all'
+      );
+    }
 
     res.status(201).json(savedAppointments);
   }
