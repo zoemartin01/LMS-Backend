@@ -22,6 +22,7 @@ import { AvailableTimeslot } from '../models/available.timeslot.entity';
 import { UnavailableTimeslot } from '../models/unavaliable.timeslot.entity';
 import { ConfirmationStatus } from '../types/enums/confirmation-status';
 import { UserRole } from '../types/enums/user-role';
+import { TimeSlotType } from '../types/enums/timeslot-type';
 
 /**
  * Controller for appointment management
@@ -88,7 +89,7 @@ export class AppointmentController {
         appointment.roomId = undefined;
         appointment.confirmationStatus =
           +appointment.confirmationStatus as ConfirmationStatus;
-        appointment.type = +appointment.type as TimeSlotRecurrence;
+        appointment.type = +appointment.type as TimeSlotType;
         appointment.timeSlotRecurrence =
           +appointment.timeSlotRecurrence as TimeSlotRecurrence;
         return appointment;

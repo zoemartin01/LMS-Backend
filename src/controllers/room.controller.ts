@@ -580,7 +580,7 @@ export class RoomController {
     const room = await getRepository(Room).findOne(req.params.roomId);
 
     if (room === undefined) {
-      res.status(404).json({ message: 'Room not found' });
+      res.status(404).json({ message: 'Room not found.' });
       return;
     }
 
@@ -612,6 +612,12 @@ export class RoomController {
         timeslot.room = await getRepository(Room).findOne({
           id: timeslot.roomId,
         });
+        timeslot.roomId = undefined;
+        timeslot.userId = undefined;
+        timeslot.confirmationStatus = undefined;
+        timeslot.timeSlotRecurrence =
+          +timeslot.timeSlotRecurrence as TimeSlotRecurrence;
+        timeslot.type = +timeslot.type as TimeSlotType;
         return timeslot;
       })
     );
