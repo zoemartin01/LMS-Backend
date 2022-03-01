@@ -1315,13 +1315,13 @@ describe('RoomController', () => {
 
       const toMerge = await getRepository(AvailableTimeslot).save({
         room,
-        start: moment(time).subtract(4, 'hours').toISOString(),
-        end: moment(time).toISOString(),
+        start: moment(time).subtract(4, 'hours').toDate(),
+        end: moment(time).toDate(),
       });
 
       const timeslot = {
-        start: time.toDate(),
-        end: time.add(4, 'hour').toDate(),
+        start: moment(time).toDate(),
+        end: moment(time).add(4, 'hour').toDate(),
         amount: 2,
         timeSlotRecurrence: TimeSlotRecurrence.weekly,
       };
@@ -1330,8 +1330,8 @@ describe('RoomController', () => {
         {
           start: moment(time).subtract(4, 'hours').toDate(),
           end: timeslot.end,
-          amount: timeslot.amount,
-          timeSlotRecurrence: timeslot.timeSlotRecurrence,
+          amount: 1,
+          timeSlotRecurrence: TimeSlotRecurrence.single,
           room: room,
         },
         {
