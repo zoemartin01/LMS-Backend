@@ -163,7 +163,7 @@ describe('RoomController', () => {
     it('should fail with invalid id', (done) => {
       chai
         .request(app.app)
-        .get(uri.replace(':id', 'invalid'))
+        .get(uri.replace(':id', uuidv4()))
         .set('Authorization', adminHeader)
         .end((err, res) => {
           expect(res.status).to.equal(404);
@@ -278,6 +278,32 @@ describe('RoomController', () => {
         .send({ id: uuidv4() });
 
       expect(res.status).to.equal(400);
+    });
+
+    it('should return 400 with invalid parameters', async () => {
+      const room = Helpers.JSONify(await factory(Room)().create());
+      const res = await chai
+        .request(app.app)
+        .patch(uri.replace(':id', room.id))
+        .set('Authorization', adminHeader)
+        .send({ autoAcceptBookings: 3 });
+
+      expect(res.status).to.equal(400);
+    });
+
+    it('should fail to lower the maxConcurrentBookings', async () => {
+      const room = Helpers.JSONify(await factory(Room)().create());
+      const res = await chai
+        .request(app.app)
+        .patch(uri.replace(':id', room.id))
+        .set('Authorization', adminHeader)
+        .send({ maxConcurrentBookings: room.maxConcurrentBookings - 1 });
+
+      res.should.have.status(409);
+      res.body.should.have.property(
+        'message',
+        'Maximum concurrent bookings can not be set lower.'
+      );
     });
 
     it('should update a specific room', async () => {

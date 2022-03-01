@@ -514,7 +514,6 @@ export class RoomController {
       return;
     }
 
-    //todo please fix max concurrent bookings edit check
     if (
       req.body.maxConcurrentBookings !== undefined &&
       +req.body.maxConcurrentBookings < room.maxConcurrentBookings
