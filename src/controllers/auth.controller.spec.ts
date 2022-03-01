@@ -377,4 +377,80 @@ describe('AuthController', () => {
       res.body.should.have.property('accessToken');
     });
   });
+
+  describe('#checkAuthenticationMiddleware()', () => {
+    let req: Request;
+    let res: any;
+    let status: Sinon.SinonSpy;
+    let json: Sinon.SinonSpy;
+
+    beforeEach(() => {
+      req = new MockExpressRequest();
+      res = {
+        status: (status: number) => res,
+        json: (obj: object) => {},
+      };
+
+      status = sandbox.spy(res, 'status');
+      json = sandbox.spy(res, 'json');
+    });
+
+    it('should return 401 if authHeader is missing', async () => {
+      await AuthController.checkAuthenticationMiddleware(req, res, () => {});
+      status.should.have.been.calledWith(401);
+      json.should.have.been.calledWith({
+        message: 'Missing authorization header.',
+      });
+    });
+
+    it('should return 401 if token is invalid', async () => {
+      req.headers['authorization'] = 'Bearer invalid';
+
+      await AuthController.checkAuthenticationMiddleware(req, res, () => {});
+      status.should.have.been.calledWith(401);
+      json.should.have.been.calledWith({
+        message: 'Invalid token.',
+      });
+    });
+
+    it('should return 401 if token does not exist', async () => {
+      const token = jsonwebtoken.sign(
+        {
+          exp: moment().add(20, 'minutes').unix(),
+          userId: v4(),
+        },
+        environment.accessTokenSecret
+      );
+
+      req.headers['authorization'] = `Bearer ${token}`;
+
+      await AuthController.checkAuthenticationMiddleware(req, res, () => {});
+
+      await new Promise((resolve) => {
+        setTimeout(resolve, 1000);
+      });
+
+      status.should.have.been.calledWith(401);
+      json.should.have.been.calledWith({
+        message: 'Invalid token.',
+      });
+    }).timeout(5000);
+
+    it('should call next', async () => {
+      req.headers['authorization'] = adminHeader;
+
+      const next = {
+        fn: () => {},
+      };
+      const spy = sandbox.spy(next, 'fn');
+
+      await AuthController.checkAuthenticationMiddleware(req, res, next.fn);
+
+      await new Promise((resolve) => {
+        setTimeout(resolve, 1000);
+      });
+
+      spy.should.have.been.called;
+    }).timeout(5000);
+  });
 });
