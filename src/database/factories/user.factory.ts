@@ -11,6 +11,7 @@ define(
     faker: typeof Faker,
     context?: {
       role?: UserRole;
+      emailVerification?: boolean;
     }
   ) => {
     const email = faker.internet.email();
@@ -25,7 +26,8 @@ define(
         UserRole.visitor,
         UserRole.admin,
       ]);
-    const emailVerification = faker.random.boolean();
+    const emailVerification =
+      context?.emailVerification ?? faker.random.boolean();
 
     const user = getRepository(User).create({
       email,
