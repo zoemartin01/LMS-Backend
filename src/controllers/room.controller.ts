@@ -644,7 +644,7 @@ export class RoomController {
     const room = await getRepository(Room).findOne(req.params.roomId);
 
     if (room === undefined) {
-      res.status(404).json({ message: 'Room not found' });
+      res.status(404).json({ message: 'Room not found.' });
       return;
     }
 
@@ -676,6 +676,12 @@ export class RoomController {
         timeslot.room = await getRepository(Room).findOne({
           id: timeslot.roomId,
         });
+        timeslot.roomId = undefined;
+        timeslot.userId = undefined;
+        timeslot.confirmationStatus = undefined;
+        timeslot.timeSlotRecurrence =
+          +timeslot.timeSlotRecurrence as TimeSlotRecurrence;
+        timeslot.type = +timeslot.type as TimeSlotType;
         return timeslot;
       })
     );
@@ -1415,12 +1421,12 @@ export class RoomController {
     const timeslot = await repository.findOne(req.params.timeslotId);
 
     if ((await getRepository(Room).findOne(req.body.roomId)) === undefined) {
-      res.status(400).json({ message: 'Room not found' });
+      res.status(404).json({ message: 'Room not found.' });
       return;
     }
 
     if (timeslot === undefined) {
-      res.status(404).json({ message: 'Timeslot not found' });
+      res.status(404).json({ message: 'Timeslot not found.' });
       return;
     }
 
@@ -1432,7 +1438,7 @@ export class RoomController {
       (timeslot.type === TimeSlotType.unavailable &&
         (<UnavailableTimeslot>timeslot).room.id !== req.params.roomId)
     ) {
-      res.status(404).json({ message: 'Timeslot not found for this room' });
+      res.status(404).json({ message: 'Timeslot not found for this room.' });
       return;
     }
 

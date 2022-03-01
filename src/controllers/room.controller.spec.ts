@@ -14,6 +14,7 @@ import { TimeSlotType } from '../types/enums/timeslot-type';
 import { TimeSlotRecurrence } from '../types/enums/timeslot-recurrence';
 import moment from 'moment';
 import chaiAsPromised from 'chai-as-promised';
+import { UnavailableTimeslot } from '../models/unavaliable.timeslot.entity';
 
 chai.use(chaiHttp);
 chai.use(chaiAsPromised);
@@ -523,7 +524,152 @@ describe('RoomController', () => {
     });
   });
 
-  describe('GET /rooms/:roomId/timeslots/unavailable', () => {});
+  describe('GET /rooms/:roomId/timeslots/unavailable', () => {
+    const uri = `${environment.apiRoutes.base}${environment.apiRoutes.rooms.getAllUnavailableTimeslotsForRoom}`;
+
+    let room: Room;
+
+    beforeEach(async () => {
+      room = await factory(Room)().create();
+    });
+
+    it(
+      'should fail without authentication',
+      Helpers.checkAuthentication(
+        'GET',
+        'fails',
+        app,
+        uri.replace(':roomId', uuidv4())
+      )
+    );
+
+    it('should fail as non-admin', async () => {
+      const res = await chai
+        .request(app.app)
+        .get(uri.replace(':roomId', uuidv4()))
+        .set('Authorization', visitorHeader);
+
+      res.should.have.status(403);
+    });
+
+    it('should return 404 with invalid room id', async () => {
+      const res = await chai
+        .request(app.app)
+        .get(uri.replace(':roomId', uuidv4()))
+        .set('Authorization', adminHeader);
+
+      res.should.have.status(404);
+      res.body.should.have.property('message', 'Room not found.');
+    });
+
+    it('should get all unavailable timeslots without limit/offset', async () => {
+      const count = 10;
+      await factory(UnavailableTimeslot)({ room }).createMany(count);
+      const timeslots = Helpers.JSONify(
+        (await getRepository(UnavailableTimeslot).find()).map((timeslot) => {
+          return { ...timeslot, maxStart: null };
+        })
+      );
+
+      const res = await chai
+        .request(app.app)
+        .get(uri.replace(':roomId', room.id))
+        .set('Authorization', adminHeader);
+
+      expect(res.status).to.equal(200);
+      expect(res.body.total).to.equal(count);
+      expect(res.body.data)
+        .to.be.an('array')
+        .that.has.a.lengthOf(count)
+        .and.that.has.same.deep.members(timeslots);
+    });
+
+    it('should sort unavailable timeslots by name in ascending order', async () => {
+      const count = 10;
+      await factory(UnavailableTimeslot)({ room }).createMany(count);
+      const timeslots = Helpers.JSONify(
+        (
+          await getRepository(UnavailableTimeslot).find({
+            order: { start: 'ASC' },
+          })
+        ).map((timeslot) => {
+          return { ...timeslot, maxStart: null };
+        })
+      );
+
+      const res = await chai
+        .request(app.app)
+        .get(uri.replace(':roomId', room.id))
+        .set('Authorization', adminHeader);
+
+      expect(res.status).to.equal(200);
+      expect(res.body.total).to.equal(count);
+      expect(res.body.data)
+        .to.be.an('array')
+        .that.has.a.lengthOf(count)
+        .and.that.has.same.deep.members(timeslots);
+    });
+
+    it('should get correct unavailable timeslots with limit', async () => {
+      const count = 10;
+      const limit = 3;
+
+      await factory(UnavailableTimeslot)({ room }).createMany(count);
+      const timeslots = Helpers.JSONify(
+        (
+          await getRepository(UnavailableTimeslot).find({
+            order: { start: 'ASC' },
+            take: limit,
+          })
+        ).map((timeslot) => {
+          return { ...timeslot, maxStart: null };
+        })
+      );
+
+      const res = await chai
+        .request(app.app)
+        .get(uri.replace(':roomId', room.id))
+        .query({ limit })
+        .set('Authorization', adminHeader);
+
+      expect(res.status).to.equal(200);
+      expect(res.body.total).to.equal(count);
+      expect(res.body.data)
+        .to.be.an('array')
+        .that.has.a.lengthOf(limit)
+        .and.that.has.same.deep.members(timeslots);
+    });
+
+    it('should get correct unavailable timeslots with offset', async () => {
+      const count = 10;
+      const offset = 3;
+
+      await factory(UnavailableTimeslot)({ room }).createMany(count);
+      const timeslots = Helpers.JSONify(
+        (
+          await getRepository(UnavailableTimeslot).find({
+            order: { start: 'ASC' },
+            skip: offset,
+          })
+        ).map((timeslot) => {
+          return { ...timeslot, maxStart: null };
+        })
+      );
+
+      const res = await chai
+        .request(app.app)
+        .get(uri.replace(':roomId', room.id))
+        .query({ offset })
+        .set('Authorization', adminHeader);
+
+      expect(res.status).to.equal(200);
+      expect(res.body.total).to.equal(count);
+      expect(res.body.data)
+        .to.be.an('array')
+        .that.has.a.lengthOf(count - offset)
+        .and.that.has.same.deep.members(timeslots);
+    });
+  });
 
   describe('POST /rooms/:roomId/timeslots', () => {
     const uri = `${environment.apiRoutes.base}${environment.apiRoutes.rooms.createTimeslot}`;
@@ -757,16 +903,49 @@ describe('RoomController', () => {
       )
     );
 
+    it('should fail with invalid room id', async () => {
+      const res = await chai
+        .request(app.app)
+        .delete(
+          uri.replace(':roomId', uuidv4()).replace(':timeslotId', uuidv4())
+        )
+        .set('Authorization', adminHeader);
+      res.should.have.status(404);
+      res.body.should.have.property('message', 'Room not found.');
+    });
+
     it('should fail with invalid id', async () => {
       const room = await factory(Room)().create();
 
       const res = await chai
         .request(app.app)
         .delete(
-          uri.replace(':roomId', room.id).replace(':timeslotId', 'invalid')
+          uri.replace(':roomId', room.id).replace(':timeslotId', uuidv4())
         )
         .set('Authorization', adminHeader);
-      expect(res.status).to.equal(404);
+      res.should.have.status(404);
+      res.body.should.have.property('message', 'Timeslot not found.');
+    });
+
+    it('should fail if timeslot does not belong to the room', async () => {
+      const room = await factory(Room)().create();
+      const timeslot = await getRepository(AvailableTimeslot).save({
+        start: moment().toISOString(),
+        end: moment().add(1, 'hour').toISOString(),
+        room: await factory(Room)().create(),
+      });
+
+      const res = await chai
+        .request(app.app)
+        .delete(
+          uri.replace(':roomId', room.id).replace(':timeslotId', timeslot.id)
+        )
+        .set('Authorization', adminHeader);
+      res.should.have.status(404);
+      res.body.should.have.property(
+        'message',
+        'Timeslot not found for this room.'
+      );
     });
 
     it('should fail as non-admin', async () => {
