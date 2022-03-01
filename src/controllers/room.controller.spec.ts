@@ -14,7 +14,6 @@ import { TimeSlotType } from '../types/enums/timeslot-type';
 import { TimeSlotRecurrence } from '../types/enums/timeslot-recurrence';
 import moment from 'moment';
 import chaiAsPromised from 'chai-as-promised';
-import { off } from 'process';
 
 chai.use(chaiHttp);
 chai.use(chaiAsPromised);
