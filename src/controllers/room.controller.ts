@@ -1460,7 +1460,7 @@ export class RoomController {
     const repository = getRepository(TimeSlot);
 
     if ((await getRepository(Room).findOne(req.body.roomId)) === undefined) {
-      res.status(400).json({ message: 'Room not found' });
+      res.status(404).json({ message: 'Room not found.' });
       return;
     }
 
@@ -1471,7 +1471,7 @@ export class RoomController {
     });
 
     if (timeslot === undefined) {
-      res.status(404).json({ message: 'Timeslot not found' });
+      res.status(404).json({ message: 'Timeslot series not found.' });
       return;
     }
 
@@ -1483,7 +1483,9 @@ export class RoomController {
       (timeslot.type === TimeSlotType.unavailable &&
         (<UnavailableTimeslot>timeslot).room.id !== req.params.roomId)
     ) {
-      res.status(404).json({ message: 'Timeslot series found for this room' });
+      res
+        .status(404)
+        .json({ message: 'Timeslot series not found for this room.' });
       return;
     }
 

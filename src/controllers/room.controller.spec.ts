@@ -983,5 +983,102 @@ describe('RoomController', () => {
     });
   });
 
-  describe('DELETE /rooms/:roomId/timeslots/series/:seriesId', () => {});
+  describe('DELETE /rooms/:roomId/timeslots/series/:seriesId', () => {
+    const uri = `${environment.apiRoutes.base}${environment.apiRoutes.rooms.deleteTimeslotSeries}`;
+
+    it(
+      'should fail without authentication',
+      Helpers.checkAuthentication(
+        'DELETE',
+        'fails',
+        app,
+        uri.replace(':roomId', uuidv4()).replace(':seriesId', uuidv4())
+      )
+    );
+
+    it('should fail with invalid room id', async () => {
+      const res = await chai
+        .request(app.app)
+        .delete(uri.replace(':roomId', uuidv4()).replace(':seriesId', uuidv4()))
+        .set('Authorization', adminHeader);
+      res.should.have.status(404);
+      res.body.should.have.property('message', 'Room not found.');
+    });
+
+    it('should fail with invalid id', async () => {
+      const room = await factory(Room)().create();
+
+      const res = await chai
+        .request(app.app)
+        .delete(uri.replace(':roomId', room.id).replace(':seriesId', uuidv4()))
+        .set('Authorization', adminHeader);
+      res.should.have.status(404);
+      res.body.should.have.property('message', 'Timeslot series not found.');
+    });
+
+    it('should fail if timeslot series does not belong to the room', async () => {
+      const room = await factory(Room)().create();
+      const timeslot = await getRepository(AvailableTimeslot).save({
+        start: moment().toISOString(),
+        end: moment().add(1, 'hour').toISOString(),
+        room: await factory(Room)().create(),
+        seriesId: uuidv4(),
+      });
+
+      const res = await chai
+        .request(app.app)
+        .delete(
+          uri
+            .replace(':roomId', room.id)
+            .replace(':seriesId', timeslot.seriesId)
+        )
+        .set('Authorization', adminHeader);
+      res.should.have.status(404);
+      res.body.should.have.property(
+        'message',
+        'Timeslot series not found for this room.'
+      );
+    });
+
+    it('should fail as non-admin', async () => {
+      const room = await factory(Room)().create();
+
+      const res = await chai
+        .request(app.app)
+        .delete(uri.replace(':roomId', room.id).replace(':seriesId', uuidv4()))
+        .set('Authorization', visitorHeader);
+      expect(res.status).to.equal(403);
+    });
+
+    it('should delete a specific timeslot series', async () => {
+      const room = await factory(Room)().create();
+      const timeslot = await factory(AvailableTimeslot)({
+        room,
+        seriesId: uuidv4(),
+      }).createMany(10);
+      const timeSlotRepository = getRepository(TimeSlot);
+
+      timeSlotRepository
+        .findOne({ seriesId: timeslot[0].seriesId })
+        .then((timeslot) => {
+          expect(timeslot).to.be.not.undefined;
+        });
+
+      const res = await chai
+        .request(app.app)
+        .delete(
+          uri
+            .replace(':roomId', room.id)
+            .replace(':seriesId', timeslot[0].seriesId)
+        )
+        .set('Authorization', adminHeader);
+
+      expect(res.status).to.equal(204);
+      timeSlotRepository
+        .findOne({ seriesId: timeslot[0].seriesId })
+        .then((timeslot) => {
+          expect(timeslot).to.be.undefined;
+        });
+    });
+  });
 });
