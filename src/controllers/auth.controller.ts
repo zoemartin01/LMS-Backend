@@ -436,7 +436,7 @@ export class AuthController {
     const token = req.query.token;
 
     if (token === undefined) {
-      ws.send('Invalid token');
+      ws.send('Invalid token.');
       ws.close();
     }
 
@@ -445,7 +445,7 @@ export class AuthController {
       environment.accessTokenSecret,
       async (err) => {
         if (err) {
-          ws.send('Invalid token');
+          ws.send('Invalid token.');
           ws.close();
           return;
         }
@@ -462,14 +462,13 @@ export class AuthController {
         });
 
         if (tokenObject === undefined) {
-          ws.send('Invalid token');
+          ws.send('Invalid token.');
           ws.close();
           return;
         }
 
         req.body.user = tokenObject.user;
-
-        ws.send('Authorization successful');
+        ws.send('Authorization successful.');
         next();
       }
     );

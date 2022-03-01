@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/ban-types */
 import { Connection, getRepository, Repository } from 'typeorm';
 import { factory, useRefreshDatabase, useSeeding } from 'typeorm-seeding';
 import App from '../app';
@@ -19,6 +20,7 @@ import { Request } from 'express';
 import moment from 'moment';
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const MockExpressRequest = require('mock-express-request');
+import { WebSocket } from 'ws';
 
 chai.use(chaiHttp);
 chai.use(sinonChai);
@@ -451,6 +453,140 @@ describe('AuthController', () => {
       });
 
       spy.should.have.been.called;
+    }).timeout(5000);
+  });
+
+  describe('#checkWebSocketAuthenticationMiddleware()', () => {
+    const WebSocketMock = (): WebSocket & { register: Function } => {
+      const socket: { [key: string]: any } = {};
+      for (const prop in WebSocket.prototype) {
+        socket[prop] = function () {};
+      }
+
+      socket.clients = [];
+
+      socket.register = (ws: WebSocket) => {
+        socket.clients.push(ws);
+      };
+
+      socket.send = (msg: any) => {
+        socket.clients.forEach((client: WebSocket) => {
+          client.onmessage({
+            data: msg,
+            type: 'binary',
+            target: socket as WebSocket,
+          });
+        });
+      };
+
+      socket.close = () => {
+        socket.onclose();
+      };
+
+      socket.on = (event: 'close' | 'error' | 'message', fn: Function) => {
+        if (event === 'close') socket.onclose = fn;
+        else if (event === 'error') socket.onerror = fn;
+        else if (event === 'message') socket.onmessage = fn;
+      };
+
+      socket.emit = (event: 'close' | 'error') => {
+        if (event === 'close') socket.onclose();
+        else if (event === 'error') socket.onerror();
+      };
+
+      return socket as WebSocket & { register: Function };
+    };
+
+    let req: Request;
+
+    beforeEach(() => {
+      req = new MockExpressRequest();
+    });
+
+    it('should return close the socket if token is missing', async () => {
+      const socket = WebSocketMock();
+      const send = sandbox.spy(socket, 'send');
+      const close = sandbox.spy(socket, 'close');
+
+      req.query.token = undefined;
+      await AuthController.checkWebSocketAuthenticationMiddleware(
+        socket,
+        req,
+        () => {}
+      );
+      send.should.have.been.calledWith('Invalid token.');
+      close.should.have.been.called;
+    });
+
+    it('should return close the socket if token is an invalid jwt token', async () => {
+      const socket = WebSocketMock();
+      const send = sandbox.spy(socket, 'send');
+      const close = sandbox.spy(socket, 'close');
+
+      req.query.token = 'invalid';
+      await AuthController.checkWebSocketAuthenticationMiddleware(
+        socket,
+        req,
+        () => {}
+      );
+      send.should.have.been.calledWith('Invalid token.');
+      close.should.have.been.called;
+    });
+
+    it('should return close the socket if token is invalid', async () => {
+      const socket = WebSocketMock();
+      const send = sandbox.spy(socket, 'send');
+      const close = sandbox.spy(socket, 'close');
+
+      const token = jsonwebtoken.sign(
+        {
+          exp: moment().add(20, 'minutes').unix(),
+          userId: v4(),
+        },
+        environment.accessTokenSecret
+      );
+
+      req.query.token = token;
+      await AuthController.checkWebSocketAuthenticationMiddleware(
+        socket,
+        req,
+        () => {}
+      );
+
+      await new Promise((resolve) => {
+        setTimeout(resolve, 1000);
+      });
+
+      send.should.have.been.calledWith('Invalid token.');
+      close.should.have.been.called;
+    }).timeout(5000);
+
+    it('should call next if token is valid', async () => {
+      const socket = WebSocketMock();
+      const send = sandbox.spy(socket, 'send');
+
+      req.body = {};
+
+      const next = {
+        fn: () => {},
+      };
+      const spy = sandbox.spy(next, 'fn');
+
+      const token = adminHeader.split(' ')[1];
+
+      req.query.token = token;
+      await AuthController.checkWebSocketAuthenticationMiddleware(
+        socket,
+        req,
+        next.fn
+      );
+
+      await new Promise((resolve) => {
+        setTimeout(resolve, 1000);
+      });
+
+      spy.should.have.been.called;
+      send.should.have.been.calledWith('Authorization successful.');
     }).timeout(5000);
   });
 });
