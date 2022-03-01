@@ -44,6 +44,10 @@ export class AuthController {
       : await AuthController.loginWithCredentials(email, password, res);
   }
 
+  public static readonly ad = new ActiveDirectory(
+    environment.activeDirectoryConfig
+  );
+
   /**
    * Logs in user with active directory
    *
@@ -57,48 +61,41 @@ export class AuthController {
     password: string,
     res: Response
   ): Promise<void> {
-    try {
-      const ad = new ActiveDirectory(environment.activeDirectoryConfig);
-
-      ad.authenticate(
-        `uid=${email.split('@')[0]},ou=People,dc=teco,dc=edu`,
-        password,
-        async (err: object, auth: boolean) => {
-          if (err) {
-            res.status(500).json(err);
-            return;
-          }
-
-          if (!auth) {
-            await AuthController.loginCallback(undefined, res);
-            return;
-          }
-
-          const userRepository = getRepository(User);
-          userRepository
-            .findOne({
-              where: { email },
-            })
-            .then(async (user: User | undefined) => {
-              if (user === undefined) {
-                await AuthController.createActiveDirectoryUser(email, res);
-                return;
-              } else if (!user.isActiveDirectory) {
-                res.status(400).json({
-                  message:
-                    'Your account ist not linked to active directory, use regular login.',
-                });
-                return;
-              }
-
-              await AuthController.loginCallback(user, res);
-            });
+    AuthController.ad.authenticate(
+      `uid=${email.split('@')[0]},ou=People,dc=teco,dc=edu`,
+      password,
+      async (err: object, auth: boolean) => {
+        if (err) {
+          res.status(500).json(err);
+          return;
         }
-      );
-    } catch (e) {
-      console.log(e);
-      res.sendStatus(500);
-    }
+
+        if (!auth) {
+          await AuthController.loginCallback(undefined, res);
+          return;
+        }
+
+        const userRepository = getRepository(User);
+        userRepository
+          .findOne({
+            where: { email },
+          })
+          .then(async (user: User | undefined) => {
+            if (user === undefined) {
+              await AuthController.createActiveDirectoryUser(email, res);
+              return;
+            } else if (!user.isActiveDirectory) {
+              res.status(400).json({
+                message:
+                  'Your account ist not linked to active directory, use regular login.',
+              });
+              return;
+            }
+
+            await AuthController.loginCallback(user, res);
+          });
+      }
+    );
   }
 
   /**
@@ -108,10 +105,9 @@ export class AuthController {
    * @private
    */
   private static async createActiveDirectoryUser(email: string, res: Response) {
-    const ad = new ActiveDirectory(environment.activeDirectoryConfig);
     const userRepository = getRepository(User);
 
-    ad.find(
+    AuthController.ad.find(
       { filter: `(&(objectclass=tecoUser)(mail=${email}))` },
       async (err: boolean, obj: any) => {
         const userObj = obj.other[0];
