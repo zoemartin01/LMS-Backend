@@ -589,4 +589,27 @@ describe('AuthController', () => {
       send.should.have.been.calledWith('Authorization successful.');
     }).timeout(5000);
   });
+
+  describe('#getCurrentUser()', () => {
+    let req: Request;
+
+    beforeEach(() => {
+      req = new MockExpressRequest();
+    });
+
+    it('should throw an error if auth header is missing', async () => {
+      AuthController.getCurrentUser(req).should.eventually.be.rejected;
+    });
+
+    it('should throw an error if auth header is invalid', async () => {
+      req.headers['authorization'] = 'Bearer invalid';
+      AuthController.getCurrentUser(req).should.eventually.be.rejected;
+    });
+
+    it('should return a user for a header', async () => {
+      req.headers['authorization'] = adminHeader;
+      const user = await AuthController.getCurrentUser(req);
+      user.id.should.equal(admin.id);
+    });
+  });
 });
