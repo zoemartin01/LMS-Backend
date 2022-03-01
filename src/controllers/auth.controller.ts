@@ -275,15 +275,10 @@ export class AuthController {
     const tokenRepository = getRepository(Token);
 
     tokenRepository
-      .findOne({
+      .findOneOrFail({
         where: { token, type: TokenType.authenticationToken },
       })
-      .then(async (tokenObject: Token | undefined) => {
-        //as request passed middleware tokenObject can't be undefined
-        if (tokenObject === undefined) {
-          return;
-        }
-
+      .then(async (tokenObject: Token) => {
         //delete linked authentication tokens
         await createQueryBuilder()
           .delete()

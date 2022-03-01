@@ -11,6 +11,8 @@ import sinonChai from 'sinon-chai';
 import { UserRole } from '../types/enums/user-role';
 import { AuthController } from './auth.controller';
 import chaiAsPromised from 'chai-as-promised';
+import { TokenType } from '../types/enums/token-type';
+import { Token } from '../models/token.entity';
 
 chai.use(chaiHttp);
 chai.use(sinonChai);
@@ -274,8 +276,38 @@ describe('AuthController', () => {
     });
   });
 
-  describe('?? /logout', () => {
+  describe('DELETE /token', () => {
     const uri = `${environment.apiRoutes.base}${environment.apiRoutes.auth.logout}`;
+
+    it(
+      'should return 401 if not authenticated',
+      Helpers.checkAuthentication('DELETE', 'fails', app, uri)
+    );
+
+    it('should logout', async () => {
+      const res = await chai
+        .request(app.app)
+        .delete(uri)
+        .set('Authorization', adminHeader);
+      res.status.should.equal(204);
+    });
+
+    it('should delete the tokens', async () => {
+      const token = adminHeader.split(' ')[1];
+      const tokenObject = await getRepository(Token).findOneOrFail({
+        where: { token, type: TokenType.authenticationToken },
+      });
+
+      const res = await chai
+        .request(app.app)
+        .delete(uri)
+        .set('Authorization', adminHeader);
+      res.status.should.equal(204);
+      await getRepository(Token).findOneOrFail(tokenObject.id).should.eventually
+        .be.rejected;
+      await getRepository(Token).findOneOrFail(tokenObject.refreshTokenId)
+        .should.eventually.be.rejected;
+    });
   });
 
   describe('?? /token/check', () => {
