@@ -43,6 +43,7 @@ const environment = {
     messages: {
       getCurrentUserMessages: '/user/messages',
       getCurrentUserUnreadMessagesAmounts: '/user/messages/unread-amounts',
+      registerMessageWebsocket: '/user/messages/websocket',
 
       deleteMessage: '/messages/:id',
       updateMessage: '/messages/:id',
