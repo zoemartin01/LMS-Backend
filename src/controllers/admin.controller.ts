@@ -332,7 +332,7 @@ export class AdminController {
     }
 
     try {
-      repository.update(
+      await repository.update(
         { id: retailerDomain.id },
         repository.create(<DeepPartial<RetailerDomain>>{
           ...retailerDomain,
