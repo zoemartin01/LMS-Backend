@@ -612,4 +612,22 @@ describe('AuthController', () => {
       user.id.should.equal(admin.id);
     });
   });
+
+  describe('#checkAdmin()', () => {
+    let req: Request;
+
+    beforeEach(() => {
+      req = new MockExpressRequest();
+    });
+
+    it('should return false if user is not admin', async () => {
+      req.headers['authorization'] = visitorHeader;
+      AuthController.checkAdmin(req).should.eventually.be.fulfilled.and.false;
+    });
+
+    it('should return true if user is admin ', async () => {
+      req.headers['authorization'] = adminHeader;
+      AuthController.checkAdmin(req).should.eventually.be.fulfilled.and.true;
+    });
+  });
 });

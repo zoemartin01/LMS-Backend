@@ -270,7 +270,8 @@ export class AuthController {
    * @param {Response} res backend response
    */
   public static async logout(req: Request, res: Response): Promise<void> {
-    const token = req.headers['authorization']?.split(' ')[1];
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    const token = req.headers['authorization']!.split(' ')[1];
 
     const tokenRepository = getRepository(Token);
 
