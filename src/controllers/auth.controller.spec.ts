@@ -13,6 +13,12 @@ import { AuthController } from './auth.controller';
 import chaiAsPromised from 'chai-as-promised';
 import { TokenType } from '../types/enums/token-type';
 import { Token } from '../models/token.entity';
+import jsonwebtoken from 'jsonwebtoken';
+import { v4 } from 'uuid';
+import { Request } from 'express';
+import moment from 'moment';
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const MockExpressRequest = require('mock-express-request');
 
 chai.use(chaiHttp);
 chai.use(sinonChai);
@@ -310,11 +316,65 @@ describe('AuthController', () => {
     });
   });
 
-  describe('?? /token/check', () => {
+  describe('POST /token/check', () => {
     const uri = `${environment.apiRoutes.base}${environment.apiRoutes.auth.tokenCheck}`;
+
+    it('should return 401 if token is invalid', async () => {
+      const res = await chai
+        .request(app.app)
+        .post(uri)
+        .set('Authorization', 'Bearer invalid');
+      res.status.should.equal(401);
+    });
+
+    it('should return 204 if token is valid', async () => {
+      const res = await chai
+        .request(app.app)
+        .post(uri)
+        .set('Authorization', adminHeader);
+      res.status.should.equal(204);
+    });
   });
 
-  describe('?? /token/refresh', () => {
+  describe('POST /token/refresh', () => {
     const uri = `${environment.apiRoutes.base}${environment.apiRoutes.auth.tokenRefresh}`;
+
+    it('should return 400 if no refresh token is supplied', async () => {
+      const res = await chai.request(app.app).post(uri).send({});
+      res.status.should.equal(400);
+    });
+
+    it('should return 401 if refresh token is invalid', async () => {
+      const res = await chai
+        .request(app.app)
+        .post(uri)
+        .send({ refreshToken: 'invalid' });
+      res.status.should.equal(401);
+    });
+
+    it('should return 401 if token is no valid refresh token', async () => {
+      const refreshToken = jsonwebtoken.sign(
+        {
+          userId: v4(),
+        },
+        environment.refreshTokenSecret
+      );
+
+      const res = await chai.request(app.app).post(uri).send({ refreshToken });
+      res.status.should.equal(401);
+    });
+
+    it('should return a new accessToken', async () => {
+      const tokenObject = await getRepository(Token).findOneOrFail({
+        where: { type: TokenType.refreshToken },
+      });
+
+      const res = await chai
+        .request(app.app)
+        .post(uri)
+        .send({ refreshToken: tokenObject.token });
+      res.status.should.equal(200);
+      res.body.should.have.property('accessToken');
+    });
   });
 });
