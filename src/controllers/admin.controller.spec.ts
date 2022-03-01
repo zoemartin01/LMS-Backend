@@ -1,4 +1,4 @@
-import { Connection, getRepository } from 'typeorm';
+import { Connection, getRepository, Not, Repository } from 'typeorm';
 import {
   factory,
   runSeeder,
@@ -16,8 +16,14 @@ import { GlobalSetting } from '../models/global_settings.entity';
 import { Retailer } from '../models/retailer.entity';
 import { RetailerDomain } from '../models/retailer.domain.entity';
 import CreateGlobalSettings from '../database/seeds/create-global_settings.seed';
+import { UserRole } from '../types/enums/user-role';
+import bcrypt from 'bcrypt';
+import { MessagingController } from './messaging.controller';
+import * as Sinon from 'sinon';
+import sinonChai from 'sinon-chai';
 
 chai.use(chaiHttp);
+chai.use(sinonChai);
 chai.should();
 
 describe('AdminController', () => {
@@ -27,6 +33,9 @@ describe('AdminController', () => {
   let admin: User;
   let visitorHeader: string;
   let visitor: User;
+  let retailerRepository: Repository<Retailer>;
+  let userRepository: Repository<User>;
+  let sandbox: Sinon.SinonSandbox;
 
   before(async () => {
     process.env.NODE_ENV = 'testing';
@@ -45,6 +54,11 @@ describe('AdminController', () => {
 
     visitorHeader = await Helpers.getAuthHeader(false);
     visitor = users.visitor;
+
+    retailerRepository = getRepository(Retailer);
+    userRepository = getRepository(User);
+
+    sandbox = Sinon.createSandbox();
   });
 
   afterEach(async () => {
@@ -142,14 +156,21 @@ describe('AdminController', () => {
         });
     });
     it('should get 3 more retailers', async () => {
-      const retailers = await factory(Retailer)().createMany(3);
+      await factory(Retailer)().createMany(3);
       const res = await chai
         .request(app.app)
         .get(uri)
         .set('Authorization', adminHeader);
+      const retailers = Helpers.JSONify(
+        await retailerRepository.find({
+          relations: ['domains'],
+        })
+      );
       expect(res.status).to.equal(200);
-      expect(res.body.data).to.be.an('array');
-      expect(res.body.data.length).to.be.equal(3);
+      expect(res.body.data)
+        .to.be.an('array')
+        .that.has.a.lengthOf(3)
+        .and.that.has.same.deep.members(retailers);
     });
   });
 
@@ -189,16 +210,22 @@ describe('AdminController', () => {
     });
 
     it('should get whitelist retailer with specific id', async () => {
-      const retailer = await factory(Retailer)().create();
+      const retailer = Helpers.JSONify(
+        await retailerRepository.findOneOrFail(
+          (
+            await factory(Retailer)({ relations: ['domains'] }).create()
+          ).id,
+          { relations: ['domains'] }
+        )
+      );
+
       const res = await chai
         .request(app.app)
         .get(uri.replace(':id', retailer.id))
-        .set('Authorization', adminHeader)
-        .send({ size: 1 });
+        .set('Authorization', adminHeader);
+
       expect(res.status).to.equal(200);
-      expect(res.body.name).to.exist;
-      expect(res.body.domains).to.exist;
-      expect(res.body.id).to.equal(retailer.id);
+      expect(res.body).to.deep.equal(retailer);
     });
   });
 
@@ -222,18 +249,24 @@ describe('AdminController', () => {
     });
 
     it('should successfully create a new retailer', async () => {
-      const retailer = await factory(Retailer)().make();
-      const repository = getRepository(Retailer);
+      const retailer = Helpers.JSONify(
+        await factory(Retailer)({ relations: ['domains'] }).make()
+      );
 
       const res = await chai
         .request(app.app)
         .post(uri)
         .set('Authorization', adminHeader)
         .send(retailer);
+
       expect(res.status).to.equal(201);
-      repository.findOne({ name: retailer.name }).then((retailer) => {
-        expect(retailer).to.exist;
-      });
+      expect(res.body).to.deep.equal(
+        Helpers.JSONify(
+          await retailerRepository.findOneOrFail(res.body.id, {
+            relations: ['domains'],
+          })
+        )
+      );
     });
   });
 
@@ -262,7 +295,9 @@ describe('AdminController', () => {
     });
 
     it('should update a specific retailer', async () => {
-      const retailer = await factory(Retailer)().create();
+      const retailer = Helpers.JSONify(
+        await factory(Retailer)({ relations: ['domains'] }).create()
+      );
       const res = await chai
         .request(app.app)
         .patch(uri.replace(':id', retailer.id))
@@ -270,7 +305,14 @@ describe('AdminController', () => {
         .send({ name: 'newRetailerName' });
 
       expect(res.status).to.equal(200);
-      expect(res.body.name).to.equal('newRetailerName');
+      expect(res.body).to.deep.equal({
+        ...Helpers.JSONify(
+          await retailerRepository.findOneOrFail(res.body.id, {
+            relations: ['domains'],
+          })
+        ),
+        name: 'newRetailerName',
+      });
     });
   });
 
@@ -310,10 +352,9 @@ describe('AdminController', () => {
     });
 
     it('should delete a specific whitelist retailer', async () => {
-      const retailer = await factory(Retailer)().create();
-      const repository = getRepository(Retailer);
+      const retailer = Helpers.JSONify(await factory(Retailer)().create());
 
-      repository.findOne({ id: retailer.id }).then((retailer) => {
+      retailerRepository.findOne({ id: retailer.id }).then((retailer) => {
         expect(retailer).to.be.not.undefined;
       });
 
@@ -323,7 +364,7 @@ describe('AdminController', () => {
         .set('Authorization', adminHeader);
 
       expect(res.status).to.equal(204);
-      repository.findOne({ id: retailer.id }).then((retailer) => {
+      retailerRepository.findOne({ id: retailer.id }).then((retailer) => {
         expect(retailer).to.be.undefined;
       });
     });
@@ -367,22 +408,37 @@ describe('AdminController', () => {
     });
   });
 
-  /* describe('DELETE /application-settings/whitelist-retailers/:id/domains/:domainId', () => {
-    const uri = `${environment.apiRoutes.base}${environment.apiRoutes.rooms.deleteTimeslot}`;
+  describe('DELETE /application-settings/whitelist-retailers/:id/domains/:domainId', () => {
+    const uri = `${environment.apiRoutes.base}${environment.apiRoutes.admin_settings.deleteDomainOfWhitelistRetailer}`;
 
-    it(
-      'should fail without authentication',
-      Helpers.checkAuthentication('GET', 'fails', app, uri.replace(':id', uuidv4()))
-    );
+    it('should fail without authentication', async () => {
+      const retailer = await factory(Retailer)().create();
 
-    it('should fail with invalid id', async () => {
+      Helpers.checkAuthentication(
+        'GET',
+        'fails',
+        app,
+        uri.replace(':id', retailer.id).replace(':domainId', uuidv4())
+      );
+    });
+
+    it('should fail with invalid domain id', async () => {
       const retailer = await factory(Retailer)().create();
 
       const res = await chai
         .request(app.app)
-        .delete(
-          uri.replace(':id', retailer.id).replace(':domainId', 'invalid')
-        )
+        .delete(uri.replace(':id', retailer.id).replace(':domainId', 'invalid'))
+        .set('Authorization', adminHeader);
+      expect(res.status).to.equal(404);
+    });
+
+    it('should fail with invalid retailer id', async () => {
+      const retailer = await factory(Retailer)().create();
+      const domain = await factory(RetailerDomain)({ retailer }).create();
+
+      const res = await chai
+        .request(app.app)
+        .delete(uri.replace(':id', 'invalid').replace(':domainId', domain.id))
         .set('Authorization', adminHeader);
       expect(res.status).to.equal(404);
     });
@@ -392,9 +448,7 @@ describe('AdminController', () => {
 
       const res = await chai
         .request(app.app)
-        .delete(
-          uri.replace(':id', retailer.id).replace(':domainId', uuidv4())
-        )
+        .delete(uri.replace(':id', retailer.id).replace(':domainId', uuidv4()))
         .set('Authorization', visitorHeader);
       expect(res.status).to.equal(403);
     });
@@ -402,30 +456,677 @@ describe('AdminController', () => {
     it('should delete a specific domain of retailer', async () => {
       const retailer = await factory(Retailer)().create();
       const domain = await factory(RetailerDomain)({ retailer }).create();
-      console.log(retailer);
-      console.log(domain);
-      console.log(retailer.domains);
-      console.log(retailer);
-
       const domainRepository = getRepository(RetailerDomain);
       const expectedAmount = await domainRepository.count();
-      console.log(expectedAmount);
 
       domainRepository.findOne({ id: domain.id }).then((domain) => {
         expect(domain).to.be.not.undefined;
       });
-    // relations i findone
       const res = await chai
         .request(app.app)
-        .delete(
-          uri.replace(':id', retailer.id).replace(':domainId', domain.id)
-        )
+        .delete(uri.replace(':id', retailer.id).replace(':domainId', domain.id))
         .set('Authorization', adminHeader);
 
       expect(res.status).to.equal(204);
       domainRepository.findOne({ id: domain.id }).then((domain) => {
         expect(domain).to.be.undefined;
       });
+      expect(await domainRepository.count()).to.equal(expectedAmount - 1);
     });
-  }); */
+  });
+
+  describe('PATCH /application-settings/whitelist-retailers/:id/domains/:domainId', () => {
+    const uri = `${environment.apiRoutes.base}${environment.apiRoutes.admin_settings.updateDomainOfWhitelistRetailer}`;
+
+    it('should fail without authentication', async () => {
+      const retailer = await factory(Retailer)().create();
+
+      Helpers.checkAuthentication(
+        'GET',
+        'fails',
+        app,
+        uri.replace(':id', retailer.id).replace(':domainId', uuidv4())
+      );
+    });
+
+    it('should fail with invalid id', async () => {
+      const retailer = await factory(Retailer)().create();
+
+      const res = await chai
+        .request(app.app)
+        .patch(uri.replace(':id', retailer.id).replace(':domainId', 'invalid'))
+        .set('Authorization', adminHeader);
+      expect(res.status).to.equal(404);
+    });
+
+    it('should fail with invalid id', async () => {
+      const retailer = await factory(Retailer)().create();
+      const domain = await factory(RetailerDomain)(retailer).create();
+
+      const res = await chai
+        .request(app.app)
+        .patch(uri.replace(':id', 'invalid').replace(':domainId', domain.id))
+        .set('Authorization', adminHeader);
+      expect(res.status).to.equal(404);
+    });
+
+    it('should fail with invalid data (1)', async () => {
+      const retailer = await factory(Retailer)().create();
+      const domain = await factory(RetailerDomain)(retailer).create();
+
+      const res = await chai
+        .request(app.app)
+        .patch(uri.replace(':id', retailer.id).replace(':domainId', domain.id))
+        .set('Authorization', adminHeader)
+        .send({ domain: -1 });
+      expect(res.status).to.equal(404);
+    });
+
+    it('should fail with invalid data (2)', async () => {
+      const retailer = await factory(Retailer)().create();
+      const domain = await factory(RetailerDomain)(retailer).create();
+
+      const res = await chai
+        .request(app.app)
+        .patch(uri.replace(':id', retailer.id).replace(':domainId', domain.id))
+        .set('Authorization', adminHeader)
+        .send({ domain: '' });
+      expect(res.status).to.equal(404);
+    });
+
+    it('should fail as non-admin', async () => {
+      const retailer = await factory(Retailer)().create();
+
+      const res = await chai
+        .request(app.app)
+        .patch(uri.replace(':id', retailer.id).replace(':domainId', uuidv4()))
+        .set('Authorization', visitorHeader);
+      expect(res.status).to.equal(403);
+    });
+
+    it('should fail with invalid input', async () => {
+      const retailer = await factory(Retailer)().create();
+      const domain = await factory(RetailerDomain)(retailer).create();
+
+      const res = await chai
+        .request(app.app)
+        .patch(uri.replace(':id', retailer.id).replace(':domainId', domain.id))
+        .set('Authorization', adminHeader)
+        .send({ domain: -1 });
+      expect(res.status).to.equal(404);
+    });
+
+    it('should patch a specific domain of retailer', async () => {
+      const retailer = await factory(Retailer)().create();
+      const domain = Helpers.JSONify(
+        await factory(RetailerDomain)({ retailer }).create()
+      );
+      const domainRepository = getRepository(RetailerDomain);
+
+      domainRepository.findOne({ id: domain.id }).then((domain) => {
+        expect(domain).to.be.not.undefined;
+      });
+      const res = await chai
+        .request(app.app)
+        .patch(uri.replace(':id', retailer.id).replace(':domainId', domain.id))
+        .send({ domain: 'test.com' })
+        .set('Authorization', adminHeader);
+
+      expect(res.status).to.equal(200);
+      expect(res.body).to.deep.equal({
+        ...Helpers.JSONify(await domainRepository.findOneOrFail(domain.id)),
+        domain: 'test.com',
+      });
+    });
+
+    describe('POST /application-settings/whitelist-retailers/check', () => {
+      const uri = `${environment.apiRoutes.base}${environment.apiRoutes.admin_settings.checkDomainAgainstWhitelist}`;
+
+      it('should fail without authentication', async () => {
+        const retailer = await factory(Retailer)().create();
+
+        Helpers.checkAuthentication('GET', 'fails', app, uri);
+      });
+
+      it('should check a specific domain of retailer', async () => {
+        const retailer = await factory(Retailer)().create();
+        const domain = await factory(RetailerDomain)({ retailer }).create();
+        const domainRepository = getRepository(RetailerDomain);
+
+        domainRepository.findOne({ id: domain.id }).then((domain) => {
+          expect(domain).to.be.not.undefined;
+        });
+        const res = await chai
+          .request(app.app)
+          .post(uri)
+          .set('Authorization', adminHeader);
+
+        expect(res.status).to.equal(200);
+        //todo better expect
+      });
+    });
+
+    describe('GET /users/pending', () => {
+      const uri = `${environment.apiRoutes.base}${environment.apiRoutes.user_management.getAllPendingUsers}`;
+
+      it(
+        'should fail without authentication',
+        Helpers.checkAuthentication('GET', 'fails', app, uri)
+      );
+
+      it('should fail as non-admin', (done) => {
+        chai
+          .request(app.app)
+          .get(uri)
+          .set('Authorization', visitorHeader)
+          .end((err, res) => {
+            expect(res.status).to.equal(403);
+            done();
+          });
+      });
+
+      //todo test email verification not true
+
+      it('should get all users without limit/offset', async () => {
+        const count = 10;
+        await factory(User)({
+          role: UserRole.pending,
+          emailVerification: true,
+        }).createMany(count);
+        const users = Helpers.JSONify(
+          await userRepository.find({
+            where: { role: UserRole.pending, emailVerification: true },
+            order: { firstName: 'ASC', lastName: 'ASC' },
+          })
+        );
+
+        const res = await chai
+          .request(app.app)
+          .get(uri)
+          .set('Authorization', adminHeader);
+
+        expect(res.status).to.equal(200);
+        expect(res.body.total).to.equal(count);
+        expect(res.body.data)
+          .to.be.an('array')
+          .that.has.a.lengthOf(count)
+          .and.that.has.same.deep.members(users);
+      });
+
+      it('should get correct users with limit', async () => {
+        const count = 10;
+        const limit = 3;
+
+        await factory(User)({
+          role: UserRole.pending,
+          emailVerification: true,
+        }).createMany(count);
+        const users = Helpers.JSONify(
+          await userRepository.find({
+            order: { firstName: 'ASC', lastName: 'ASC' },
+            where: { role: UserRole.pending, emailVerification: true },
+            take: limit,
+          })
+        );
+
+        const res = await chai
+          .request(app.app)
+          .get(uri)
+          .query({ limit })
+          .set('Authorization', adminHeader);
+
+        expect(res.status).to.equal(200);
+        expect(res.body.total).to.equal(count);
+        expect(res.body.data)
+          .to.be.an('array')
+          .that.has.a.lengthOf(limit)
+          .and.that.has.same.deep.members(users);
+      });
+
+      it('should get correct users with offset', async () => {
+        const count = 10;
+        const offset = 3;
+
+        await factory(User)({
+          role: UserRole.pending,
+          emailVerification: true,
+        }).createMany(count);
+        const users = Helpers.JSONify(
+          await userRepository.find({
+            where: { role: UserRole.pending, emailVerification: true },
+            order: { firstName: 'ASC', lastName: 'ASC' },
+            skip: offset,
+          })
+        );
+
+        const res = await chai
+          .request(app.app)
+          .get(uri)
+          .query({ offset })
+          .set('Authorization', adminHeader);
+
+        expect(res.status).to.equal(200);
+        expect(res.body.total).to.equal(count);
+        expect(res.body.data)
+          .to.be.an('array')
+          .that.has.a.lengthOf(count - offset)
+          .and.that.has.same.deep.members(users);
+      });
+    });
+
+    describe('GET /users/accepted', () => {
+      const uri = `${environment.apiRoutes.base}${environment.apiRoutes.user_management.getAllAcceptedUsers}`;
+
+      it(
+        'should fail without authentication',
+        Helpers.checkAuthentication('GET', 'fails', app, uri)
+      );
+
+      it('should fail as non-admin', (done) => {
+        chai
+          .request(app.app)
+          .get(uri)
+          .set('Authorization', visitorHeader)
+          .end((err, res) => {
+            expect(res.status).to.equal(403);
+            done();
+          });
+      });
+
+      //todo fail email verification false
+
+      it('should get all users without limit/offset', async () => {
+        const count = 10;
+        await factory(User)({
+          role: UserRole.visitor,
+          emailVerification: true,
+        }).createMany(count - 2);
+        const users = Helpers.JSONify(
+          await userRepository.find({
+            where: { role: Not(UserRole.pending), emailVerification: true },
+            order: { firstName: 'ASC', lastName: 'ASC' },
+          })
+        );
+
+        const res = await chai
+          .request(app.app)
+          .get(uri)
+          .set('Authorization', adminHeader);
+
+        expect(res.status).to.equal(200);
+        expect(res.body.total).to.equal(count);
+        expect(res.body.data)
+          .to.be.an('array')
+          .that.has.a.lengthOf(count)
+          .and.that.has.same.deep.members(users);
+      });
+
+      it('should get correct users with limit', async () => {
+        const count = 10;
+        const limit = 3;
+
+        await factory(User)({
+          role: UserRole.visitor,
+          emailVerification: true,
+        }).createMany(count - 2);
+        const users = Helpers.JSONify(
+          await userRepository.find({
+            where: { role: Not(UserRole.pending), emailVerification: true },
+            order: { firstName: 'ASC', lastName: 'ASC' },
+            take: limit,
+          })
+        );
+
+        const res = await chai
+          .request(app.app)
+          .get(uri)
+          .query({ limit })
+          .set('Authorization', adminHeader);
+
+        expect(res.status).to.equal(200);
+        expect(res.body.total).to.equal(count);
+        expect(res.body.data)
+          .to.be.an('array')
+          .that.has.a.lengthOf(limit)
+          .and.that.has.same.deep.members(users);
+      });
+
+      it('should get correct users with offset', async () => {
+        const count = 10;
+        const offset = 3;
+
+        await factory(User)({
+          role: UserRole.visitor,
+          emailVerification: true,
+        }).createMany(count - 2);
+        const users = Helpers.JSONify(
+          await userRepository.find({
+            where: { role: Not(UserRole.pending), emailVerification: true },
+            order: { firstName: 'ASC', lastName: 'ASC' },
+            skip: offset,
+          })
+        );
+
+        const res = await chai
+          .request(app.app)
+          .get(uri)
+          .query({ offset })
+          .set('Authorization', adminHeader);
+
+        expect(res.status).to.equal(200);
+        expect(res.body.total).to.equal(count);
+        expect(res.body.data)
+          .to.be.an('array')
+          .that.has.a.lengthOf(count - offset)
+          .and.that.has.same.deep.members(users);
+      });
+    });
+
+    describe('GET /users/:id', () => {
+      const uri = `${environment.apiRoutes.base}${environment.apiRoutes.user_management.getSingleUser}`;
+
+      it(
+        'should fail without authentication',
+        Helpers.checkAuthentication(
+          'GET',
+          'fails',
+          app,
+          uri.replace(':id', uuidv4())
+        )
+      );
+
+      it('should fail as non-admin', async () => {
+        const res = await chai
+          .request(app.app)
+          .get(uri.replace(':id', uuidv4()))
+          .set('Authorization', visitorHeader);
+        expect(res.status).to.equal(403);
+      });
+
+      it('should fail with invalid id', (done) => {
+        chai
+          .request(app.app)
+          .get(uri.replace(':id', uuidv4()))
+          .set('Authorization', adminHeader)
+          .end((err, res) => {
+            expect(res.status).to.equal(404);
+            done();
+          });
+      });
+
+      it('should get a specific user', async () => {
+        const user = Helpers.JSONify(
+          await userRepository.findOneOrFail(
+            (
+              await factory(User)().create()
+            ).id
+          )
+        );
+
+        const res = await chai
+          .request(app.app)
+          .get(uri.replace(':id', user.id))
+          .set('Authorization', adminHeader);
+
+        expect(res.status).to.equal(200);
+        expect(res.body).to.deep.equal(user);
+      });
+    });
+
+    describe('PATCH /users/:id', () => {
+      const uri = `${environment.apiRoutes.base}${environment.apiRoutes.user_management.updateUser}`;
+
+      it(
+        'should fail without authentication',
+        Helpers.checkAuthentication(
+          'PATCH',
+          'fails',
+          app,
+          uri.replace(':id', uuidv4())
+        )
+      );
+
+      it('should fail as non-admin', async () => {
+        const res = await chai
+          .request(app.app)
+          .patch(uri.replace(':id', uuidv4()))
+          .set('Authorization', visitorHeader);
+        expect(res.status).to.equal(403);
+      });
+
+      it('should fail with invalid id', (done) => {
+        chai
+          .request(app.app)
+          .patch(uri.replace(':id', uuidv4()))
+          .set('Authorization', adminHeader)
+          .end((err, res) => {
+            expect(res.status).to.equal(404);
+            done();
+          });
+      });
+
+      it('should fail to update the id', async () => {
+        const user = Helpers.JSONify(
+          await factory(User)({
+            role: UserRole.visitor,
+            emailVerification: true,
+          }).create()
+        );
+        const res = await chai
+          .request(app.app)
+          .patch(uri.replace(':id', user.id))
+          .set('Authorization', adminHeader)
+          .send({ id: uuidv4() });
+
+        expect(res.status).to.equal(400);
+      });
+
+      it('should send message when update a pending user to be a visitor', async () => {
+        const spy = sandbox.stub(MessagingController, 'sendMessageViaEmail');
+        const user = await factory(User)({
+          role: UserRole.pending,
+          emailVerification: true,
+        }).create();
+
+        const res = await chai
+          .request(app.app)
+          .patch(uri.replace(':id', user.id))
+          .set('Authorization', adminHeader)
+          .send({ role: UserRole.visitor });
+
+        res.should.have.status(200);
+        expect(spy).to.have.been.calledWith(user);
+      });
+
+      it('should send message when update a visitor to be an admin', async () => {
+        const spy = sandbox.spy(MessagingController, 'sendMessage');
+        const user = await factory(User)({
+          role: UserRole.visitor,
+          emailVerification: true,
+        }).create();
+
+        const res = await chai
+          .request(app.app)
+          .patch(uri.replace(':id', user.id))
+          .set('Authorization', adminHeader)
+          .send({ role: UserRole.admin });
+
+        res.should.have.status(200);
+        expect(spy).to.have.been.calledWith(user);
+      });
+
+      it('should fail to update a specific user, invalid input', async () => {
+        const user = Helpers.JSONify(
+          await userRepository.findOneOrFail(
+            (
+              await factory(User)({
+                role: UserRole.pending,
+                emailVerification: true,
+              }).create()
+            ).id
+          )
+        );
+        const res = await chai
+          .request(app.app)
+          .patch(uri.replace(':id', user.id))
+          .set('Authorization', adminHeader)
+          .send({ email: -1 });
+
+        expect(res.status).to.equal(400);
+      });
+
+      it('should update a specific user', async () => {
+        const user = Helpers.JSONify(
+          await userRepository.findOneOrFail(
+            (
+              await factory(User)({
+                role: UserRole.visitor,
+                emailVerification: true,
+              }).create()
+            ).id
+          )
+        );
+        const res = await chai
+          .request(app.app)
+          .patch(uri.replace(':id', user.id))
+          .set('Authorization', adminHeader)
+          .send({ email: 'test@test.de' });
+
+        expect(res.status).to.equal(200);
+        expect(res.body).to.deep.equal({ ...user, email: 'test@test.de' });
+      });
+
+      it('should update a the password of a specific user', async () => {
+        const user = Helpers.JSONify(
+          await userRepository.findOneOrFail(
+            (
+              await factory(User)({
+                role: UserRole.visitor,
+                emailVerification: true,
+              }).create()
+            ).id
+          )
+        );
+        const res = await chai
+          .request(app.app)
+          .patch(uri.replace(':id', user.id))
+          .set('Authorization', adminHeader)
+          .send({ password: 'test' });
+
+        expect(res.status).to.equal(200);
+        bcrypt.compareSync(
+          'test',
+          Helpers.JSONify(await userRepository.findOneOrFail(user.id)).password
+        ).should.be.true;
+      });
+    });
+
+    describe('DELETE /user/:id', () => {
+      const uri = `${environment.apiRoutes.base}${environment.apiRoutes.user_management.deleteUser}`;
+
+      it(
+        'should fail without authentication',
+        Helpers.checkAuthentication(
+          'DELETE',
+          'fails',
+          app,
+          uri.replace(':id', uuidv4())
+        )
+      );
+
+      it('should fail as non-admin', async () => {
+        const res = await chai
+          .request(app.app)
+          .delete(uri.replace(':id', uuidv4()))
+          .set('Authorization', visitorHeader);
+        expect(res.status).to.equal(403);
+      });
+
+      it('should fail with invalid id', (done) => {
+        chai
+          .request(app.app)
+          .delete(uri.replace(':id', uuidv4()))
+          .set('Authorization', adminHeader)
+          .end((err, res) => {
+            expect(res.status).to.equal(404);
+            done();
+          });
+      });
+
+      it('should fail to delete last admin', async () => {
+        const res = await chai
+          .request(app.app)
+          .delete(uri.replace(':id', admin.id))
+          .set('Authorization', adminHeader);
+
+        expect(res.status).to.equal(403);
+      });
+
+      it('should delete a specific user', async () => {
+        const user = await factory(User)({
+          role: UserRole.visitor,
+          emailVerification: true,
+        }).create();
+        expect(
+          (async () => {
+            return await userRepository.findOneOrFail(user.id);
+          })()
+        ).to.be.fulfilled;
+
+        const res = await chai
+          .request(app.app)
+          .delete(uri.replace(':id', user.id))
+          .set('Authorization', adminHeader);
+
+        expect(res.status).to.equal(204);
+        expect(
+          (async () => {
+            return await userRepository.findOneOrFail(user.id);
+          })()
+        ).to.be.rejected;
+      });
+    });
+  });
+
+  /*
+
+    this.router.post(
+      environment.apiRoutes.admin_settings.checkDomainAgainstWhitelist,
+      AuthController.checkAuthenticationMiddleware,
+      ForbiddenInputMiddleware,
+      AdminController.checkDomainAgainstWhitelist
+    );
+
+    this.router.get(
+      environment.apiRoutes.user_management.getAllPendingUsers,
+      AuthController.checkAuthenticationMiddleware,
+      AuthController.checkAdminMiddleware,
+      AdminController.getPendingUsers
+    );
+    this.router.get(
+      environment.apiRoutes.user_management.getAllAcceptedUsers,
+      AuthController.checkAuthenticationMiddleware,
+      AuthController.checkAdminMiddleware,
+      AdminController.getAcceptedUsers
+    );
+    this.router.get(
+      addUUIDRegexToRoute(environment.apiRoutes.user_management.getSingleUser),
+      AuthController.checkAuthenticationMiddleware,
+      AuthController.checkAdminMiddleware,
+      AdminController.getUser
+    );
+    this.router.patch(
+      addUUIDRegexToRoute(environment.apiRoutes.user_management.updateUser),
+      AuthController.checkAuthenticationMiddleware,
+      AuthController.checkAdminMiddleware,
+      ForbiddenInputMiddleware,
+      AdminController.updateUser
+    );
+    this.router.delete(
+      addUUIDRegexToRoute(environment.apiRoutes.user_management.deleteUser),
+      AuthController.checkAuthenticationMiddleware,
+      AuthController.checkAdminMiddleware,
+      AdminController.deleteUser
+    );
+   */
 });
