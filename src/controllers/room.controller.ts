@@ -877,29 +877,37 @@ export class RoomController {
     const room = await getRepository(Room).findOne(req.params.roomId);
 
     if (room === undefined) {
-      res.status(404).json({ message: 'Room not found' });
+      res.status(404).json({ message: 'Room not found.' });
       return;
     }
 
     if (type === undefined) {
-      res.status(400).json({ message: 'No type specified' });
+      res.status(400).json({ message: 'No type specified.' });
+      return;
+    }
+
+    if (!Object.values(TimeSlotType).includes(type)) {
+      res.status(400).json({ message: 'Invalid type.' });
       return;
     }
 
     if (type === TimeSlotType.booked) {
-      res.status(400).json({ message: 'Type appointment is illegal here' });
+      res.status(400).json({ message: 'Type appointment is illegal here.' });
       return;
     }
 
-    if (timeSlotRecurrence === TimeSlotRecurrence.single) {
-      res.status(400).json({ message: 'Series can only be recurring' });
+    if (
+      timeSlotRecurrence === undefined ||
+      timeSlotRecurrence === TimeSlotRecurrence.single
+    ) {
+      res.status(400).json({ message: 'Series can only be recurring.' });
       return;
     }
 
-    if (amount <= 1) {
+    if (amount === undefined || amount <= 1) {
       res
         .status(400)
-        .json({ message: 'Series needs to have at least 2 appointments' });
+        .json({ message: 'Series needs to have at least 2 appointments.' });
       return;
     }
 
@@ -908,8 +916,26 @@ export class RoomController {
         ? getRepository(AvailableTimeslot)
         : getRepository(UnavailableTimeslot);
 
+    if (!isISO8601(start)) {
+      res.status(400).json({ message: 'Invalid start format.' });
+      return;
+    }
+
+    if (!isISO8601(end)) {
+      res.status(400).json({ message: 'Invalid end format.' });
+      return;
+    }
+
     const mStart = moment(start);
     const mEnd = moment(end);
+
+    const duration = moment.duration(mEnd.diff(mStart));
+
+    if (duration.asHours() < 1) {
+      res.status(400).json({ message: 'Duration must be at least 1h.' });
+      return;
+    }
+
     let recurrence: DurationConstructor;
 
     // parse recurrence
@@ -932,7 +958,7 @@ export class RoomController {
         break;
 
       default:
-        res.status(400).json({ message: 'Illegal recurrence' });
+        res.status(400).json({ message: 'Illegal recurrence.' });
         return;
     }
 
@@ -947,15 +973,8 @@ export class RoomController {
         end: mEnd.add(i > 0 ? 1 : 0, recurrence).toDate(),
         timeSlotRecurrence,
         seriesId,
-        amount,
+        amount: +amount,
       });
-
-      try {
-        await validateOrReject(timeslot);
-      } catch (err) {
-        res.status(400).json(err);
-        return;
-      }
 
       let mergables = await repository.find({
         where: [
