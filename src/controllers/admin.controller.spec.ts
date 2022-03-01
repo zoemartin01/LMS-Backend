@@ -63,6 +63,7 @@ describe('AdminController', () => {
 
   afterEach(async () => {
     app.shutdownJobs();
+    sandbox.restore();
   });
 
   describe('GET /application-settings', () => {
