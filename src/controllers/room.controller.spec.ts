@@ -1599,7 +1599,377 @@ describe('RoomController', () => {
     });
   });
 
-  describe('PATCH/rooms/:roomId/timeslots/series/:seriesId', () => {});
+  describe('PATCH /rooms/:roomId/timeslots/series/:seriesId', () => {
+    const uri = `${environment.apiRoutes.base}${environment.apiRoutes.rooms.updateTimeslotSeries}`;
+    let room: Room;
+    let availableTimeSlot: AvailableTimeslot;
+    let unavailableTimeSlot: UnavailableTimeslot;
+
+    beforeEach(async () => {
+      room = await factory(Room)().create();
+      availableTimeSlot = await getRepository(AvailableTimeslot).save({
+        room,
+        seriesId: uuidv4(),
+        start: moment().toDate(),
+        end: moment().add(2, 'hour').toDate(),
+        amount: 2,
+        timeSlotRecurrence: TimeSlotRecurrence.daily,
+      });
+      unavailableTimeSlot = await getRepository(UnavailableTimeslot).save({
+        room,
+        seriesId: uuidv4(),
+        start: moment().toDate(),
+        end: moment().add(2, 'hour').toDate(),
+        amount: 2,
+        timeSlotRecurrence: TimeSlotRecurrence.daily,
+      });
+    });
+
+    it(
+      'should fail without authentication',
+      Helpers.checkAuthentication(
+        'PATCH',
+        'fails',
+        app,
+        uri.replace(':roomId', uuidv4()).replace(':seriesId', uuidv4())
+      )
+    );
+
+    it('should fail as non-admin', async () => {
+      const room = await factory(Room)().create();
+      const res = await chai
+        .request(app.app)
+        .patch(uri.replace(':roomId', room.id).replace(':seriesId', uuidv4()))
+        .set('Authorization', visitorHeader);
+      expect(res.status).to.equal(403);
+    });
+
+    it('should return 404 if room is invalid', async () => {
+      const res = await chai
+        .request(app.app)
+        .patch(uri.replace(':roomId', uuidv4()).replace(':seriesId', uuidv4()))
+        .set('Authorization', adminHeader);
+      res.status.should.equal(404);
+      res.body.should.have.property('message', 'Room not found.');
+    });
+
+    it('should return 404 if series id is invalid', async () => {
+      const res = await chai
+        .request(app.app)
+        .patch(uri.replace(':roomId', room.id).replace(':seriesId', uuidv4()))
+        .set('Authorization', adminHeader);
+
+      res.status.should.equal(404);
+      res.body.should.have.property(
+        'message',
+        'No appointments for series found.'
+      );
+    });
+
+    it('should return 400 type is booked', async () => {
+      const appointment = await factory(AppointmentTimeslot)({
+        room: room,
+        user: admin,
+        ignoreRules: true,
+        seriesId: uuidv4(),
+      }).create();
+
+      const res = await chai
+        .request(app.app)
+        .patch(
+          uri
+            .replace(':roomId', room.id)
+            .replace(':seriesId', appointment.seriesId)
+        )
+        .set('Authorization', adminHeader)
+        .send({});
+      res.status.should.equal(400);
+      res.body.should.have.property(
+        'message',
+        'Type appointment is illegal here.'
+      );
+    });
+
+    it('should return 400 if start is invalid', async () => {
+      const res = await chai
+        .request(app.app)
+        .patch(
+          uri
+            .replace(':roomId', room.id)
+            .replace(':seriesId', availableTimeSlot.seriesId)
+        )
+        .set('Authorization', adminHeader)
+        .send({ start: 'invalid' });
+      res.status.should.equal(400);
+      res.body.should.have.property('message', 'Invalid start format.');
+    });
+
+    it('should return 400 if end is invalid', async () => {
+      const res = await chai
+        .request(app.app)
+        .patch(
+          uri
+            .replace(':roomId', room.id)
+            .replace(':seriesId', availableTimeSlot.seriesId)
+        )
+        .set('Authorization', adminHeader)
+        .send({
+          start: moment().toISOString(),
+          end: 'invalid',
+        });
+      res.status.should.equal(400);
+      res.body.should.have.property('message', 'Invalid end format.');
+    });
+
+    it('should return 400 if start and end are less than 1h apart', async () => {
+      const res = await chai
+        .request(app.app)
+        .patch(
+          uri
+            .replace(':roomId', room.id)
+            .replace(':seriesId', availableTimeSlot.seriesId)
+        )
+        .set('Authorization', adminHeader)
+        .send({
+          start: moment().toISOString(),
+          end: moment().toISOString(),
+        });
+
+      res.should.have.status(400);
+      res.body.should.have.a.property(
+        'message',
+        'Duration must be at least 1h.'
+      );
+    });
+
+    it('should return 400 if recurrence is invalid', async () => {
+      const res = await chai
+        .request(app.app)
+        .patch(
+          uri
+            .replace(':roomId', room.id)
+            .replace(':seriesId', availableTimeSlot.seriesId)
+        )
+        .set('Authorization', adminHeader)
+        .send({
+          timeSlotRecurrence: 0,
+        });
+
+      res.should.have.status(400);
+      res.body.should.have.a.property('message', 'Illegal recurrence.');
+    });
+
+    it('should return 400 if timeSlotRecurrence is single', async () => {
+      const res = await chai
+        .request(app.app)
+        .patch(
+          uri
+            .replace(':roomId', room.id)
+            .replace(':seriesId', availableTimeSlot.seriesId)
+        )
+        .set('Authorization', adminHeader)
+        .send({
+          timeSlotRecurrence: TimeSlotRecurrence.single,
+        });
+      res.status.should.equal(400);
+      res.body.should.have.property('message', 'Series can only be recurring.');
+    });
+
+    it('should return 400 if amount is <= 1', async () => {
+      const res = await chai
+        .request(app.app)
+        .patch(
+          uri
+            .replace(':roomId', room.id)
+            .replace(':seriesId', availableTimeSlot.seriesId)
+        )
+        .set('Authorization', adminHeader)
+        .send({
+          amount: 1,
+        });
+      res.status.should.equal(400);
+      res.body.should.have.property(
+        'message',
+        'Series needs to have at least 2 appointments.'
+      );
+    });
+
+    it('should successfully update a available timeslot', async () => {
+      const start = moment('2022-02-23T12:00:00Z');
+
+      const timeslot = {
+        start: start.toDate(),
+        end: start.add(4, 'hour').toDate(),
+      };
+
+      const res = await chai
+        .request(app.app)
+        .patch(
+          uri
+            .replace(':roomId', room.id)
+            .replace(':seriesId', availableTimeSlot.seriesId)
+        )
+        .set('Authorization', adminHeader)
+        .send(timeslot);
+
+      res.should.have.status(200);
+      await getRepository(AvailableTimeslot).findOneOrFail({
+        where: timeslot,
+      }).should.eventually.be.fulfilled;
+    });
+
+    it('should successfully update a weekly available timeslot', async () => {
+      const timeslot = {
+        timeSlotRecurrence: TimeSlotRecurrence.weekly,
+      };
+
+      const res = await chai
+        .request(app.app)
+        .patch(
+          uri
+            .replace(':roomId', room.id)
+            .replace(':seriesId', availableTimeSlot.seriesId)
+        )
+        .set('Authorization', adminHeader)
+        .send(timeslot);
+
+      res.should.have.status(200);
+      await getRepository(AvailableTimeslot).findOneOrFail({
+        where: {
+          seriesId: availableTimeSlot.seriesId,
+          timeSlotRecurrence: TimeSlotRecurrence.weekly,
+        },
+      }).should.eventually.be.fulfilled;
+    });
+
+    it('should successfully update a monthly available timeslot', async () => {
+      const timeslot = {
+        timeSlotRecurrence: TimeSlotRecurrence.monthly,
+      };
+
+      const res = await chai
+        .request(app.app)
+        .patch(
+          uri
+            .replace(':roomId', room.id)
+            .replace(':seriesId', availableTimeSlot.seriesId)
+        )
+        .set('Authorization', adminHeader)
+        .send(timeslot);
+
+      res.should.have.status(200);
+      await getRepository(AvailableTimeslot).findOneOrFail({
+        where: {
+          seriesId: availableTimeSlot.seriesId,
+          timeSlotRecurrence: TimeSlotRecurrence.monthly,
+        },
+      }).should.eventually.be.fulfilled;
+    });
+
+    it('should successfully update a yearly available timeslot', async () => {
+      const timeslot = {
+        timeSlotRecurrence: TimeSlotRecurrence.yearly,
+      };
+
+      const res = await chai
+        .request(app.app)
+        .patch(
+          uri
+            .replace(':roomId', room.id)
+            .replace(':seriesId', availableTimeSlot.seriesId)
+        )
+        .set('Authorization', adminHeader)
+        .send(timeslot);
+
+      res.should.have.status(200);
+      await getRepository(AvailableTimeslot).findOneOrFail({
+        where: {
+          seriesId: availableTimeSlot.seriesId,
+          timeSlotRecurrence: TimeSlotRecurrence.yearly,
+        },
+      }).should.eventually.be.fulfilled;
+    });
+
+    it('should successfully update a unavailable timeslot', async () => {
+      const start = moment('2022-02-23T12:00:00Z');
+
+      const timeslot = {
+        start: start.toDate(),
+        end: start.add(4, 'hour').toDate(),
+      };
+
+      const res = await chai
+        .request(app.app)
+        .patch(
+          uri
+            .replace(':roomId', room.id)
+            .replace(':seriesId', unavailableTimeSlot.seriesId)
+        )
+        .set('Authorization', adminHeader)
+        .send(timeslot);
+
+      res.should.have.status(200);
+      await getRepository(UnavailableTimeslot).findOneOrFail({
+        where: timeslot,
+      }).should.eventually.be.fulfilled;
+    });
+
+    it('should merge adjacent timeslots', async () => {
+      const time = moment('2022-02-23T12:00:00Z');
+
+      const toMerge = await getRepository(AvailableTimeslot).save({
+        room,
+        start: moment(time).subtract(4, 'hours').toDate(),
+        end: moment(time).toDate(),
+      });
+
+      const timeslot = {
+        start: moment(time).toDate(),
+        end: moment(time).add(4, 'hour').toDate(),
+        amount: 2,
+        timeSlotRecurrence: TimeSlotRecurrence.weekly,
+      };
+
+      const series = getRepository(AvailableTimeslot).create([
+        {
+          start: moment(time).subtract(4, 'hours').toDate(),
+          end: timeslot.end,
+          amount: 1,
+          timeSlotRecurrence: TimeSlotRecurrence.single,
+          room: room,
+        },
+        {
+          start: moment(timeslot.start).add(1, 'week').toDate(),
+          end: moment(timeslot.end).add(1, 'week').toDate(),
+          amount: timeslot.amount,
+          timeSlotRecurrence: timeslot.timeSlotRecurrence,
+          room: room,
+        },
+      ]);
+
+      const res = await chai
+        .request(app.app)
+        .patch(
+          uri
+            .replace(':roomId', room.id)
+            .replace(':seriesId', availableTimeSlot.seriesId)
+        )
+        .set('Authorization', adminHeader)
+        .send(timeslot);
+
+      res.should.have.status(200);
+      await Promise.all(
+        series.map(async (a: AvailableTimeslot) => {
+          return await (async () =>
+            await getRepository(AvailableTimeslot).findOneOrFail({
+              where: { ...a },
+            }))().should.be.fulfilled;
+        })
+      );
+      getRepository(AvailableTimeslot).findOneOrFail(toMerge.id).should
+        .eventually.be.rejected;
+    });
+  });
 
   describe('DELETE /rooms/:roomId/timeslots/:timeslotId', () => {
     const uri = `${environment.apiRoutes.base}${environment.apiRoutes.rooms.deleteTimeslot}`;

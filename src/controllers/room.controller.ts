@@ -16,7 +16,7 @@ import { UnavailableTimeslot } from '../models/unavaliable.timeslot.entity';
 import { ConfirmationStatus } from '../types/enums/confirmation-status';
 import moment, { min, max } from 'moment/moment';
 import { TimeSlotRecurrence } from '../types/enums/timeslot-recurrence';
-import { isISO8601, validateOrReject } from 'class-validator';
+import { isISO8601 } from 'class-validator';
 import DurationConstructor = moment.unitOfTime.DurationConstructor;
 import { v4 } from 'uuid';
 
@@ -1246,19 +1246,24 @@ export class RoomController {
     const seriesId = req.params.seriesId;
 
     if (room === undefined) {
-      res.status(404).json({ message: 'Room not found' });
+      res.status(404).json({ message: 'Room not found.' });
       return;
     }
 
-    const first = await getRepository(TimeSlot).findOneOrFail({
+    const first = await getRepository(TimeSlot).findOne({
       where: { seriesId, isDirty: false },
       order: { start: 'ASC' },
     });
 
+    if (first === undefined) {
+      res.status(404).json({ message: 'No appointments for series found.' });
+      return;
+    }
+
     const type = first.type;
 
     if (type === TimeSlotType.booked) {
-      res.status(400).json({ message: 'Type appointment is illegal here' });
+      res.status(400).json({ message: 'Type appointment is illegal here.' });
       return;
     }
 
@@ -1273,15 +1278,12 @@ export class RoomController {
             withDeleted: true,
           });
 
-    if (originalTimeslots.length === 0) {
-      res.status(404).json({ message: 'no appointments for series found' });
-      return;
-    }
-
-    const start = req.body.start || first.start;
-    const end = req.body.end || first.end;
+    const start = req.body.start || first.start.toISOString();
+    const end = req.body.end || first.end.toISOString();
     const timeSlotRecurrence =
-      req.body.timeSlotRecurrence || first.timeSlotRecurrence;
+      req.body.timeSlotRecurrence !== undefined
+        ? +req.body.timeSlotRecurrence
+        : first.timeSlotRecurrence;
     const amount = req.body.amount || first.amount;
 
     const repository =
@@ -1290,19 +1292,37 @@ export class RoomController {
         : getRepository(UnavailableTimeslot);
 
     if (timeSlotRecurrence === TimeSlotRecurrence.single) {
-      res.status(400).json({ message: 'Series can only be recurring' });
+      res.status(400).json({ message: 'Series can only be recurring.' });
       return;
     }
 
     if (amount <= 1) {
       res
         .status(400)
-        .json({ message: 'Series needs to have at least 2 appointments' });
+        .json({ message: 'Series needs to have at least 2 appointments.' });
+      return;
+    }
+
+    if (!isISO8601(start)) {
+      res.status(400).json({ message: 'Invalid start format.' });
+      return;
+    }
+
+    if (!isISO8601(end)) {
+      res.status(400).json({ message: 'Invalid end format.' });
       return;
     }
 
     const mStart = moment(start);
     const mEnd = moment(end);
+
+    const duration = moment.duration(mEnd.diff(mStart));
+
+    if (duration.asHours() < 1) {
+      res.status(400).json({ message: 'Duration must be at least 1h.' });
+      return;
+    }
+
     let recurrence: DurationConstructor;
 
     // parse recurrence
@@ -1325,7 +1345,7 @@ export class RoomController {
         break;
 
       default:
-        res.status(400).json({ message: 'Illegal recurrence' });
+        res.status(400).json({ message: 'Illegal recurrence.' });
         return;
     }
 
@@ -1340,13 +1360,6 @@ export class RoomController {
         seriesId,
         amount,
       });
-
-      try {
-        await validateOrReject(newTimeslot);
-      } catch (err) {
-        res.status(400).json(err);
-        return;
-      }
 
       let mergables = await repository.find({
         where: [
