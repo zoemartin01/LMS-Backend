@@ -11,8 +11,12 @@ import { Room } from '../models/room.entity';
 import { TimeSlot } from '../models/timeslot.entity';
 import { AvailableTimeslot } from '../models/available.timeslot.entity';
 import { TimeSlotType } from '../types/enums/timeslot-type';
+import { TimeSlotRecurrence } from '../types/enums/timeslot-recurrence';
+import moment from 'moment';
+import chaiAsPromised from 'chai-as-promised';
 
 chai.use(chaiHttp);
+chai.use(chaiAsPromised);
 chai.should();
 
 describe('RoomController', () => {
@@ -352,6 +356,11 @@ describe('RoomController', () => {
 
   describe('POST /rooms/:roomId/timeslots', () => {
     const uri = `${environment.apiRoutes.base}${environment.apiRoutes.rooms.createTimeslot}`;
+    let room: Room;
+
+    beforeEach(async () => {
+      room = await factory(Room)().create();
+    });
 
     it(
       'should fail without authentication',
@@ -372,20 +381,189 @@ describe('RoomController', () => {
       expect(res.status).to.equal(403);
     });
 
-    it('should successfully create a new timeslot', async () => {
+    it('should return 400 if room is invalid', async () => {
+      const res = await chai
+        .request(app.app)
+        .post(uri.replace(':roomId', uuidv4()))
+        .set('Authorization', adminHeader);
+      res.status.should.equal(404);
+      res.body.should.have.property('message', 'Room not found.');
+    });
+
+    it('should return 400 type is undefined', async () => {
+      const res = await chai
+        .request(app.app)
+        .post(uri.replace(':roomId', room.id))
+        .set('Authorization', adminHeader);
+      res.status.should.equal(400);
+      res.body.should.have.property('message', 'No type specified.');
+    });
+
+    it('should return 400 type is undefined', async () => {
+      const res = await chai
+        .request(app.app)
+        .post(uri.replace(':roomId', room.id))
+        .set('Authorization', adminHeader)
+        .send({ type: 'invalid' });
+      res.status.should.equal(400);
+      res.body.should.have.property('message', 'Invalid type.');
+    });
+
+    it('should return 400 type is undefined', async () => {
+      const res = await chai
+        .request(app.app)
+        .post(uri.replace(':roomId', room.id))
+        .set('Authorization', adminHeader)
+        .send({ type: TimeSlotType.booked });
+      res.status.should.equal(400);
+      res.body.should.have.property(
+        'message',
+        'Type appointment is illegal here.'
+      );
+    });
+
+    it('should return 400 if amount is > 1', async () => {
+      const res = await chai
+        .request(app.app)
+        .post(uri.replace(':roomId', room.id))
+        .set('Authorization', adminHeader)
+        .send({ type: TimeSlotType.available, amount: 2 });
+      res.status.should.equal(400);
+      res.body.should.have.property(
+        'message',
+        'Single timeslot amount cannot be greater than 1.'
+      );
+    });
+
+    it('should return 400 if timeSlotRecurrence is not single', async () => {
+      const res = await chai
+        .request(app.app)
+        .post(uri.replace(':roomId', room.id))
+        .set('Authorization', adminHeader)
+        .send({
+          type: TimeSlotType.available,
+          timeSlotRecurrence: TimeSlotRecurrence.daily,
+        });
+      res.status.should.equal(400);
+      res.body.should.have.property(
+        'message',
+        'TimeSlotRecurrence must not be recurring.'
+      );
+    });
+
+    it('should return 400 if start is invalid', async () => {
+      const res = await chai
+        .request(app.app)
+        .post(uri.replace(':roomId', room.id))
+        .set('Authorization', adminHeader)
+        .send({ type: TimeSlotType.available, start: 'invalid' });
+      res.status.should.equal(400);
+      res.body.should.have.property('message', 'Invalid start format.');
+    });
+
+    it('should return 400 if end is invalid', async () => {
+      const res = await chai
+        .request(app.app)
+        .post(uri.replace(':roomId', room.id))
+        .set('Authorization', adminHeader)
+        .send({
+          type: TimeSlotType.available,
+          start: moment().toISOString(),
+          end: 'invalid',
+        });
+      res.status.should.equal(400);
+      res.body.should.have.property('message', 'Invalid end format.');
+    });
+
+    it('should return 400 if start and end are less than 1h apart', async () => {
+      const res = await chai
+        .request(app.app)
+        .post(uri.replace(':roomId', room.id))
+        .set('Authorization', adminHeader)
+        .send({
+          type: TimeSlotType.available,
+          start: moment().toISOString(),
+          end: moment().toISOString(),
+        });
+
+      res.should.have.status(400);
+      res.body.should.have.a.property(
+        'message',
+        'Duration must be at least 1h.'
+      );
+    });
+
+    it('should successfully create a new available timeslot', async () => {
       const room = await factory(Room)().create();
-      const timeslot = await factory(AvailableTimeslot)({ room }).make();
-      const timeSlotRepository = getRepository(TimeSlot);
-      const expectedAmount = await timeSlotRepository.count();
-      timeslot.type = TimeSlotType.available;
+
+      const start = moment('2022-02-23T12:00:00Z');
+
+      const timeslot = {
+        start: start.toISOString(),
+        end: start.add(4, 'hour').toISOString(),
+      };
 
       const res = await chai
         .request(app.app)
         .post(uri.replace(':roomId', room.id))
         .set('Authorization', adminHeader)
-        .send(timeslot);
-      expect(res.status).to.equal(201);
-      expect(await timeSlotRepository.count()).to.equal(expectedAmount + 1);
+        .send({ ...timeslot, type: TimeSlotType.available });
+
+      res.should.have.status(201);
+      res.body.should.deep.include(Helpers.JSONify(timeslot));
+    });
+
+    it('should successfully create a new unavailable timeslot', async () => {
+      const room = await factory(Room)().create();
+
+      const start = moment('2022-02-23T12:00:00Z');
+
+      const timeslot = {
+        start: start.toISOString(),
+        end: start.add(4, 'hour').toISOString(),
+      };
+
+      const res = await chai
+        .request(app.app)
+        .post(uri.replace(':roomId', room.id))
+        .set('Authorization', adminHeader)
+        .send({ ...timeslot, type: TimeSlotType.unavailable });
+
+      res.should.have.status(201);
+      res.body.should.deep.include(Helpers.JSONify(timeslot));
+    });
+
+    it('should merge adjacent timeslots', async () => {
+      const room = await factory(Room)().create();
+      const time = moment('2022-02-23T12:00:00Z');
+
+      const toMerge = await getRepository(AvailableTimeslot).save({
+        room,
+        start: moment(time).subtract(4, 'hours').toISOString(),
+        end: moment(time).toISOString(),
+      });
+
+      const timeslot = {
+        start: moment(time).toISOString(),
+        end: moment(time).add(4, 'hour').toISOString(),
+      };
+
+      const res = await chai
+        .request(app.app)
+        .post(uri.replace(':roomId', room.id))
+        .set('Authorization', adminHeader)
+        .send({ ...timeslot, type: TimeSlotType.available });
+
+      res.should.have.status(201);
+      res.body.should.deep.include(
+        Helpers.JSONify({
+          start: moment(time).subtract(4, 'hours').toISOString(),
+          end: moment(time).add(4, 'hour').toISOString(),
+          room,
+        })
+      );
+      getRepository(AvailableTimeslot).findOneOrFail(toMerge.id).should
+        .eventually.be.rejected;
     });
   });
 

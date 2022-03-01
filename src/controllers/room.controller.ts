@@ -16,7 +16,7 @@ import { UnavailableTimeslot } from '../models/unavaliable.timeslot.entity';
 import { ConfirmationStatus } from '../types/enums/confirmation-status';
 import moment, { min, max } from 'moment/moment';
 import { TimeSlotRecurrence } from '../types/enums/timeslot-recurrence';
-import { validateOrReject } from 'class-validator';
+import { isISO8601, validateOrReject } from 'class-validator';
 import DurationConstructor = moment.unitOfTime.DurationConstructor;
 import { v4 } from 'uuid';
 
@@ -116,7 +116,10 @@ export class RoomController {
       req.query.date === undefined ? moment() : moment(+req.query.date * 1000);
 
     const from: string = date.day(1).format('YYYY-MM-DD');
-    const to: string = date.day(1).add(7, 'days').subtract(1, 'minute')
+    const to: string = date
+      .day(1)
+      .add(7, 'days')
+      .subtract(1, 'minute')
       .format('YYYY-MM-DD');
 
     const room = await getRepository(Room).findOne(req.params.id);
@@ -254,7 +257,10 @@ export class RoomController {
 
     //set unavailable timeslots
     for (unavailableTimeSlot of unavailableTimeSlots) {
-      if (unavailableTimeSlot.start == null || unavailableTimeSlot.end == null) {
+      if (
+        unavailableTimeSlot.start == null ||
+        unavailableTimeSlot.end == null
+      ) {
         continue;
       }
 
@@ -292,10 +298,12 @@ export class RoomController {
         }
 
         //find next available index
-        for (index = 0;
-             typeof calendar[hour][day][index] !== 'string'
-             || (<string>calendar[hour][day][index]).split(' ')[0] !== 'available';
-             index++) {
+        for (
+          index = 0;
+          typeof calendar[hour][day][index] !== 'string' ||
+          (<string>calendar[hour][day][index]).split(' ')[0] !== 'available';
+          index++
+        ) {
           if (index === room.maxConcurrentBookings) {
             throw Error('max concurrent bookings violated');
           }
@@ -309,16 +317,22 @@ export class RoomController {
         for (let i = hour; i < timespanEnd - minTimeslot; i++) {
           //find starting block of available timeslot that hits this appointment
           for (j = index; 0 <= j; j--) {
-            if (typeof calendar[i][day][j] === 'string'
-              && (<string>calendar[i][day][j]).split(' ')[0] === 'available') {
+            if (
+              typeof calendar[i][day][j] === 'string' &&
+              (<string>calendar[i][day][j]).split(' ')[0] === 'available'
+            ) {
               break;
             }
           }
 
           //add available timeslots on right side of timeslots if needed
-          const availableTimeslotLength = +(<string>calendar[i][day][j]).split(' ')[1];
+          const availableTimeslotLength = +(<string>calendar[i][day][j]).split(
+            ' '
+          )[1];
           if (0 < j + availableTimeslotLength - index - 1) {
-            calendar[i][day][index + 1] = `available ${j + availableTimeslotLength - index - 1}`;
+            calendar[i][day][index + 1] = `available ${
+              j + availableTimeslotLength - index - 1
+            }`;
           }
 
           //shorten available timeslots on left side of timeslots
@@ -356,7 +370,10 @@ export class RoomController {
       req.query.date === undefined ? moment() : moment(+req.query.date * 1000);
 
     const from: string = date.day(1).format('YYYY-MM-DD');
-    const to: string = date.day(1).add(7, 'days').subtract(1, 'minute')
+    const to: string = date
+      .day(1)
+      .add(7, 'days')
+      .subtract(1, 'minute')
       .format('YYYY-MM-DD');
 
     const room = await getRepository(Room).findOne(req.params.id);
@@ -679,23 +696,28 @@ export class RoomController {
     const room = await getRepository(Room).findOne(req.params.roomId);
 
     if (room === undefined) {
-      res.status(404).json({ message: 'Room not found' });
+      res.status(404).json({ message: 'Room not found.' });
       return;
     }
 
     if (type === undefined) {
-      res.status(400).json({ message: 'No type specified' });
+      res.status(400).json({ message: 'No type specified.' });
+      return;
+    }
+
+    if (!Object.values(TimeSlotType).includes(type)) {
+      res.status(400).json({ message: 'Invalid type.' });
       return;
     }
 
     if (type === TimeSlotType.booked) {
-      res.status(400).json({ message: 'Type appointment is illegal here' });
+      res.status(400).json({ message: 'Type appointment is illegal here.' });
       return;
     }
 
-    if (req.body.amount !== undefined && req.body.amount > 1) {
+    if (req.body.amount !== undefined && +req.body.amount > 1) {
       res.status(400).json({
-        message: 'Single timeslot amount cannot be greater than 1',
+        message: 'Single timeslot amount cannot be greater than 1.',
       });
       return;
     }
@@ -706,7 +728,7 @@ export class RoomController {
     ) {
       res
         .status(400)
-        .json({ message: 'Single timeslot recurrence cannot be set' });
+        .json({ message: 'TimeSlotRecurrence must not be recurring.' });
       return;
     }
 
@@ -715,23 +737,33 @@ export class RoomController {
         ? getRepository(AvailableTimeslot)
         : getRepository(UnavailableTimeslot);
 
-    const mStart = moment(start).toDate();
-    const mEnd = moment(end).toDate();
+    if (!isISO8601(start)) {
+      res.status(400).json({ message: 'Invalid start format.' });
+      return;
+    }
+
+    if (!isISO8601(end)) {
+      res.status(400).json({ message: 'Invalid end format.' });
+      return;
+    }
+
+    const mStart = moment(start);
+    const mEnd = moment(end);
+
+    const duration = moment.duration(mEnd.diff(mStart));
+
+    if (duration.asHours() < 1) {
+      res.status(400).json({ message: 'Duration must be at least 1h.' });
+      return;
+    }
 
     let timeslot: AvailableTimeslot | UnavailableTimeslot;
 
-    try {
-      timeslot = repository.create({
-        start: moment(mStart).toDate(),
-        end: moment(mEnd).toDate(),
-        room,
-      });
-
-      await validateOrReject(timeslot);
-    } catch (err) {
-      res.status(400).json(err);
-      return;
-    }
+    timeslot = repository.create({
+      start: mStart.toDate(),
+      end: mEnd.toDate(),
+      room,
+    });
 
     let mergables = await repository.find({
       where: [
