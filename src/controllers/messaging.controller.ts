@@ -120,6 +120,11 @@ export class MessagingController {
    */
   static messageSockets: { [key: string]: WebSocket[] } = {};
 
+  /**
+   * @route {WebSocket} /user/messages/websocket
+   * @param {Request} req frontend request to register a message box websocket
+   * @param {WebSocket} ws the websocket connection
+   */
   public static async registerUnreadMessagesSocket(
     ws: WebSocket,
     req: Request
@@ -181,20 +186,23 @@ export class MessagingController {
 
     await messageRepository.delete(message.id);
 
+    await MessagingController.broadcastUnreadMessages(message.recipient);
     res.sendStatus(204);
+  }
 
-    const ws = MessagingController.messageSockets[message.recipient.id];
+  public static async broadcastUnreadMessages(user: User) {
+    const ws = MessagingController.messageSockets[user.id];
 
     if (ws !== undefined) {
-      ws.forEach(async (ws) => {
-        ws.send(
-          JSON.stringify(
-            await MessagingController.getUnreadMessagesAmountsUtil(
-              message.recipient
+      await Promise.all(
+        ws.map(async (ws) =>
+          ws.send(
+            JSON.stringify(
+              await MessagingController.getUnreadMessagesAmountsUtil(user)
             )
           )
-        );
-      });
+        )
+      );
     }
   }
 
@@ -247,21 +255,8 @@ export class MessagingController {
 
     await messageRepository.update({ id: message.id }, req.body);
 
+    await MessagingController.broadcastUnreadMessages(message.recipient);
     res.json(await messageRepository.findOneOrFail(message.id));
-
-    const ws = MessagingController.messageSockets[message.recipient.id];
-
-    if (ws !== undefined) {
-      ws.forEach(async (ws) => {
-        ws.send(
-          JSON.stringify(
-            await MessagingController.getUnreadMessagesAmountsUtil(
-              message.recipient
-            )
-          )
-        );
-      });
-    }
   }
 
   /**
@@ -308,17 +303,7 @@ export class MessagingController {
       );
     }
 
-    const ws = MessagingController.messageSockets[recipient.id];
-
-    if (ws !== undefined) {
-      ws.forEach(async (ws) => {
-        ws.send(
-          JSON.stringify(
-            await MessagingController.getUnreadMessagesAmountsUtil(recipient)
-          )
-        );
-      });
-    }
+    await MessagingController.broadcastUnreadMessages(recipient);
   }
 
   /**
@@ -391,9 +376,9 @@ export class MessagingController {
 
     try {
       const transporter = nodemailer.createTransport(environment.smtpConfig);
-      console.log(await transporter.sendMail(message));
+      console.info(await transporter.sendMail(message));
     } catch (e) {
-      console.log(e);
+      console.error(e);
     }
   }
 

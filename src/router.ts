@@ -53,7 +53,7 @@ class AppRouter {
       MessagingController.getMessages
     );
     this.router.ws(
-      environment.apiRoutes.messages.getCurrentUserUnreadMessagesAmounts,
+      environment.apiRoutes.messages.registerMessageWebsocket,
       AuthController.checkWebSocketAuthenticationMiddleware,
       MessagingController.registerUnreadMessagesSocket
     );
