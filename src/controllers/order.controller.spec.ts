@@ -1155,7 +1155,6 @@ describe('OrderController', () => {
       expect(res.status).to.equal(400);
     });
 
-    //todo does not cover line 463 LIKE IT SHOULD
     it('should send a confirmation message to the admin', async () => {
       const order = await factory(Order)({
         user: visitor,
@@ -1177,6 +1176,30 @@ describe('OrderController', () => {
       res.should.have.status(200);
       expect(spy).to.have.been.calledWith(
         await getRepository(User).findOneOrFail(admin.id)
+      );
+    });
+
+    it('should send a confirmation message to a non-admin', async () => {
+      const order = await factory(Order)({
+        user: visitor,
+        status: OrderStatus.pending,
+      }).create();
+      expect(
+        (async () => {
+          return await repository.findOneOrFail(order.id);
+        })()
+      ).to.be.fulfilled;
+
+      const spy = sandbox.spy(MessagingController, 'sendMessage');
+      const res = await chai
+        .request(app.app)
+        .patch(uri.replace(':id', order.id))
+        .set('Authorization', visitorHeader)
+        .send({ quantity: 20 });
+
+      res.should.have.status(200);
+      expect(spy).to.have.been.calledWith(
+        await getRepository(User).findOneOrFail(visitor.id)
       );
     });
 
@@ -1302,11 +1325,35 @@ describe('OrderController', () => {
       ).to.be.rejected;
     });
 
-    //todo does not cover line 522 LIKE IT SHOULD
-    it('should send a confirmation message to the user', async () => {
+    it('should send a confirmation message to the user (1)', async () => {
       const order = await factory(Order)({
         user: visitor,
         status: OrderStatus.pending,
+      }).create();
+      expect(
+        (async () => {
+          return await repository.findOneOrFail(order.id);
+        })()
+      ).to.be.fulfilled;
+
+      const spy = sandbox.spy(MessagingController, 'sendMessage');
+      const res = await chai
+        .request(app.app)
+        .delete(uri.replace(':id', order.id))
+        .set('Authorization', visitorHeader);
+
+      res.should.have.status(204);
+      expect(spy).to.have.been.calledWith(
+        await getRepository(User).findOneOrFail(visitor.id)
+      );
+    });
+
+    it('should send a confirmation message to the user (2)', async () => {
+      const item = await factory(InventoryItem)().create();
+      const order = await factory(Order)({
+        user: visitor,
+        status: OrderStatus.pending,
+        item,
       }).create();
       expect(
         (async () => {

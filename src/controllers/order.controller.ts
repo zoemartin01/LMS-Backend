@@ -446,7 +446,7 @@ export class OrderController {
       relations: ['user', 'item'],
     });
 
-    const orderItem = await order.item;
+    const orderItem = order.item;
     const itemName: string | null =
       orderItem === null ? order.itemName : orderItem.name;
     const currentUser = await AuthController.getCurrentUser(req);
@@ -520,11 +520,11 @@ export class OrderController {
       return;
     }
 
-    const orderItem = await order.item;
+    const orderItem = order.item;
     const itemName: string | null =
       orderItem === null ? order.itemName : orderItem.name;
 
-    if (currentUser === order.user) {
+    if (currentUser.id === order.user.id) {
       await MessagingController.sendMessage(
         currentUser,
         'Order Deletion Confirmation',
