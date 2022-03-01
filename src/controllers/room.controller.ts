@@ -1075,7 +1075,7 @@ export class RoomController {
     const room = await getRepository(Room).findOne(req.params.roomId);
 
     if (room === undefined) {
-      res.status(404).json({ message: 'Room not found' });
+      res.status(404).json({ message: 'Room not found.' });
       return;
     }
 
@@ -1083,14 +1083,14 @@ export class RoomController {
     let repository;
 
     if (timeslot === undefined) {
-      res.status(404).json({ message: 'Timeslot not found' });
+      res.status(404).json({ message: 'Timeslot not found.' });
       return;
     }
 
     const type = timeslot.type;
 
     if (type === TimeSlotType.booked) {
-      res.status(400).json({ message: 'Type appointment is illegal here' });
+      res.status(400).json({ message: 'Type appointment is illegal here.' });
       return;
     }
 
@@ -1103,7 +1103,7 @@ export class RoomController {
         return;
       }
       timeslot = availableTimeslot;
-    } else if (type === TimeSlotType.unavailable) {
+    } else {
       repository = getRepository(UnavailableTimeslot);
       const unavailableTimeslot = await repository.findOneOrFail(timeslot.id);
 
@@ -1112,27 +1112,37 @@ export class RoomController {
         return;
       }
       timeslot = unavailableTimeslot;
-    } else {
-      return;
     }
 
     const { start, end } = req.body;
-    const mStart = moment(start);
-    const mEnd = moment(end);
-    let newTimeslot;
 
-    try {
-      newTimeslot = repository.create({
-        start: mStart.toDate(),
-        end: mEnd.toDate(),
-        room,
-      });
-
-      await validateOrReject(newTimeslot);
-    } catch (err) {
-      res.status(400).json(err);
+    if (!isISO8601(start)) {
+      res.status(400).json({ message: 'Invalid start format.' });
       return;
     }
+
+    if (!isISO8601(end)) {
+      res.status(400).json({ message: 'Invalid end format.' });
+      return;
+    }
+
+    const mStart = moment(start);
+    const mEnd = moment(end);
+
+    const duration = moment.duration(mEnd.diff(mStart));
+
+    if (duration.asHours() < 1) {
+      res.status(400).json({ message: 'Duration must be at least 1h.' });
+      return;
+    }
+
+    let newTimeslot;
+
+    newTimeslot = repository.create({
+      start: mStart.toDate(),
+      end: mEnd.toDate(),
+      room,
+    });
 
     let mergables = await repository.find({
       where: [
