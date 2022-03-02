@@ -202,7 +202,7 @@ describe('AdminController', () => {
     it('should fail with invalid id', (done) => {
       chai
         .request(app.app)
-        .get(uri.replace(':id', 'invalid'))
+        .get(uri.replace(':id', uuidv4()))
         .set('Authorization', adminHeader)
         .end((err, res) => {
           expect(res.status).to.equal(404);
@@ -247,6 +247,38 @@ describe('AdminController', () => {
           expect(res.status).to.equal(403);
           done();
         });
+    });
+
+    it('should successfully create a new retailer with domains', async () => {
+      const retailer = Helpers.JSONify(
+        await factory(Retailer)({ relations: ['domains'] }).make()
+      );
+      const newDomains = Helpers.JSONify(
+        await factory(RetailerDomain)({ retailer }).createMany(3)
+      );
+
+      const res = await chai
+        .request(app.app)
+        .post(uri)
+        .set('Authorization', adminHeader)
+        .send(retailer);
+
+      expect(res.status).to.equal(201);
+      const savedRetailer = Helpers.JSONify(
+        await retailerRepository.findOneOrFail(res.body.id, {
+          relations: ['domains'],
+        })
+      );
+      expect(res.body).to.deep.equal(savedRetailer);
+      expect(res.body.domains)
+        .to.be.an('array')
+        .that.has.a.lengthOf(3)
+        .and.that.has.same.deep.members(newDomains);
+
+      expect(savedRetailer.domains)
+        .to.be.an('array')
+        .that.has.a.lengthOf(3)
+        .and.that.has.same.deep.members(newDomains);
     });
 
     it('should successfully create a new retailer', async () => {
@@ -333,7 +365,7 @@ describe('AdminController', () => {
     it('should fail with invalid id', (done) => {
       chai
         .request(app.app)
-        .delete(uri.replace(':id', 'invalid'))
+        .delete(uri.replace(':id', uuidv4()))
         .set('Authorization', adminHeader)
         .end((err, res) => {
           expect(res.status).to.equal(404);
@@ -384,6 +416,14 @@ describe('AdminController', () => {
       )
     );
 
+    it('should fail with invalid retailer id', async () => {
+      const res = await chai
+        .request(app.app)
+        .post(uri.replace(':id', uuidv4()))
+        .set('Authorization', adminHeader);
+      expect(res.status).to.equal(404);
+    });
+
     it('should fail as non-admin', async () => {
       const retailer = await factory(Retailer)().create();
       const res = await chai
@@ -428,7 +468,7 @@ describe('AdminController', () => {
 
       const res = await chai
         .request(app.app)
-        .delete(uri.replace(':id', retailer.id).replace(':domainId', 'invalid'))
+        .delete(uri.replace(':id', retailer.id).replace(':domainId', uuidv4()))
         .set('Authorization', adminHeader);
       expect(res.status).to.equal(404);
     });
@@ -439,7 +479,7 @@ describe('AdminController', () => {
 
       const res = await chai
         .request(app.app)
-        .delete(uri.replace(':id', 'invalid').replace(':domainId', domain.id))
+        .delete(uri.replace(':id', uuidv4()).replace(':domainId', domain.id))
         .set('Authorization', adminHeader);
       expect(res.status).to.equal(404);
     });
@@ -495,7 +535,7 @@ describe('AdminController', () => {
 
       const res = await chai
         .request(app.app)
-        .patch(uri.replace(':id', retailer.id).replace(':domainId', 'invalid'))
+        .patch(uri.replace(':id', retailer.id).replace(':domainId', uuidv4()))
         .set('Authorization', adminHeader);
       expect(res.status).to.equal(404);
     });
@@ -506,7 +546,7 @@ describe('AdminController', () => {
 
       const res = await chai
         .request(app.app)
-        .patch(uri.replace(':id', 'invalid').replace(':domainId', domain.id))
+        .patch(uri.replace(':id', uuidv4()).replace(':domainId', domain.id))
         .set('Authorization', adminHeader);
       expect(res.status).to.equal(404);
     });
@@ -904,6 +944,16 @@ describe('AdminController', () => {
             expect(res.status).to.equal(404);
             done();
           });
+      });
+
+      it('should fail to degrade last admin', async () => {
+        const res = await chai
+          .request(app.app)
+          .patch(uri.replace(':id', admin.id))
+          .set('Authorization', adminHeader)
+          .send({ role: UserRole.visitor });
+
+        expect(res.status).to.equal(403);
       });
 
       it('should fail to update the id', async () => {
