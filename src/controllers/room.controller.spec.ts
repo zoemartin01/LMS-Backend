@@ -1,10 +1,5 @@
 import { Connection, getRepository, Repository } from 'typeorm';
-import {
-  factory,
-  times,
-  useRefreshDatabase,
-  useSeeding,
-} from 'typeorm-seeding';
+import { factory, useRefreshDatabase, useSeeding } from 'typeorm-seeding';
 import App from '../app';
 import chai, { expect } from 'chai';
 import chaiHttp from 'chai-http';
@@ -739,48 +734,6 @@ describe('RoomController', () => {
           else expect(day).to.equal(null);
         });
       });
-    });
-
-    it('dummy', async () => {
-      await repository.update(room.id, { maxConcurrentBookings: 2 });
-
-      const timeslot = await getRepository(AvailableTimeslot).save({
-        room,
-        start: moment()
-          .day(1)
-          .hours(0)
-          .minutes(0)
-          .seconds(0)
-          .milliseconds(0)
-          .toDate(),
-        end: moment()
-          .day(2)
-          .hours(0)
-          .minutes(0)
-          .seconds(0)
-          .milliseconds(0)
-          .toDate(),
-      });
-
-      const res = await chai
-        .request(app.app)
-        .get(uri.replace(':id', room.id))
-        .set('Authorization', adminHeader);
-
-      // console.log(res.body);
-      // res.body.calendar.forEach((hour: (string[] | null[])[]) => {
-      //   hour
-      //     .filter(
-      //       (day: string[] | null[]) =>
-      //         hour.indexOf(day) === (d <= 0 ? 7 : (d - 1) % 7)
-      //     )
-      //     .forEach((day: string[] | null[]) => {
-      //       console.log(res.body.calendar.indexOf(hour));
-      //     });
-      // });
-      // res.body.calendar.forEach(element => {
-      //   console.log(element)
-      // });
     });
   });
 
