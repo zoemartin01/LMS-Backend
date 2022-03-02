@@ -126,7 +126,7 @@ export class RoomController {
     const room = await getRepository(Room).findOne(req.params.id);
 
     if (room === undefined) {
-      res.status(404).json({ message: 'Room not found' });
+      res.status(404).json({ message: 'Room not found.' });
       return;
     }
 
@@ -196,9 +196,9 @@ export class RoomController {
       index,
       j;
     for (availableTimespan of availableTimeSlots) {
-      if (availableTimespan.start == null || availableTimespan.end == null) {
-        continue;
-      }
+      // if (availableTimespan.start == null || availableTimespan.end == null) {
+      //   continue;
+      // }
 
       timespanStart = +moment(availableTimespan.start).format('HH');
       if (timespanStart < minTimeslot) {
@@ -236,9 +236,9 @@ export class RoomController {
 
     //add available timeslots to calendar
     for (availableTimespan of availableTimeSlots) {
-      if (availableTimespan.start == null || availableTimespan.end == null) {
-        continue;
-      }
+      // if (availableTimespan.start == null || availableTimespan.end == null) {
+      //   continue;
+      // }
 
       timespanEnd = +moment(availableTimespan.end).format('HH');
       if (timespanEnd === 0) {
@@ -258,12 +258,12 @@ export class RoomController {
 
     //set unavailable timeslots
     for (unavailableTimeSlot of unavailableTimeSlots) {
-      if (
-        unavailableTimeSlot.start == null ||
-        unavailableTimeSlot.end == null
-      ) {
-        continue;
-      }
+      // if (
+      //   unavailableTimeSlot.start == null ||
+      //   unavailableTimeSlot.end == null
+      // ) {
+      //   continue;
+      // }
 
       timespanEnd = +moment(unavailableTimeSlot.end).format('HH');
       if (timespanEnd === 0) {
@@ -272,10 +272,10 @@ export class RoomController {
 
       for (
         let i = +moment(unavailableTimeSlot.start).format('HH');
-        i < timespanEnd;
+        i <= timespanEnd;
         i++
       ) {
-        if (minTimeslot <= i && i < maxTimeslot) {
+        if (minTimeslot <= i && i <= maxTimeslot) {
           calendar[i - minTimeslot][
             (+moment(unavailableTimeSlot.start).format('e') + 6) % 7
           ][0] = 'unavailable';
@@ -286,14 +286,15 @@ export class RoomController {
     //add appointments
     try {
       for (appointment of appointments) {
-        if (appointment.start == null || appointment.end == null) {
-          continue;
-        }
+        // if (appointment.start == null || appointment.end == null) {
+        //   continue;
+        // }
 
         start = moment(appointment.start);
         hour = +start.format('HH') - minTimeslot;
         day = (+start.format('e') + 6) % 7;
 
+        // @todo(zoe) this is a weird one
         if (calendar[hour][day][0] === 'unavailable') {
           continue;
         }
@@ -337,6 +338,7 @@ export class RoomController {
           }
 
           //shorten available timeslots on left side of timeslots
+          // @todo(zoe) wann wird das benutzt?
           if (index !== j) {
             calendar[i][day][j] = `available ${index - j}`;
           }
@@ -348,6 +350,7 @@ export class RoomController {
         calendar[hour][day][index] = appointment;
       }
     } catch (e) {
+      // @todo(zoe) this error message ignores the 'throw max concurrent bookings violated' thing
       res.status(500).json({
         message: 'Room has appointments outside of available timeslots.',
       });
@@ -380,7 +383,7 @@ export class RoomController {
     const room = await getRepository(Room).findOne(req.params.id);
 
     if (room === undefined) {
-      res.status(404).json({ message: 'Room not found' });
+      res.status(404).json({ message: 'Room not found.' });
       return;
     }
 
@@ -420,9 +423,9 @@ export class RoomController {
 
     //set available timeslots
     for (availableTimespan of availableTimeSlots) {
-      if (availableTimespan.start == null || availableTimespan.end == null) {
-        continue;
-      }
+      // if (availableTimespan.start == null || availableTimespan.end == null) {
+      //   continue;
+      // }
 
       timespanEnd = +moment(availableTimespan.end).format('HH');
       if (timespanEnd === 0) {
@@ -442,12 +445,12 @@ export class RoomController {
 
     //set unavailable timeslots
     for (unavailableTimeSlot of unavailableTimeSlots) {
-      if (
-        unavailableTimeSlot.start == null ||
-        unavailableTimeSlot.end == null
-      ) {
-        continue;
-      }
+      // if (
+      //   unavailableTimeSlot.start == null ||
+      //   unavailableTimeSlot.end == null
+      // ) {
+      //   continue;
+      // }
 
       timespanEnd = +moment(unavailableTimeSlot.end).format('HH');
       if (timespanEnd === 0) {
