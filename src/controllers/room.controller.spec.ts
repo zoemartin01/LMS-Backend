@@ -186,7 +186,68 @@ describe('RoomController', () => {
     });
   });
 
-  describe('GET /rooms/:id/timeslot/:timeslotId', () => {});
+  describe('GET /rooms/:id/timeslot/:timeslotId', () => {
+    const uri = `${environment.apiRoutes.base}${environment.apiRoutes.rooms.getTimeslot}`;
+
+    let room: Room;
+
+    beforeEach(async () => {
+      room = await factory(Room)().create();
+    });
+
+    it(
+      'should fail without authentication',
+      Helpers.checkAuthentication(
+        'GET',
+        'fails',
+        app,
+        uri.replace(':id', uuidv4()).replace(':timeslotId', uuidv4())
+      )
+    );
+
+    it('should fail as non-admin', async () => {
+      const res = await chai
+        .request(app.app)
+        .get(uri.replace(':id', uuidv4()).replace(':timeslotId', uuidv4()))
+        .set('Authorization', visitorHeader);
+
+      res.should.have.status(403);
+    });
+
+    it('should fail if room id is invalid', async () => {
+      const res = await chai
+        .request(app.app)
+        .get(uri.replace(':id', uuidv4()).replace(':timeslotId', uuidv4()))
+        .set('Authorization', adminHeader);
+
+      res.should.have.status(404);
+      res.body.should.have.property('message', 'Room not found.');
+    });
+
+    it('should fail if timeslot id is invalid', async () => {
+      const res = await chai
+        .request(app.app)
+        .get(uri.replace(':id', room.id).replace(':timeslotId', uuidv4()))
+        .set('Authorization', adminHeader);
+
+      res.should.have.status(404);
+      res.body.should.have.property('message', 'Timeslot not found.');
+    });
+
+    it('should return valid timeslot', async () => {
+      const timeslot = Helpers.JSONify(
+        await factory(AvailableTimeslot)({ room }).create()
+      );
+
+      const res = await chai
+        .request(app.app)
+        .get(uri.replace(':id', room.id).replace(':timeslotId', timeslot.id))
+        .set('Authorization', adminHeader);
+
+      res.should.have.status(200);
+      res.body.should.deep.include(timeslot);
+    });
+  });
 
   describe('GET /rooms/:id/calendar', () => {});
 

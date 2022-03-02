@@ -84,9 +84,10 @@ export class RoomController {
     const room = await getRepository(Room).findOne(req.params.id);
 
     if (room === undefined) {
-      res.status(404).json({ message: 'Room not found' });
+      res.status(404).json({ message: 'Room not found.' });
       return;
     }
+
     const timeslot = await getRepository(TimeSlot).findOne({
       where: {
         id: req.params.timeslotId,
@@ -95,7 +96,7 @@ export class RoomController {
     });
 
     if (timeslot === undefined) {
-      res.status(404).json({ message: 'Timeslot not found' });
+      res.status(404).json({ message: 'Timeslot not found.' });
       return;
     }
 
