@@ -373,6 +373,42 @@ describe('RoomController', () => {
       });
     });
 
+    it('it should return the calendar with the query date', async () => {
+      const timeslot = await getRepository(AvailableTimeslot).save({
+        room,
+        start: moment()
+          .day(1)
+          .add(1, 'week')
+          .hours(10)
+          .minutes(0)
+          .seconds(0)
+          .milliseconds(0)
+          .toDate(),
+        end: moment()
+          .day(2)
+          .add(1, 'week')
+          .hours(0)
+          .minutes(0)
+          .seconds(0)
+          .milliseconds(0)
+          .toDate(),
+      });
+      const day = moment(timeslot.start).days();
+
+      const res = await chai
+        .request(app.app)
+        .get(uri.replace(':id', room.id))
+        .query({ date: moment().add(1, 'week').valueOf() })
+        .set('Authorization', adminHeader);
+
+      res.should.have.status(200);
+      res.body.calendar.forEach((hour: (string[] | null[])[]) => {
+        hour[day <= 0 ? 7 : (day - 1) % 7][0].should.equal(
+          `available ${room.maxConcurrentBookings}`
+        );
+      });
+    });
+
     it('it should return the unavailable timeslots', async () => {
       const timeslot = await getRepository(AvailableTimeslot).save({
         room,
@@ -458,6 +494,86 @@ describe('RoomController', () => {
             if (res.body.calendar.indexOf(hour) === 0)
               day[0].should.eql(appointment);
             else day[0].should.equal(`appointment_blocked`);
+          });
+      });
+    });
+
+    it('it should return the correct avaliable slots with multiple concurrent bookings', async () => {
+      await repository.update(room.id, { maxConcurrentBookings: 2 });
+
+      room = await repository.findOneOrFail(room.id);
+
+      const timeslot = await getRepository(AvailableTimeslot).save({
+        room,
+        start: moment()
+          .day(1)
+          .hours(10)
+          .minutes(0)
+          .seconds(0)
+          .milliseconds(0)
+          .toDate(),
+        end: moment()
+          .day(2)
+          .hours(0)
+          .minutes(0)
+          .seconds(0)
+          .milliseconds(0)
+          .toDate(),
+      });
+
+      const shortAppointment = Helpers.JSONify(
+        await getRepository(AppointmentTimeslot).save({
+          room,
+          user: admin,
+          start: moment(timeslot.start).toDate(),
+          end: moment(timeslot.end).subtract(4, 'hours').toDate(),
+        })
+      );
+      shortAppointment.type = 1;
+
+      const longAppointment = Helpers.JSONify(
+        await getRepository(AppointmentTimeslot).save({
+          room,
+          user: admin,
+          start: moment(timeslot.start).add(1, 'hour').toDate(),
+          end: moment(timeslot.end).toDate(),
+        })
+      );
+      longAppointment.type = 1;
+      const d = moment(timeslot.start).days();
+
+      const res = await chai
+        .request(app.app)
+        .get(uri.replace(':id', room.id))
+        .set('Authorization', adminHeader);
+
+      const len = res.body.calendar.length;
+
+      res.should.have.status(200);
+      res.body.calendar.forEach((hour: (string[] | null[])[]) => {
+        hour
+          .filter(
+            (day: string[] | null[]) =>
+              hour.indexOf(day) === (d <= 0 ? 7 : (d - 1) % 7)
+          )
+          .forEach((day: string[] | null[]) => {
+            if (res.body.calendar.indexOf(hour) === 0) {
+              day[0].should.eql(shortAppointment);
+              day[1].should.equal(
+                `available ${room.maxConcurrentBookings - 1}`
+              );
+            } else if (res.body.calendar.indexOf(hour) === 1) {
+              day[0].should.equal(`appointment_blocked`);
+              day[1].should.eql(longAppointment);
+            } else if (res.body.calendar.indexOf(hour) >= len - 4) {
+              day[0].should.equal(
+                `available ${room.maxConcurrentBookings - 1}`
+              );
+              day[1].should.equal(`appointment_blocked`);
+            } else {
+              day[0].should.equal(`appointment_blocked`);
+              day[1].should.equal(`appointment_blocked`);
+            }
           });
       });
     });
