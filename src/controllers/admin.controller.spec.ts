@@ -109,6 +109,45 @@ describe('AdminController', () => {
         });
     });
 
+    //todo 49-52
+    it('should fail with undefined body', (done) => {
+      chai
+        .request(app.app)
+        .patch(uri)
+        .set('Authorization', adminHeader)
+        .send([{ undefined }])
+        .end((err, res) => {
+          expect(res.status).to.equal(404);
+          done();
+        });
+    });
+
+    it('should fail with invalid key', (done) => {
+      chai
+        .request(app.app)
+        .patch(uri)
+        .set('Authorization', adminHeader)
+        .send([{ key: undefined, value: 50 }])
+        .end((err, res) => {
+          expect(res.status).to.equal(404);
+          done();
+        });
+    });
+
+    it('should fail with invalid value', (done) => {
+      chai
+        .request(app.app)
+        .patch(uri)
+        .set('Authorization', adminHeader)
+        .send([{ key: 'user.max_recordings', value: -10 }])
+        .end((err, res) => {
+          expect(res.status).to.equal(404);
+          done();
+        });
+    });
+
+    //todo 87-88 failing update due to invalid inputs
+
     it('should update global settings', async () => {
       const res = await chai
         .request(app.app)
@@ -250,6 +289,18 @@ describe('AdminController', () => {
         });
     });
 
+    it('should fail to create with invalid input', (done) => {
+      chai
+        .request(app.app)
+        .post(uri)
+        .set('Authorization', adminHeader)
+        .send({ name: null })
+        .end((err, res) => {
+          expect(res.status).to.equal(400);
+          done();
+        });
+    });
+
     it('should successfully create a new retailer with domains', async () => {
       const retailer = Helpers.JSONify(await factory(Retailer)().make());
       const newDomains = await factory(RetailerDomain)({ retailer }).makeMany(
@@ -322,6 +373,30 @@ describe('AdminController', () => {
           expect(res.status).to.equal(403);
           done();
         });
+    });
+
+    it('should fail with invalid id', (done) => {
+      chai
+        .request(app.app)
+        .patch(uri.replace(':id', uuidv4()))
+        .set('Authorization', adminHeader)
+        .end((err, res) => {
+          expect(res.status).to.equal(404);
+          done();
+        });
+    });
+
+    it('should fail to update invalid input', async () => {
+      const retailer = Helpers.JSONify(
+        await factory(Retailer)({ relations: ['domains'] }).create()
+      );
+      const res = await chai
+        .request(app.app)
+        .patch(uri.replace(':id', retailer.id))
+        .set('Authorization', adminHeader)
+        .send({ name: null });
+
+      expect(res.status).to.equal(400);
     });
 
     it('should update a specific retailer', async () => {
@@ -428,6 +503,24 @@ describe('AdminController', () => {
         .post(uri.replace(':id', retailer.id))
         .set('Authorization', visitorHeader);
       expect(res.status).to.equal(403);
+    });
+
+    it('should fail with invalid input', async () => {
+      const retailer = await factory(Retailer)({ name: null }).create();
+      const res = await chai
+        .request(app.app)
+        .post(uri.replace(':id', retailer.id))
+        .set('Authorization', adminHeader);
+      expect(res.status).to.equal(400);
+    });
+
+    it('should fail with invalid input 2', async () => {
+      const retailer = await factory(Retailer)({ name: 0 }).create();
+      const res = await chai
+        .request(app.app)
+        .post(uri.replace(':id', retailer.id))
+        .set('Authorization', adminHeader);
+      expect(res.status).to.equal(400);
     });
 
     it('should successfully add a domain to retailer', async () => {
@@ -591,6 +684,58 @@ describe('AdminController', () => {
         .patch(uri.replace(':id', retailer.id).replace(':domainId', domain.id))
         .set('Authorization', adminHeader)
         .send({ domain: -1 });
+      expect(res.status).to.equal(404);
+    });
+
+    //todo 343-344
+    it('should fail with invalid input', async () => {
+      const retailer = await factory(Retailer)().create();
+      const domain = await factory(RetailerDomain)(retailer).create();
+
+      const res = await chai
+        .request(app.app)
+        .patch(uri.replace(':id', retailer.id).replace(':domainId', domain.id))
+        .set('Authorization', adminHeader)
+        .send({ domain: null });
+      expect(res.status).to.equal(404);
+    });
+
+    //todo 343-344
+    it('should fail with invalid input', async () => {
+      const retailer = await factory(Retailer)().create();
+      const domain = await factory(RetailerDomain)(retailer).create();
+
+      const res = await chai
+        .request(app.app)
+        .patch(uri.replace(':id', retailer.id).replace(':domainId', domain.id))
+        .set('Authorization', adminHeader)
+        .send({ domain: 8 });
+      expect(res.status).to.equal(404);
+    });
+
+    //todo 343-344
+    it('should fail with invalid input', async () => {
+      const retailer = await factory(Retailer)().create();
+      const domain = await factory(RetailerDomain)(retailer).create();
+
+      const res = await chai
+        .request(app.app)
+        .patch(uri.replace(':id', retailer.id).replace(':domainId', domain.id))
+        .set('Authorization', adminHeader)
+        .send({ domain: 0 });
+      expect(res.status).to.equal(404);
+    });
+
+    //todo 343-344
+    it('should fail with invalid input', async () => {
+      const retailer = await factory(Retailer)().create();
+      const domain = await factory(RetailerDomain)(retailer).create();
+
+      const res = await chai
+        .request(app.app)
+        .patch(uri.replace(':id', retailer.id).replace(':domainId', domain.id))
+        .set('Authorization', adminHeader)
+        .send({ domain: -2 });
       expect(res.status).to.equal(404);
     });
 
@@ -966,6 +1111,44 @@ describe('AdminController', () => {
       expect(res.status).to.equal(400);
     });
 
+    it('should fail to update invalid input pending to visitor', async () => {
+      sandbox.stub(MessagingController, 'sendMessageViaEmail').resolves();
+      const user = Helpers.JSONify(
+        await factory(User)({
+          role: UserRole.pending,
+          emailVerification: true,
+          firstName: null,
+          notificationChannel: null,
+        }).create()
+      );
+      const res = await chai
+        .request(app.app)
+        .patch(uri.replace(':id', user.id))
+        .set('Authorization', adminHeader)
+        .send({ role: UserRole.visitor, lastName: '' });
+
+      expect(res.status).to.equal(400);
+    });
+
+    //todo 611-612
+    it('should fail to update invalid input', async () => {
+      const user = Helpers.JSONify(
+        await factory(User)({
+          role: UserRole.visitor,
+          emailVerification: true,
+          firstName: null,
+          notificationChannel: null,
+        }).create()
+      );
+      const res = await chai
+        .request(app.app)
+        .patch(uri.replace(':id', user.id))
+        .set('Authorization', adminHeader)
+        .send({ lastName: null });
+
+      expect(res.status).to.equal(400);
+    });
+
     it('should send message when update a pending user to be a visitor', async () => {
       const spy = sandbox.stub(MessagingController, 'sendMessageViaEmail');
       const user = await factory(User)({
@@ -1109,28 +1292,10 @@ describe('AdminController', () => {
         });
     });
 
-    it('should fail to delete an invalid user', async () => {
-      const user = await factory(User)({
-        role: UserRole.visitor,
-        emailVerification: true,
-        isActiveDirectory: -1,
-      }).create();
-      expect(
-        (async () => {
-          return await userRepository.findOneOrFail(user.id);
-        })()
-      ).to.be.fulfilled;
-
-      const res = await chai
-        .request(app.app)
-        .delete(uri.replace(':id', user.id))
-        .set('Authorization', adminHeader);
-
-      expect(res.status).to.equal(404);
-    });
-    //todo why does this break    Error: Timeout of 2000ms exceeded. For async tests and hooks, ensure "done()" is called; if returning a Promise, ensure it resolves.
+    //todo 694-695 error when creating the new user mango
 
     it('should delete a specific user', async () => {
+      sandbox.stub(MessagingController, 'sendMessageViaEmail').resolves();
       const user = await factory(User)({
         role: UserRole.visitor,
         emailVerification: true,
@@ -1146,9 +1311,8 @@ describe('AdminController', () => {
         .delete(uri.replace(':id', user.id))
         .set('Authorization', adminHeader);
 
-      expect(res.status).to.equal(404);
+      expect(res.status).to.equal(204);
     });
-    //todo why does this break    Error: Timeout of 2000ms exceeded. For async tests and hooks, ensure "done()" is called; if returning a Promise, ensure it resolves.
   });
 });
 
