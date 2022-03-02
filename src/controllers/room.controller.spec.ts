@@ -186,11 +186,672 @@ describe('RoomController', () => {
     });
   });
 
-  describe('GET /rooms/:id/timeslot/:timeslotId', () => {});
+  describe('GET /rooms/:id/timeslot/:timeslotId', () => {
+    const uri = `${environment.apiRoutes.base}${environment.apiRoutes.rooms.getTimeslot}`;
 
-  describe('GET /rooms/:id/calendar', () => {});
+    let room: Room;
 
-  describe('GET /rooms/:id/availability-calendar', () => {});
+    beforeEach(async () => {
+      room = await factory(Room)().create();
+    });
+
+    it(
+      'should fail without authentication',
+      Helpers.checkAuthentication(
+        'GET',
+        'fails',
+        app,
+        uri.replace(':id', uuidv4()).replace(':timeslotId', uuidv4())
+      )
+    );
+
+    it('should fail as non-admin', async () => {
+      const res = await chai
+        .request(app.app)
+        .get(uri.replace(':id', uuidv4()).replace(':timeslotId', uuidv4()))
+        .set('Authorization', visitorHeader);
+
+      res.should.have.status(403);
+    });
+
+    it('should fail if room id is invalid', async () => {
+      const res = await chai
+        .request(app.app)
+        .get(uri.replace(':id', uuidv4()).replace(':timeslotId', uuidv4()))
+        .set('Authorization', adminHeader);
+
+      res.should.have.status(404);
+      res.body.should.have.property('message', 'Room not found.');
+    });
+
+    it('should fail if timeslot id is invalid', async () => {
+      const res = await chai
+        .request(app.app)
+        .get(uri.replace(':id', room.id).replace(':timeslotId', uuidv4()))
+        .set('Authorization', adminHeader);
+
+      res.should.have.status(404);
+      res.body.should.have.property('message', 'Timeslot not found.');
+    });
+
+    it('should return valid timeslot', async () => {
+      const timeslot = Helpers.JSONify(
+        await factory(AvailableTimeslot)({ room }).create()
+      );
+
+      const res = await chai
+        .request(app.app)
+        .get(uri.replace(':id', room.id).replace(':timeslotId', timeslot.id))
+        .set('Authorization', adminHeader);
+
+      res.should.have.status(200);
+      res.body.should.deep.include(timeslot);
+    });
+  });
+
+  describe('GET /rooms/:id/calendar', () => {
+    const uri = `${environment.apiRoutes.base}${environment.apiRoutes.rooms.getRoomCalendar}`;
+
+    let room: Room;
+
+    beforeEach(async () => {
+      room = await factory(Room)({ maxConcurrentBookings: 1 }).create();
+    });
+
+    it(
+      'should fail without authentication',
+      Helpers.checkAuthentication(
+        'GET',
+        'fails',
+        app,
+        uri.replace(':id', uuidv4())
+      )
+    );
+
+    it('should return 404 if room id is invalid', async () => {
+      const res = await chai
+        .request(app.app)
+        .get(uri.replace(':id', uuidv4()))
+        .set('Authorization', adminHeader);
+
+      res.should.have.status(404);
+      res.body.should.have.property('message', 'Room not found.');
+    });
+
+    it('should return empty calendar for empty room', async () => {
+      const res = await chai
+        .request(app.app)
+        .get(uri.replace(':id', room.id))
+        .set('Authorization', adminHeader);
+
+      res.should.have.status(200);
+      res.body.should.eql({ calendar: [], minTimeslot: 0 });
+    });
+
+    it('it should return the min timeslot hour', async () => {
+      await getRepository(AvailableTimeslot).save({
+        room,
+        start: moment()
+          .hours(10)
+          .minutes(0)
+          .seconds(0)
+          .milliseconds(0)
+          .toDate(),
+        end: moment().hours(14).minutes(0).seconds(0).milliseconds(0).toDate(),
+      });
+
+      const res = await chai
+        .request(app.app)
+        .get(uri.replace(':id', room.id))
+        .set('Authorization', adminHeader);
+
+      res.should.have.status(200);
+      res.body.should.have.property('minTimeslot', 10);
+    });
+
+    it('it should return a calendar the length of the longest timeslot', async () => {
+      const timeslot = await getRepository(AvailableTimeslot).save({
+        room,
+        start: moment()
+          .hours(10)
+          .minutes(0)
+          .seconds(0)
+          .milliseconds(0)
+          .toDate(),
+        end: moment().hours(14).minutes(0).seconds(0).milliseconds(0).toDate(),
+      });
+
+      const diff = moment
+        .duration(moment(timeslot.end).diff(moment(timeslot.start)))
+        .asHours();
+
+      const res = await chai
+        .request(app.app)
+        .get(uri.replace(':id', room.id))
+        .set('Authorization', adminHeader);
+
+      res.should.have.status(200);
+      res.body.calendar.should.be.an('array').with.lengthOf(diff);
+      res.body.calendar.forEach((hour: (string[] | null[])[]) => {
+        hour.should.be.an('array').with.lengthOf(7);
+        hour.forEach((day: string[] | null[]) => {
+          day.should.be.an('array').with.lengthOf(room.maxConcurrentBookings);
+        });
+      });
+    });
+
+    it('it should return the available timeslots', async () => {
+      const timeslot = await getRepository(AvailableTimeslot).save({
+        room,
+        start: moment()
+          .day(1)
+          .hours(10)
+          .minutes(0)
+          .seconds(0)
+          .milliseconds(0)
+          .toDate(),
+        end: moment()
+          .day(2)
+          .hours(0)
+          .minutes(0)
+          .seconds(0)
+          .milliseconds(0)
+          .toDate(),
+      });
+      const day = moment(timeslot.start).days();
+
+      const res = await chai
+        .request(app.app)
+        .get(uri.replace(':id', room.id))
+        .set('Authorization', adminHeader);
+
+      res.should.have.status(200);
+      res.body.calendar.forEach((hour: (string[] | null[])[]) => {
+        hour[day <= 0 ? 7 : (day - 1) % 7][0].should.equal(
+          `available ${room.maxConcurrentBookings}`
+        );
+      });
+    });
+
+    it('it should return the calendar with the query date', async () => {
+      const timeslot = await getRepository(AvailableTimeslot).save({
+        room,
+        start: moment()
+          .day(1)
+          .add(1, 'week')
+          .hours(10)
+          .minutes(0)
+          .seconds(0)
+          .milliseconds(0)
+          .toDate(),
+        end: moment()
+          .day(2)
+          .add(1, 'week')
+          .hours(0)
+          .minutes(0)
+          .seconds(0)
+          .milliseconds(0)
+          .toDate(),
+      });
+      const day = moment(timeslot.start).days();
+
+      const res = await chai
+        .request(app.app)
+        .get(uri.replace(':id', room.id))
+        .query({ date: moment().add(1, 'week').valueOf() })
+        .set('Authorization', adminHeader);
+
+      res.should.have.status(200);
+      res.body.calendar.forEach((hour: (string[] | null[])[]) => {
+        hour[day <= 0 ? 7 : (day - 1) % 7][0].should.equal(
+          `available ${room.maxConcurrentBookings}`
+        );
+      });
+    });
+
+    it('it should return the unavailable timeslots', async () => {
+      const timeslot = await getRepository(AvailableTimeslot).save({
+        room,
+        start: moment()
+          .day(1)
+          .hours(10)
+          .minutes(0)
+          .seconds(0)
+          .milliseconds(0)
+          .toDate(),
+        end: moment()
+          .day(2)
+          .hours(0)
+          .minutes(0)
+          .seconds(0)
+          .milliseconds(0)
+          .toDate(),
+      });
+
+      await getRepository(UnavailableTimeslot).save({
+        room,
+        start: timeslot.start,
+        end: timeslot.end,
+      });
+      const d = moment(timeslot.start).days();
+
+      const res = await chai
+        .request(app.app)
+        .get(uri.replace(':id', room.id))
+        .set('Authorization', adminHeader);
+
+      res.should.have.status(200);
+      res.body.calendar.forEach((hour: (string[] | null[])[]) => {
+        hour.forEach((day: string[] | null[]) => {
+          day[0].should.equal(`unavailable`);
+        });
+      });
+    });
+
+    it('it should return the appointment timeslots', async () => {
+      const timeslot = await getRepository(AvailableTimeslot).save({
+        room,
+        start: moment()
+          .day(1)
+          .hours(10)
+          .minutes(0)
+          .seconds(0)
+          .milliseconds(0)
+          .toDate(),
+        end: moment()
+          .day(2)
+          .hours(0)
+          .minutes(0)
+          .seconds(0)
+          .milliseconds(0)
+          .toDate(),
+      });
+
+      const appointment = Helpers.JSONify(
+        await getRepository(AppointmentTimeslot).save({
+          room,
+          user: admin,
+          start: timeslot.start,
+          end: timeslot.end,
+        })
+      );
+      appointment.type = 1;
+      const d = moment(timeslot.start).days();
+
+      const res = await chai
+        .request(app.app)
+        .get(uri.replace(':id', room.id))
+        .set('Authorization', adminHeader);
+
+      res.should.have.status(200);
+      res.body.calendar.forEach((hour: (string[] | null[])[]) => {
+        hour
+          .filter(
+            (day: string[] | null[]) =>
+              hour.indexOf(day) === (d <= 0 ? 7 : (d - 1) % 7)
+          )
+          .forEach((day: string[] | null[]) => {
+            if (res.body.calendar.indexOf(hour) === 0)
+              day[0].should.eql(appointment);
+            else day[0].should.equal(`appointment_blocked`);
+          });
+      });
+    });
+
+    it('it should return the correct avaliable slots with multiple concurrent bookings', async () => {
+      await repository.update(room.id, { maxConcurrentBookings: 2 });
+
+      room = await repository.findOneOrFail(room.id);
+
+      const timeslot = await getRepository(AvailableTimeslot).save({
+        room,
+        start: moment()
+          .day(1)
+          .hours(10)
+          .minutes(0)
+          .seconds(0)
+          .milliseconds(0)
+          .toDate(),
+        end: moment()
+          .day(2)
+          .hours(0)
+          .minutes(0)
+          .seconds(0)
+          .milliseconds(0)
+          .toDate(),
+      });
+
+      const shortAppointment = Helpers.JSONify(
+        await getRepository(AppointmentTimeslot).save({
+          room,
+          user: admin,
+          start: moment(timeslot.start).toDate(),
+          end: moment(timeslot.end).subtract(4, 'hours').toDate(),
+        })
+      );
+      shortAppointment.type = 1;
+
+      const longAppointment = Helpers.JSONify(
+        await getRepository(AppointmentTimeslot).save({
+          room,
+          user: admin,
+          start: moment(timeslot.start).add(1, 'hour').toDate(),
+          end: moment(timeslot.end).toDate(),
+        })
+      );
+      longAppointment.type = 1;
+      const d = moment(timeslot.start).days();
+
+      const res = await chai
+        .request(app.app)
+        .get(uri.replace(':id', room.id))
+        .set('Authorization', adminHeader);
+
+      const len = res.body.calendar.length;
+
+      res.should.have.status(200);
+      res.body.calendar.forEach((hour: (string[] | null[])[]) => {
+        hour
+          .filter(
+            (day: string[] | null[]) =>
+              hour.indexOf(day) === (d <= 0 ? 7 : (d - 1) % 7)
+          )
+          .forEach((day: string[] | null[]) => {
+            if (res.body.calendar.indexOf(hour) === 0) {
+              day[0].should.eql(shortAppointment);
+              day[1].should.equal(
+                `available ${room.maxConcurrentBookings - 1}`
+              );
+            } else if (res.body.calendar.indexOf(hour) === 1) {
+              day[0].should.equal(`appointment_blocked`);
+              day[1].should.eql(longAppointment);
+            } else if (res.body.calendar.indexOf(hour) >= len - 4) {
+              day[0].should.equal(
+                `available ${room.maxConcurrentBookings - 1}`
+              );
+              day[1].should.equal(`appointment_blocked`);
+            } else {
+              day[0].should.equal(`appointment_blocked`);
+              day[1].should.equal(`appointment_blocked`);
+            }
+          });
+      });
+    });
+
+    it('it should return the appointment timeslots and available timeslots with maxConcurrentBookings > 1', async () => {
+      await repository.update(room.id, { maxConcurrentBookings: 2 });
+
+      room = await repository.findOneOrFail(room.id);
+
+      const timeslot = await getRepository(AvailableTimeslot).save({
+        room,
+        start: moment()
+          .day(1)
+          .hours(10)
+          .minutes(0)
+          .seconds(0)
+          .milliseconds(0)
+          .toDate(),
+        end: moment()
+          .day(2)
+          .hours(0)
+          .minutes(0)
+          .seconds(0)
+          .milliseconds(0)
+          .toDate(),
+      });
+
+      const appointment = Helpers.JSONify(
+        await getRepository(AppointmentTimeslot).save({
+          room,
+          user: admin,
+          start: timeslot.start,
+          end: timeslot.end,
+        })
+      );
+      appointment.type = 1;
+      const d = moment(timeslot.start).days();
+
+      const res = await chai
+        .request(app.app)
+        .get(uri.replace(':id', room.id))
+        .set('Authorization', adminHeader);
+
+      res.should.have.status(200);
+      res.body.calendar.forEach((hour: (string[] | null[])[]) => {
+        hour
+          .filter(
+            (day: string[] | null[]) =>
+              hour.indexOf(day) === (d <= 0 ? 7 : (d - 1) % 7)
+          )
+          .forEach((day: string[] | null[]) => {
+            if (res.body.calendar.indexOf(hour) === 0) {
+              day[0].should.eql(appointment);
+              day[1].should.equal(
+                `available ${room.maxConcurrentBookings - 1}`
+              );
+            } else {
+              day[0].should.equal(`appointment_blocked`);
+              day[1].should.equal(
+                `available ${room.maxConcurrentBookings - 1}`
+              );
+            }
+          });
+      });
+    });
+
+    it('it should skip appointments inside of unavaliable slots', async () => {
+      const timeslot = await getRepository(AvailableTimeslot).save({
+        room,
+        start: moment()
+          .day(1)
+          .hours(10)
+          .minutes(0)
+          .seconds(0)
+          .milliseconds(0)
+          .toDate(),
+        end: moment()
+          .day(2)
+          .hours(0)
+          .minutes(0)
+          .seconds(0)
+          .milliseconds(0)
+          .toDate(),
+      });
+
+      await getRepository(UnavailableTimeslot).save({
+        room,
+        start: timeslot.start,
+        end: timeslot.end,
+      });
+
+      const appointment = Helpers.JSONify(
+        await getRepository(AppointmentTimeslot).save({
+          room,
+          user: admin,
+          start: timeslot.start,
+          end: timeslot.end,
+        })
+      );
+      appointment.type = 1;
+      const d = moment(timeslot.start).days();
+
+      const res = await chai
+        .request(app.app)
+        .get(uri.replace(':id', room.id))
+        .set('Authorization', adminHeader);
+
+      res.should.have.status(200);
+      res.body.calendar.forEach((hour: (string[] | null[])[]) => {
+        hour
+          .filter(
+            (day: string[] | null[]) =>
+              hour.indexOf(day) === (d <= 0 ? 7 : (d - 1) % 7)
+          )
+          .forEach((day: string[] | null[]) => {
+            day[0].should.equal(`unavailable`);
+          });
+      });
+    });
+
+    it('it return 500 if a group of appointments violates maxConcurrentBookings', async () => {
+      await repository.update(room.id, { maxConcurrentBookings: 1 });
+
+      const timeslot = await getRepository(AvailableTimeslot).save({
+        room,
+        start: moment()
+          .day(1)
+          .hours(10)
+          .minutes(0)
+          .seconds(0)
+          .milliseconds(0)
+          .toDate(),
+        end: moment()
+          .day(2)
+          .hours(0)
+          .minutes(0)
+          .seconds(0)
+          .milliseconds(0)
+          .toDate(),
+      });
+
+      await getRepository(AppointmentTimeslot).save({
+        room,
+        user: admin,
+        start: timeslot.start,
+        end: timeslot.end,
+      });
+
+      await getRepository(AppointmentTimeslot).save({
+        room,
+        user: visitor,
+        start: timeslot.start,
+        end: timeslot.end,
+      });
+      const d = moment(timeslot.start).days();
+
+      const res = await chai
+        .request(app.app)
+        .get(uri.replace(':id', room.id))
+        .set('Authorization', adminHeader);
+
+      res.should.have.status(500);
+    });
+  });
+
+  describe('GET /rooms/:id/availability-calendar', () => {
+    const uri = `${environment.apiRoutes.base}${environment.apiRoutes.rooms.getAvailabilityCalendar}`;
+
+    let room: Room;
+
+    beforeEach(async () => {
+      room = await factory(Room)({ maxConcurrentBookings: 1 }).create();
+    });
+
+    it(
+      'should fail without authentication',
+      Helpers.checkAuthentication(
+        'GET',
+        'fails',
+        app,
+        uri.replace(':id', uuidv4())
+      )
+    );
+
+    it('should return 404 if room id is invalid', async () => {
+      const res = await chai
+        .request(app.app)
+        .get(uri.replace(':id', uuidv4()))
+        .set('Authorization', adminHeader);
+
+      res.should.have.status(404);
+      res.body.should.have.property('message', 'Room not found.');
+    });
+
+    it('should return empty calendar for empty room', async () => {
+      const res = await chai
+        .request(app.app)
+        .get(uri.replace(':id', room.id))
+        .set('Authorization', adminHeader);
+
+      res.should.have.status(200);
+      res.body.forEach((hour: (string | null)[]) => {
+        hour.forEach((day: string | null) => {
+          expect(day).to.equal(null);
+        });
+      });
+    });
+
+    it('should return the avaliable timeslots', async () => {
+      const timeslot = await getRepository(AvailableTimeslot).save({
+        room,
+        start: moment()
+          .day(1)
+          .hours(0)
+          .minutes(0)
+          .seconds(0)
+          .milliseconds(0)
+          .toDate(),
+        end: moment()
+          .day(2)
+          .hours(0)
+          .minutes(0)
+          .seconds(0)
+          .milliseconds(0)
+          .toDate(),
+      });
+      const d = moment(timeslot.start).days();
+
+      const res = await chai
+        .request(app.app)
+        .get(uri.replace(':id', room.id))
+        .set('Authorization', adminHeader);
+
+      res.should.have.status(200);
+      res.body.forEach((hour: (string | null)[]) => {
+        hour.forEach((day: string | null) => {
+          if (hour.indexOf(day) === (d <= 0 ? 7 : (d - 1) % 7))
+            expect(day).to.equal(`available ${timeslot.id}`);
+          else expect(day).to.equal(null);
+        });
+      });
+    });
+
+    it('should return the unavaliable timeslots', async () => {
+      const timeslot = await getRepository(UnavailableTimeslot).save({
+        room,
+        start: moment()
+          .day(1)
+          .hours(0)
+          .minutes(0)
+          .seconds(0)
+          .milliseconds(0)
+          .toDate(),
+        end: moment()
+          .day(2)
+          .hours(0)
+          .minutes(0)
+          .seconds(0)
+          .milliseconds(0)
+          .toDate(),
+      });
+      const d = moment(timeslot.start).days();
+
+      const res = await chai
+        .request(app.app)
+        .get(uri.replace(':id', room.id))
+        .set('Authorization', adminHeader);
+
+      res.should.have.status(200);
+      res.body.forEach((hour: (string | null)[]) => {
+        hour.forEach((day: string | null) => {
+          if (hour.indexOf(day) === (d <= 0 ? 7 : (d - 1) % 7))
+            expect(day).to.equal(`unavailable ${timeslot.id}`);
+          else expect(day).to.equal(null);
+        });
+      });
+    });
+  });
 
   describe('POST /rooms', () => {
     const uri = `${environment.apiRoutes.base}${environment.apiRoutes.rooms.createRoom}`;
