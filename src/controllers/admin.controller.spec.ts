@@ -250,18 +250,19 @@ describe('AdminController', () => {
     });
 
     it('should successfully create a new retailer with domains', async () => {
-      const retailer = Helpers.JSONify(
-        await factory(Retailer)({ relations: ['domains'] }).make()
-      );
-      const newDomains = Helpers.JSONify(
-        await factory(RetailerDomain)({ retailer }).createMany(3)
+      const retailer = Helpers.JSONify(await factory(Retailer)().make());
+      const newDomains = await factory(RetailerDomain)({ retailer }).makeMany(
+        3
       );
 
       const res = await chai
         .request(app.app)
         .post(uri)
         .set('Authorization', adminHeader)
-        .send(retailer);
+        .send({
+          name: retailer.name,
+          domains: newDomains.map((d: RetailerDomain) => d.domain),
+        });
 
       expect(res.status).to.equal(201);
       const savedRetailer = Helpers.JSONify(
@@ -270,21 +271,16 @@ describe('AdminController', () => {
         })
       );
       expect(res.body).to.deep.equal(savedRetailer);
-      expect(res.body.domains)
-        .to.be.an('array')
-        .that.has.a.lengthOf(3)
-        .and.that.has.same.deep.members(newDomains);
-
-      expect(savedRetailer.domains)
-        .to.be.an('array')
-        .that.has.a.lengthOf(3)
-        .and.that.has.same.deep.members(newDomains);
+      savedRetailer.domains.every((domain: RetailerDomain) =>
+        newDomains.some((d) => d.domain === domain.domain)
+      ).should.be.true;
+      res.body.domains.every((domain: RetailerDomain) =>
+        newDomains.some((d) => d.domain === domain.domain)
+      ).should.be.true;
     });
 
     it('should successfully create a new retailer', async () => {
-      const retailer = Helpers.JSONify(
-        await factory(Retailer)({ relations: ['domains'] }).make()
-      );
+      const retailer = Helpers.JSONify(await factory(Retailer)().make());
 
       const res = await chai
         .request(app.app)
