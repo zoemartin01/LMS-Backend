@@ -113,6 +113,7 @@ class AppRouter {
       addUUIDRegexToRoute(
         environment.apiRoutes.admin_settings.getWhitelistRetailer
       ),
+      AuthController.checkAdminMiddleware,
       AuthController.checkAuthenticationMiddleware,
       AdminController.getWhitelistRetailer
     );
