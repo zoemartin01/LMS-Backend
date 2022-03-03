@@ -114,14 +114,12 @@ class AppRouter {
         environment.apiRoutes.admin_settings.getWhitelistRetailer
       ),
       AuthController.checkAuthenticationMiddleware,
-      AuthController.checkAdminMiddleware,
       AdminController.getWhitelistRetailer
     );
 
     this.router.get(
       environment.apiRoutes.admin_settings.getWhitelistRetailers,
       AuthController.checkAuthenticationMiddleware,
-      AuthController.checkAdminMiddleware,
       AdminController.getWhitelistRetailers
     );
 
