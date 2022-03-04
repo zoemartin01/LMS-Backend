@@ -332,9 +332,9 @@ describe('RoomController', () => {
 
       res.should.have.status(200);
       res.body.calendar.should.be.an('array').with.lengthOf(diff);
-      res.body.calendar.forEach((hour: (string[] | null[])[]) => {
+      res.body.calendar.forEach((hour: (string | null)[][]) => {
         hour.should.be.an('array').with.lengthOf(7);
-        hour.forEach((day: string[] | null[]) => {
+        hour.forEach((day: (string | null)[]) => {
           day.should.be.an('array').with.lengthOf(room.maxConcurrentBookings);
         });
       });
@@ -366,8 +366,8 @@ describe('RoomController', () => {
         .set('Authorization', adminHeader);
 
       res.should.have.status(200);
-      res.body.calendar.forEach((hour: (string[] | null[])[]) => {
-        hour[day <= 0 ? 7 : (day - 1) % 7][0].should.equal(
+      res.body.calendar.forEach((hour: (string | null)[][]) => {
+        expect(hour[day <= 0 ? 7 : (day - 1) % 7][0]).to.equal(
           `available ${room.maxConcurrentBookings}`
         );
       });
@@ -402,8 +402,8 @@ describe('RoomController', () => {
         .set('Authorization', adminHeader);
 
       res.should.have.status(200);
-      res.body.calendar.forEach((hour: (string[] | null[])[]) => {
-        hour[day <= 0 ? 7 : (day - 1) % 7][0].should.equal(
+      res.body.calendar.forEach((hour: (string | null)[][]) => {
+        expect(hour[day <= 0 ? 7 : (day - 1) % 7][0]).to.equal(
           `available ${room.maxConcurrentBookings}`
         );
       });
@@ -441,9 +441,9 @@ describe('RoomController', () => {
         .set('Authorization', adminHeader);
 
       res.should.have.status(200);
-      res.body.calendar.forEach((hour: (string[] | null[])[]) => {
-        hour.forEach((day: string[] | null[]) => {
-          day[0].should.equal(`unavailable`);
+      res.body.calendar.forEach((hour: (string | null)[][]) => {
+        hour.forEach((day: (string | null)[]) => {
+          expect(day[0]).to.equal(`unavailable`);
         });
       });
     });
@@ -484,16 +484,16 @@ describe('RoomController', () => {
         .set('Authorization', adminHeader);
 
       res.should.have.status(200);
-      res.body.calendar.forEach((hour: (string[] | null[])[]) => {
+      res.body.calendar.forEach((hour: (string | null)[][]) => {
         hour
           .filter(
-            (day: string[] | null[]) =>
+            (day: (string | null)[]) =>
               hour.indexOf(day) === (d <= 0 ? 7 : (d - 1) % 7)
           )
-          .forEach((day: string[] | null[]) => {
+          .forEach((day: (string | null)[]) => {
             if (res.body.calendar.indexOf(hour) === 0)
-              day[0].should.eql(appointment);
-            else day[0].should.equal(`appointment_blocked`);
+              expect(day[0]).to.eql(appointment);
+            else expect(day[0]).to.equal(`appointment_blocked`);
           });
       });
     });
@@ -550,29 +550,29 @@ describe('RoomController', () => {
       const len = res.body.calendar.length;
 
       res.should.have.status(200);
-      res.body.calendar.forEach((hour: (string[] | null[])[]) => {
+      res.body.calendar.forEach((hour: (string | null)[][]) => {
         hour
           .filter(
-            (day: string[] | null[]) =>
+            (day: (string | null)[]) =>
               hour.indexOf(day) === (d <= 0 ? 7 : (d - 1) % 7)
           )
-          .forEach((day: string[] | null[]) => {
+          .forEach((day: (string | null)[]) => {
             if (res.body.calendar.indexOf(hour) === 0) {
-              day[0].should.eql(shortAppointment);
-              day[1].should.equal(
+              expect(day[0]).to.eql(shortAppointment);
+              expect(day[1]).to.equal(
                 `available ${room.maxConcurrentBookings - 1}`
               );
             } else if (res.body.calendar.indexOf(hour) === 1) {
-              day[0].should.equal(`appointment_blocked`);
-              day[1].should.eql(longAppointment);
+              expect(day[0]).to.equal(`appointment_blocked`);
+              expect(day[1]).to.eql(longAppointment);
             } else if (res.body.calendar.indexOf(hour) >= len - 4) {
-              day[0].should.equal(
+              expect(day[0]).to.equal(
                 `available ${room.maxConcurrentBookings - 1}`
               );
-              day[1].should.equal(`appointment_blocked`);
+              expect(day[1]).to.equal(`appointment_blocked`);
             } else {
-              day[0].should.equal(`appointment_blocked`);
-              day[1].should.equal(`appointment_blocked`);
+              expect(day[0]).to.equal(`appointment_blocked`);
+              expect(day[1]).to.equal(`appointment_blocked`);
             }
           });
       });
@@ -618,21 +618,21 @@ describe('RoomController', () => {
         .set('Authorization', adminHeader);
 
       res.should.have.status(200);
-      res.body.calendar.forEach((hour: (string[] | null[])[]) => {
+      res.body.calendar.forEach((hour: (string | null)[][]) => {
         hour
           .filter(
-            (day: string[] | null[]) =>
+            (day: (string | null)[]) =>
               hour.indexOf(day) === (d <= 0 ? 7 : (d - 1) % 7)
           )
-          .forEach((day: string[] | null[]) => {
+          .forEach((day: (string | null)[]) => {
             if (res.body.calendar.indexOf(hour) === 0) {
-              day[0].should.eql(appointment);
-              day[1].should.equal(
+              expect(day[0]).to.eql(appointment);
+              expect(day[1]).to.equal(
                 `available ${room.maxConcurrentBookings - 1}`
               );
             } else {
-              day[0].should.equal(`appointment_blocked`);
-              day[1].should.equal(
+              expect(day[0]).to.equal(`appointment_blocked`);
+              expect(day[1]).to.equal(
                 `available ${room.maxConcurrentBookings - 1}`
               );
             }
@@ -682,14 +682,14 @@ describe('RoomController', () => {
         .set('Authorization', adminHeader);
 
       res.should.have.status(200);
-      res.body.calendar.forEach((hour: (string[] | null[])[]) => {
+      res.body.calendar.forEach((hour: (string | null)[][]) => {
         hour
           .filter(
-            (day: string[] | null[]) =>
+            (day: (string | null)[]) =>
               hour.indexOf(day) === (d <= 0 ? 7 : (d - 1) % 7)
           )
-          .forEach((day: string[] | null[]) => {
-            day[0].should.equal(`unavailable`);
+          .forEach((day: (string | null)[]) => {
+            expect(day[0]).to.equal(`unavailable`);
           });
       });
     });
