@@ -21,42 +21,58 @@ const messagePaths = [
     text: 'Accept user',
   },
   {
-    path: '/orders/all',
-    text: 'Updated order',
-  },
-  {
-    path: '/rooms',
-    text: 'Created room',
-  },
-  {
-    path: '/inventory',
-    text: 'Created item',
-  },
-  {
     path: '/appointments',
     text: 'Created appointment',
+  },
+  {
+    path: '/appointments/all',
+    text: 'Accept appointment request',
   },
   {
     path: '/orders',
     text: 'Created order',
   },
+  {
+    path: '/orders/all',
+    text: 'Updated order',
+  },
+  {
+    path: '/settings',
+    text: 'Updated user account',
+  },
 ];
 
-define(Message, (faker: typeof Faker, context?: { recipient: User }) => {
-  if (!context) throw new Error('Factory Message requires recipient');
-  const title = faker.lorem.sentence();
-  const content = faker.lorem.paragraph();
-  const recipient = context.recipient;
-  const urlElement = faker.random.arrayElement(messagePaths);
-  const correspondingUrl = urlElement.path;
-  const correspondingUrlText = urlElement.text;
+define(
+  Message,
+  (
+    faker: typeof Faker,
+    context?: { recipient: User; read?: boolean; path?: string }
+  ) => {
+    if (!context || !context.recipient)
+      throw new Error('Factory Message requires recipient');
+    const title = faker.lorem.sentence();
+    const content = faker.lorem.paragraph();
+    const recipient = context.recipient;
+    let urlElement;
+    if (context.path) {
+      urlElement = messagePaths.find(
+        (element) => element.path === context.path
+      );
+    }
 
-  const message = getRepository(Message).create({
-    title,
-    content,
-    correspondingUrl,
-    correspondingUrlText,
-    recipient,
-  });
-  return message;
-});
+    if (!urlElement) urlElement = faker.random.arrayElement(messagePaths);
+
+    const correspondingUrl = urlElement.path;
+    const correspondingUrlText = urlElement.text;
+
+    const message = getRepository(Message).create({
+      title,
+      content,
+      correspondingUrl,
+      correspondingUrlText,
+      recipient,
+      readStatus: context.read ? context.read : undefined,
+    });
+    return message;
+  }
+);

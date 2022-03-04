@@ -4,6 +4,7 @@ import { Room } from './room.entity';
 import { TimeSlot } from './timeslot.entity';
 import { User } from './user.entity';
 import { TimeSlotType } from '../types/enums/timeslot-type';
+import { IsDefined } from 'class-validator';
 
 /**
  * Appointment Timeslot
@@ -30,6 +31,7 @@ export class AppointmentTimeslot extends TimeSlot {
     eager: true,
     onDelete: 'CASCADE',
   })
+  @IsDefined()
   readonly room: Room;
 
   /**
@@ -39,6 +41,7 @@ export class AppointmentTimeslot extends TimeSlot {
    * @readonly
    */
   @ManyToOne(() => User, (user) => user.bookings, { eager: true })
+  @IsDefined()
   readonly user: User;
 
   /**

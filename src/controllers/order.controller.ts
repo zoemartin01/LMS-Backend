@@ -123,15 +123,7 @@ export class OrderController {
     req: Request,
     res: Response
   ) {
-    const currentUser: User | null = await AuthController.getCurrentUser(req);
-
-    if (currentUser === null) {
-      res.status(404).json({
-        message: 'User not found.',
-      });
-      return;
-    }
-
+    const currentUser: User = await AuthController.getCurrentUser(req);
     const { offset, limit } = req.query;
     const repository = getRepository(Order);
 
@@ -165,15 +157,7 @@ export class OrderController {
     req: Request,
     res: Response
   ) {
-    const currentUser: User | null = await AuthController.getCurrentUser(req);
-
-    if (currentUser === null) {
-      res.status(404).json({
-        message: 'User not found.',
-      });
-      return;
-    }
-
+    const currentUser: User = await AuthController.getCurrentUser(req);
     const { offset, limit } = req.query;
     const repository = getRepository(Order);
 
@@ -215,15 +199,7 @@ export class OrderController {
     req: Request,
     res: Response
   ) {
-    const currentUser: User | null = await AuthController.getCurrentUser(req);
-
-    if (currentUser === null) {
-      res.status(404).json({
-        message: 'User not found.',
-      });
-      return;
-    }
-
+    const currentUser: User = await AuthController.getCurrentUser(req);
     const { offset, limit } = req.query;
     const repository = getRepository(Order);
 
@@ -269,9 +245,8 @@ export class OrderController {
       return;
     }
 
-    const currentUser: User | null = await AuthController.getCurrentUser(req);
+    const currentUser = await AuthController.getCurrentUser(req);
     if (
-      currentUser !== null &&
       !(await AuthController.checkAdmin(req)) &&
       order.user.id !== currentUser.id
     ) {
@@ -296,9 +271,6 @@ export class OrderController {
     const orderRepository = getRepository(Order);
     const inventoryRepository = getRepository(InventoryItem);
     const user = await AuthController.getCurrentUser(req);
-    if (user === null) {
-      return;
-    }
 
     if ('status' in req.body) {
       res.sendStatus(403);
@@ -338,8 +310,6 @@ export class OrderController {
       }
     }
 
-    res.status(201).json(order);
-
     await MessagingController.sendMessage(
       user,
       'Order Request Confirmation',
@@ -354,6 +324,8 @@ export class OrderController {
       'Order Requests',
       '/orders/all'
     );
+
+    res.status(201).json(order);
   }
 
   /**
@@ -388,13 +360,13 @@ export class OrderController {
     // check if user is visitor -> less rights to change stuff
     if (!(await AuthController.checkAdmin(req))) {
       // check if user matches user of order if user is no admin
-      const currentUser: User | null = await AuthController.getCurrentUser(req);
+      const currentUser = await AuthController.getCurrentUser(req);
       if (
-        (currentUser !== null && order.user.id !== currentUser.id) ||
+        order.user.id !== currentUser.id ||
         // check if order status is still pending, visitors aren't allowed to change order after that
         order.status !== OrderStatus.pending ||
         // check if no admin user tried to change order status
-        'status' in req.body
+        req.body.status !== undefined
       ) {
         res.sendStatus(403);
         return;
@@ -435,7 +407,7 @@ export class OrderController {
         await inventoryRepository.findOne({
           where: { name: req.body.itemName },
         });
-      // case: existing inventory item for updated order item
+      // case: no existing inventory item for updated order item
       if (inventoryItem === undefined) {
         try {
           await orderRepository.update(
@@ -449,7 +421,7 @@ export class OrderController {
           res.status(400).json(err);
           return;
         }
-      } // case: no existing inventory item for updated order item
+      } // case: existing inventory item for updated order item
       else {
         try {
           await orderRepository.update(
@@ -469,30 +441,15 @@ export class OrderController {
     }
 
     // get updated data of order to return for order view page
-    order = await orderRepository.findOne({
+    order = await orderRepository.findOneOrFail({
       where: { id: req.params.id },
       relations: ['user', 'item'],
     });
 
-    // should not happen
-    if (order === undefined) {
-      res.status(404).json({
-        message: 'Order not found.',
-      });
-      return;
-    }
-
-    res.status(200).json(order);
-
-    const orderItem = await order.item;
-
+    const orderItem = order.item;
     const itemName: string | null =
       orderItem === null ? order.itemName : orderItem.name;
-
     const currentUser = await AuthController.getCurrentUser(req);
-    if (currentUser === null) {
-      return;
-    }
 
     if (await AuthController.checkAdmin(req)) {
       await MessagingController.sendMessage(
@@ -523,6 +480,8 @@ export class OrderController {
       'Updated Order',
       '/orders/all'
     );
+
+    res.status(200).json(order);
   }
 
   /**
@@ -552,30 +511,20 @@ export class OrderController {
 
     if (
       !(await AuthController.checkAdmin(req)) &&
-      currentUser !== null &&
       // check if non admin user tried to delete an other users order
-      order.user.id !== currentUser.id &&
-      // check if non admin user tried to delete an order that is not pending
-      order.status !== OrderStatus.pending
+      (order.user.id !== currentUser.id ||
+        // check if non admin user tried to delete an order that is not pending
+        order.status !== OrderStatus.pending)
     ) {
       res.sendStatus(403);
       return;
     }
 
-    const orderItem = await order.item;
-
+    const orderItem = order.item;
     const itemName: string | null =
       orderItem === null ? order.itemName : orderItem.name;
 
-    await orderRepository.delete(order.id).then(() => {
-      res.sendStatus(204);
-    });
-
-    if (currentUser === null) {
-      return;
-    }
-
-    if (currentUser === order.user) {
+    if (currentUser.id === order.user.id) {
       await MessagingController.sendMessage(
         currentUser,
         'Order Deletion Confirmation',
@@ -598,5 +547,9 @@ export class OrderController {
         order.user.lastName +
         ' was deleted.'
     );
+
+    await orderRepository.delete(order.id).then(() => {
+      res.sendStatus(204);
+    });
   }
 }

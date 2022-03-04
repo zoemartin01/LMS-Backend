@@ -44,6 +44,10 @@ export class AuthController {
       : await AuthController.loginWithCredentials(email, password, res);
   }
 
+  public static readonly ad = new ActiveDirectory(
+    environment.activeDirectoryConfig
+  );
+
   /**
    * Logs in user with active directory
    *
@@ -57,48 +61,41 @@ export class AuthController {
     password: string,
     res: Response
   ): Promise<void> {
-    try {
-      const ad = new ActiveDirectory(environment.activeDirectoryConfig);
-
-      ad.authenticate(
-        `uid=${email.split('@')[0]},ou=People,dc=teco,dc=edu`,
-        password,
-        async (err: object, auth: boolean) => {
-          if (err) {
-            res.status(500).json(err);
-            return;
-          }
-
-          if (!auth) {
-            await AuthController.loginCallback(undefined, res);
-            return;
-          }
-
-          const userRepository = getRepository(User);
-          userRepository
-            .findOne({
-              where: { email },
-            })
-            .then(async (user: User | undefined) => {
-              if (user === undefined) {
-                await AuthController.createActiveDirectoryUser(email, res);
-                return;
-              } else if (!user.isActiveDirectory) {
-                res.status(400).json({
-                  message:
-                    'Your account ist not linked to active directory, use regular login.',
-                });
-                return;
-              }
-
-              await AuthController.loginCallback(user, res);
-            });
+    AuthController.ad.authenticate(
+      `uid=${email.split('@')[0]},ou=People,dc=teco,dc=edu`,
+      password,
+      async (err: object, auth: boolean) => {
+        if (err) {
+          res.status(500).json(err);
+          return;
         }
-      );
-    } catch (e) {
-      console.log(e);
-      res.sendStatus(500);
-    }
+
+        if (!auth) {
+          await AuthController.loginCallback(undefined, res);
+          return;
+        }
+
+        const userRepository = getRepository(User);
+        userRepository
+          .findOne({
+            where: { email },
+          })
+          .then(async (user: User | undefined) => {
+            if (user === undefined) {
+              await AuthController.createActiveDirectoryUser(email, res);
+              return;
+            } else if (!user.isActiveDirectory) {
+              res.status(400).json({
+                message:
+                  'Your account ist not linked to active directory, use regular login.',
+              });
+              return;
+            }
+
+            await AuthController.loginCallback(user, res);
+          });
+      }
+    );
   }
 
   /**
@@ -108,10 +105,9 @@ export class AuthController {
    * @private
    */
   private static async createActiveDirectoryUser(email: string, res: Response) {
-    const ad = new ActiveDirectory(environment.activeDirectoryConfig);
     const userRepository = getRepository(User);
 
-    ad.find(
+    AuthController.ad.find(
       { filter: `(&(objectclass=tecoUser)(mail=${email}))` },
       async (err: boolean, obj: any) => {
         const userObj = obj.other[0];
@@ -274,20 +270,16 @@ export class AuthController {
    * @param {Response} res backend response
    */
   public static async logout(req: Request, res: Response): Promise<void> {
-    const token = req.headers['authorization']?.split(' ')[1];
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    const token = req.headers['authorization']!.split(' ')[1];
 
     const tokenRepository = getRepository(Token);
 
     tokenRepository
-      .findOne({
+      .findOneOrFail({
         where: { token, type: TokenType.authenticationToken },
       })
-      .then(async (tokenObject: Token | undefined) => {
-        //as request passed middleware tokenObject can't be undefined
-        if (tokenObject === undefined) {
-          return;
-        }
-
+      .then(async (tokenObject: Token) => {
         //delete linked authentication tokens
         await createQueryBuilder()
           .delete()
@@ -445,7 +437,7 @@ export class AuthController {
     const token = req.query.token;
 
     if (token === undefined) {
-      ws.send('Invalid token');
+      ws.send('Invalid token.');
       ws.close();
     }
 
@@ -454,7 +446,7 @@ export class AuthController {
       environment.accessTokenSecret,
       async (err) => {
         if (err) {
-          ws.send('Invalid token');
+          ws.send('Invalid token.');
           ws.close();
           return;
         }
@@ -471,57 +463,48 @@ export class AuthController {
         });
 
         if (tokenObject === undefined) {
-          ws.send('Invalid token');
+          ws.send('Invalid token.');
           ws.close();
           return;
         }
 
         req.body.user = tokenObject.user;
-
-        ws.send('Authorization successful');
+        ws.send('Authorization successful.');
         next();
       }
     );
   }
 
   /**
-   * Returns current user
+   * Returns current user. May only be used in routes in conjunction with
+   * AuthController#checkAuthenticationMiddleware()
    *
    * @param {Request} req current http-request
    */
   public static async getCurrentUser(
     req: Request,
     relations: string[] = []
-  ): Promise<User | null> {
+  ): Promise<User> {
     const authHeader = req.headers['authorization'];
 
     if (authHeader) {
       const token = authHeader.split(' ')[1];
 
-      return getRepository(Token)
-        .findOne({
-          where: [
-            { token, type: TokenType.authenticationToken },
-            { token, type: TokenType.apiKey },
-          ],
-        })
-        .then(
-          async (tokenObject: Token | undefined) => {
-            if (tokenObject === undefined) {
-              return null;
-            }
-            return (
-              (await getRepository(User).findOne(tokenObject.userId, {
-                relations,
-              })) || null
-            );
-          },
-          () => {
-            return null;
-          }
-        );
+      const tokenEntity = await getRepository(Token).findOne({
+        where: [
+          { token, type: TokenType.authenticationToken },
+          { token, type: TokenType.apiKey },
+        ],
+      });
+
+      if (tokenEntity === undefined) throw 'Not logged in!';
+
+      return await getRepository(User).findOneOrFail(tokenEntity.userId, {
+        relations,
+      });
+    } else {
+      throw 'Not logged in!';
     }
-    return null;
   }
 
   /**
@@ -531,9 +514,9 @@ export class AuthController {
    * @private
    */
   public static async checkAdmin(req: Request): Promise<boolean> {
-    const user: User | null = await AuthController.getCurrentUser(req);
+    const user = await AuthController.getCurrentUser(req);
 
-    return user === null || user.role === UserRole.admin;
+    return user.role === UserRole.admin;
   }
 
   /**

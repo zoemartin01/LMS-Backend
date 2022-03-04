@@ -142,23 +142,20 @@ export class LivecamController {
    * @param {Response} res backend response
    */
   public static async scheduleRecording(req: Request, res: Response) {
-    const user = await AuthController.getCurrentUser(req, ['recordings']);
-
-    if (user === null) {
-      res.status(401).json({ message: 'Not logged in' });
-      return;
-    }
-
+    const user = await AuthController.getCurrentUser(req);
     const limit = await getRepository(GlobalSetting).findOne({
       where: { key: 'user.max_recordings' },
     });
+    const repository = getRepository(Recording);
 
-    if (limit !== undefined && user.recordings.length >= +limit.value) {
+    if (
+      limit !== undefined &&
+      (await repository.count({ where: { user } })) >= +limit.value
+    ) {
       res.status(400).json({ message: 'Max recording limit reached' });
       return;
     }
 
-    const repository = getRepository(Recording);
     let recording: Recording;
     try {
       recording = await repository.save(
@@ -256,8 +253,8 @@ export class LivecamController {
     });
   }
 
-  static wss: WebSocket[] = [];
-  static ws: WebSocket | undefined;
+  public static wss: WebSocket[] = [];
+  public static ws: WebSocket | undefined;
 
   /**
    * Returns the live camera feed
@@ -268,7 +265,11 @@ export class LivecamController {
    */
   public static async getLiveCameraFeed(ws: WebSocket, req: Request) {
     if (LivecamController.ws === undefined) {
-      await LivecamController.initBackendConnection();
+      const ws = new WebSocket(
+        `${environment.livecam_server.ws_protocol}://${environment.livecam_server.host}:${environment.livecam_server.ws_port}${environment.livecam_server.ws_path}`
+      );
+      console.log('connect');
+      await LivecamController.setupWebSocket(ws);
     }
 
     LivecamController.wss.push(ws);
@@ -277,34 +278,34 @@ export class LivecamController {
       const array = LivecamController.wss;
 
       const index = array.indexOf(ws, 0);
-      if (index > -1) {
-        array.splice(index, 1);
-      }
+      array.splice(index, 1);
+
+      LivecamController.wss = array;
     });
   }
 
-  private static async initBackendConnection() {
-    LivecamController.ws = new WebSocket(
-      `${environment.livecam_server.ws_protocol}://${environment.livecam_server.host}:${environment.livecam_server.ws_port}${environment.livecam_server.ws_path}`
-    );
+  public static async setupWebSocket(ws: WebSocket) {
+    LivecamController.ws = ws;
 
-    LivecamController.ws.onmessage = async (event) => {
+    ws.on('message', async (event) => {
       LivecamController.wss.forEach(function each(client) {
-        client.send(event.data);
+        client.send(event);
       });
-    };
+    });
 
-    LivecamController.ws.onclose = () => {
-      LivecamController.ws = undefined;
-    };
-
-    LivecamController.ws.onerror = async (error) => {
+    ws.on('error', () => {
+      ws.close();
       console.error('Error connecting to livecam websocket');
+    });
+
+    ws.on('close', async () => {
+      LivecamController.ws = undefined;
+
       await new Promise((resolve) => {
         setTimeout(resolve, 10000);
       });
 
-      this.initBackendConnection();
-    };
+      LivecamController.setupWebSocket(new WebSocket(ws.url));
+    });
   }
 }

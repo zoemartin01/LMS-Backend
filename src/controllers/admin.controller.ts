@@ -332,7 +332,7 @@ export class AdminController {
     }
 
     try {
-      repository.update(
+      await repository.update(
         { id: retailerDomain.id },
         repository.create(<DeepPartial<RetailerDomain>>{
           ...retailerDomain,
@@ -402,12 +402,14 @@ export class AdminController {
    * @param {Response} res backend response to check a domain against whitelist
    */
   public static async checkDomainAgainstWhitelist(req: Request, res: Response) {
+    const domain = encodeURIComponent(req.body.domain);
+
     const domainRepository = getRepository(RetailerDomain);
     const count = await domainRepository
       .createQueryBuilder('domain')
       .select()
       .where(":domain LIKE CONCAT('%', domain.domain, '%')", {
-        domain: req.body.domain,
+        domain: domain,
       })
       .getCount();
     res.json({ isWhitelisted: count > 0 });
@@ -681,14 +683,12 @@ export class AdminController {
     try {
       await userRepository.update(
         { id: user.id },
-        userRepository.create(<DeepPartial<User>>{
-          ...user,
-          ...{
-            firstName: 'strawberry',
-            lastName: 'mango',
-            email: 'raspberry@choco.late',
-          },
-        })
+        {
+          firstName: '<deleted>',
+          lastName: '<deleted>',
+          email: '<deleted>',
+          password: '<deleted>',
+        }
       );
     } catch (err) {
       res.status(400).json(err);

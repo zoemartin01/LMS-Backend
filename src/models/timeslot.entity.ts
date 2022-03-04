@@ -2,7 +2,14 @@ import { Column, Entity, TableInheritance } from 'typeorm';
 import { BaseEntity } from './base.entity';
 import { TimeSlotType } from '../types/enums/timeslot-type';
 import { TimeSlotRecurrence } from '../types/enums/timeslot-recurrence';
-import { IsDate } from 'class-validator';
+import {
+  IsBoolean,
+  IsDate,
+  IsNumber,
+  IsOptional,
+  IsUUID,
+  Min,
+} from 'class-validator';
 import { Room } from './room.entity';
 
 /**
@@ -21,7 +28,7 @@ import { Room } from './room.entity';
  */
 @Entity()
 @TableInheritance({ column: 'type' })
-export class TimeSlot extends BaseEntity {
+export abstract class TimeSlot extends BaseEntity {
   /**
    * The start time of the time slot.
    *
@@ -59,6 +66,8 @@ export class TimeSlot extends BaseEntity {
    * @type {string}
    */
   @Column({ nullable: true })
+  @IsOptional()
+  @IsUUID()
   seriesId: string;
 
   /**
@@ -66,6 +75,9 @@ export class TimeSlot extends BaseEntity {
    * @type {number}
    */
   @Column({ default: 1 })
+  @IsOptional()
+  @IsNumber()
+  @Min(1)
   amount: number;
 
   /**
@@ -83,11 +95,19 @@ export class TimeSlot extends BaseEntity {
 
   /**
    * True if this appointment was changed and is not in the series anymore.
+   *
    * @type {boolean}
    * @default false
    */
   @Column({ default: false })
+  @IsOptional()
+  @IsBoolean()
   isDirty: boolean;
 
-  room: Room;
+  /**
+   * The room affiliated with the timeslot
+   *
+   * @readonly
+   */
+  abstract readonly room: Room;
 }

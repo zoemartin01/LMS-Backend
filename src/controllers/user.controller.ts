@@ -24,14 +24,6 @@ export class UserController {
    */
   public static async getUser(req: Request, res: Response) {
     const user = await AuthController.getCurrentUser(req);
-
-    if (user === null) {
-      res.status(404).json({
-        message: 'User not found.',
-      });
-      return;
-    }
-
     res.json(user);
   }
 
@@ -48,12 +40,6 @@ export class UserController {
     const user = await AuthController.getCurrentUser(req);
     const repository = getRepository(User);
 
-    if (user === null) {
-      res.status(404).json({
-        message: 'user not found.',
-      });
-      return;
-    }
     if (req.body.role !== undefined) {
       res.status(403).json({
         message: 'No permission to change role.',
@@ -84,13 +70,6 @@ export class UserController {
       });
       return;
     }
-    if (req.body.id !== undefined) {
-      res.status(403).json({
-        message: 'No permission to change id.',
-      });
-      return;
-    }
-
     if (req.body.password) {
       bcrypt.hash(
         req.body.password,
@@ -165,21 +144,20 @@ export class UserController {
       'recordings',
     ]);
 
-    if (user === null) {
-      res.status(404).json({
-        message: 'User not found.',
-      });
-      return;
-    }
     const userRepository = getRepository(User);
+    const slimUser = await userRepository.findOneOrFail(user.id);
 
     await MessagingController.sendMessageToAllAdmins(
       'User deleted',
-      'User ' + user.firstName + ' ' + user.lastName + ' deleted their account.'
+      'User ' +
+        slimUser.firstName +
+        ' ' +
+        slimUser.lastName +
+        ' deleted their account.'
     );
 
     await MessagingController.sendMessageViaEmail(
-      user,
+      slimUser,
       'Account deleted',
       'Your account has been deleted. Bye!'
     );
@@ -187,10 +165,10 @@ export class UserController {
     await userRepository.update(
       { id: user.id },
       {
-        firstName: 'strawberry',
-        lastName: 'mango',
-        email: 'raspberry@choco.late',
-        password: '',
+        firstName: '<deleted>',
+        lastName: '<deleted>',
+        email: '<deleted>',
+        password: '<deleted>',
       }
     );
     await userRepository.softRemove(user);
@@ -216,20 +194,18 @@ export class UserController {
     const userRepository = getRepository(User);
     const tokenRepository = getRepository(Token);
 
-    await userRepository
-      .count({
-        where: { email },
-      })
-      .then((result) => {
-        if (result !== 0) {
-          res.status(409).json({
-            message: 'User with this email already exists.',
-          });
-          return;
-        }
-      });
+    const existingUser = await userRepository.count({
+      where: { email },
+    });
 
-    //create user with specified personal information an hashed password
+    if (existingUser !== 0) {
+      res.status(409).json({
+        message: 'User with this email already exists.',
+      });
+      return;
+    }
+
+    //create user with specified personal information and hashed password
     bcrypt.hash(
       password,
       environment.pwHashSaltRound,
@@ -282,18 +258,9 @@ export class UserController {
     const userRepository = getRepository(User);
     const tokenRepository = getRepository(Token);
 
-    let user: User | undefined;
-
-    try {
-      user = await userRepository.findOne({
-        where: { id: userId },
-      });
-    } catch (e) {
-      res.status(404).json({
-        message: 'User not found.',
-      });
-      return;
-    }
+    const user = await userRepository.findOne({
+      where: { id: userId },
+    });
 
     if (user === undefined) {
       res.status(404).json({
@@ -324,6 +291,6 @@ export class UserController {
 
     await tokenRepository.delete(tokenObject.id);
 
-    res.status(200).json(user);
+    res.status(200).json(await userRepository.findOne(user.id));
   }
 }
