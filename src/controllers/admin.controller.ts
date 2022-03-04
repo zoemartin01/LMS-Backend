@@ -402,12 +402,14 @@ export class AdminController {
    * @param {Response} res backend response to check a domain against whitelist
    */
   public static async checkDomainAgainstWhitelist(req: Request, res: Response) {
+    const domain = encodeURIComponent(req.body.domain);
+
     const domainRepository = getRepository(RetailerDomain);
     const count = await domainRepository
       .createQueryBuilder('domain')
       .select()
       .where(":domain LIKE CONCAT('%', domain.domain, '%')", {
-        domain: req.body.domain,
+        domain: domain,
       })
       .getCount();
     res.json({ isWhitelisted: count > 0 });
