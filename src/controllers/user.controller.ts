@@ -165,10 +165,10 @@ export class UserController {
     await userRepository.update(
       { id: user.id },
       {
-        firstName: 'strawberry',
-        lastName: 'mango',
-        email: 'raspberry@choco.late',
-        password: '',
+        firstName: '<deleted>',
+        lastName: '<deleted>',
+        email: '<deleted>',
+        password: '<deleted>',
       }
     );
     await userRepository.softRemove(user);

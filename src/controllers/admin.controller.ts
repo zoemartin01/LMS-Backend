@@ -683,14 +683,12 @@ export class AdminController {
     try {
       await userRepository.update(
         { id: user.id },
-        userRepository.create(<DeepPartial<User>>{
-          ...user,
-          ...{
-            firstName: 'strawberry',
-            lastName: 'mango',
-            email: 'raspberry@choco.late',
-          },
-        })
+        {
+          firstName: '<deleted>',
+          lastName: '<deleted>',
+          email: '<deleted>',
+          password: '<deleted>',
+        }
       );
     } catch (err) {
       res.status(400).json(err);
