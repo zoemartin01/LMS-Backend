@@ -702,11 +702,12 @@ export class RoomController {
    * @bodyParam {Date} end - The end time of the time slot.
    * @bodyParam {Room} room - The room the time slot belongs to.
    * @bodyParam {TimeSlotType} type - The type of the time slot.
+   * @bodyParam {boolean} force - If true, the unavailable time slot will be created even if it overlaps with an appointment.
    * @param {Request} req frontend request to create a new available timeslot of a room
    * @param {Response} res backend response creation of a new available timeslot of a room
    */
   public static async createTimeslot(req: Request, res: Response) {
-    const { start, end, type } = req.body;
+    const { start, end, type, force } = req.body;
 
     const room = await getRepository(Room).findOne(req.params.roomId);
 
@@ -770,6 +771,24 @@ export class RoomController {
     if (duration.asHours() < 1) {
       res.status(400).json({ message: 'Duration must be at least 1h.' });
       return;
+    }
+
+    if (type === TimeSlotType.unavailable && !force) {
+      const timeslots = await repository.count({
+        where: {
+          room: room,
+          start: LessThan(end),
+          end: MoreThan(start),
+        },
+      });
+
+      if (timeslots > 0) {
+        res.status(409).json({
+          message:
+            'Creation of unavailable timeslot conflicts with existing appointments.',
+        });
+        return;
+      }
     }
 
     let timeslot: AvailableTimeslot | UnavailableTimeslot;
@@ -1458,6 +1477,7 @@ export class RoomController {
    * @route {DELETE} /rooms/:roomId/timeslots/:timeslotId
    * @routeParam {string} roomId - id of the room
    * @routeParam {string} timeslotId - id of the timeslot
+   * @bodyParam {string} force - If true, the timeslot will be deleted even if it contains an appointment.
    * @param {Request} req frontend request to delete one room
    * @param {Response} res backend response deletion
    */
@@ -1465,8 +1485,9 @@ export class RoomController {
     const repository = getRepository(TimeSlot);
 
     const timeslot = await repository.findOne(req.params.timeslotId);
+    const room = await getRepository(Room).findOne(req.body.roomId);
 
-    if ((await getRepository(Room).findOne(req.body.roomId)) === undefined) {
+    if (room === undefined) {
       res.status(404).json({ message: 'Room not found.' });
       return;
     }
@@ -1486,6 +1507,24 @@ export class RoomController {
     ) {
       res.status(404).json({ message: 'Timeslot not found for this room.' });
       return;
+    }
+
+    if (timeslot.type === TimeSlotType.available && !req.body.force) {
+      const appointments = await getRepository(AppointmentTimeslot).count({
+        where: {
+          room,
+          start: LessThan(timeslot.end),
+          end: MoreThan(timeslot.start),
+        },
+      });
+
+      if (appointments > 0) {
+        res.status(409).json({
+          message:
+            'Cannot delete available timeslot because at least one booked appointment depends on it.',
+        });
+        return;
+      }
     }
 
     repository.delete(timeslot.id).then(() => {
