@@ -194,18 +194,16 @@ export class UserController {
     const userRepository = getRepository(User);
     const tokenRepository = getRepository(Token);
 
-    await userRepository
-      .count({
-        where: { email },
-      })
-      .then((result) => {
-        if (result !== 0) {
-          res.status(409).json({
-            message: 'User with this email already exists.',
-          });
-          return;
-        }
+    const existingUser = await userRepository.count({
+      where: { email },
+    });
+
+    if (existingUser !== 0) {
+      res.status(409).json({
+        message: 'User with this email already exists.',
       });
+      return;
+    }
 
     //create user with specified personal information and hashed password
     bcrypt.hash(
