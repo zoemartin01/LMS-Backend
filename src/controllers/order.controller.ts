@@ -263,7 +263,7 @@ export class OrderController {
    * @route {POST} /orders
    * @bodyParam {string} itemName - name of the order item
    * @bodyParam {number} quantity - quantity of the order
-   * @bodyParam {string} purchaseURL - the purchase url
+   * @bodyParam {string} url - the purchase url
    * @param {Request} req frontend request to create a new order
    * @param {Response} res backend response creation of a new order
    */
