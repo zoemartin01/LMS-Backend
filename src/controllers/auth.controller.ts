@@ -294,6 +294,8 @@ export class AuthController {
           .where('id = :id', { id: tokenObject.refreshTokenId })
           .execute();
 
+        MessagingController.closeAllUserWebsockets(tokenObject.user);
+
         res.sendStatus(204);
       });
   }

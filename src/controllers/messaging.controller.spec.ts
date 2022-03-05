@@ -339,6 +339,22 @@ describe('MessagingController', () => {
       MessagingController.messageSockets.should.have.key(admin.id);
     });
 
+    it('should add the new websocket to the broadcasting list (3)', async () => {
+      MessagingController.messageSockets[admin.id] = [];
+
+      const ws = WebSocketMock();
+      const req = new MockExpressRequest();
+      req.body = { user: { id: admin.id } };
+
+      await MessagingController.registerUnreadMessagesSocket(ws, req);
+
+      MessagingController.messageSockets.should.have.key(admin.id);
+
+      await MessagingController.closeAllUserWebsockets(admin);
+
+      MessagingController.messageSockets[admin.id].should.be.empty;
+    });
+
     it('should send the unread messages on registration', async () => {
       const ws = WebSocketMock();
       const spy = sandbox.spy(ws, 'send');

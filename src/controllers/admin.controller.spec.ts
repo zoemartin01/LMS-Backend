@@ -181,17 +181,6 @@ describe('AdminController', () => {
       Helpers.checkAuthentication('GET', 'fails', app, uri)
     );
 
-    it('should fail as non-admin', (done) => {
-      chai
-        .request(app.app)
-        .get(uri)
-        .set('Authorization', visitorHeader)
-        .end((err, res) => {
-          expect(res.status).to.equal(403);
-          done();
-        });
-    });
-
     it('should get all initial whitelist retailers', (done) => {
       chai
         .request(app.app)
