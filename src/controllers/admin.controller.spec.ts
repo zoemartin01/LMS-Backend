@@ -205,6 +205,60 @@ describe('AdminController', () => {
         });
     });
 
+    it('should get retailers with offset', async () => {
+      const count = 10;
+      const offset = 3;
+      await factory(Retailer)().createMany(count);
+
+      const res = await chai
+        .request(app.app)
+        .get(uri)
+        .query({ offset })
+        .set('Authorization', adminHeader);
+
+      const retailers = Helpers.JSONify(
+        await retailerRepository.find({
+          order: { name: 'ASC' },
+          skip: offset,
+          relations: ['domains'],
+        })
+      );
+
+      expect(res.status).to.equal(200);
+      expect(res.body.total).to.equal(count);
+      expect(res.body.data)
+        .to.be.an('array')
+        .that.has.a.lengthOf(count - offset)
+        .and.that.has.same.deep.members(retailers);
+    });
+
+    it('should get correct retailers with limit', async () => {
+      const count = 10;
+      const limit = 3;
+
+      await factory(Retailer)().createMany(count);
+      const retailers = Helpers.JSONify(
+        await retailerRepository.find({
+          order: { name: 'ASC' },
+          take: limit,
+          relations: ['domains'],
+        })
+      );
+
+      const res = await chai
+        .request(app.app)
+        .get(uri)
+        .query({ limit })
+        .set('Authorization', adminHeader);
+
+      expect(res.status).to.equal(200);
+      expect(res.body.total).to.equal(count);
+      expect(res.body.data)
+        .to.be.an('array')
+        .that.has.a.lengthOf(limit)
+        .and.that.has.same.deep.members(retailers);
+    });
+
     it('should get 3 more retailers', async () => {
       await factory(Retailer)().createMany(3);
       const res = await chai
@@ -1332,6 +1386,26 @@ describe('AdminController', () => {
           expect(res.status).to.equal(403);
           done();
         });
+    });
+
+    it('should delete a admin', async () => {
+      sandbox.stub(MessagingController, 'sendMessageViaEmail').resolves();
+      const user = await factory(User)({
+        role: UserRole.admin,
+        emailVerification: true,
+      }).create();
+      expect(
+        (async () => {
+          return await userRepository.findOneOrFail(user.id);
+        })()
+      ).to.be.fulfilled;
+
+      const res = await chai
+        .request(app.app)
+        .delete(uri.replace(':id', user.id))
+        .set('Authorization', adminHeader);
+
+      expect(res.status).to.equal(204);
     });
 
     it('should delete a specific user', async () => {
