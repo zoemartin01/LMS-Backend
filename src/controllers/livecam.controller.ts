@@ -268,7 +268,6 @@ export class LivecamController {
       const ws = new WebSocket(
         `${environment.livecam_server.ws_protocol}://${environment.livecam_server.host}:${environment.livecam_server.ws_port}${environment.livecam_server.ws_path}`
       );
-      console.log('connect');
       await LivecamController.setupWebSocket(ws);
     }
 
