@@ -278,6 +278,7 @@ export class AuthController {
     tokenRepository
       .findOneOrFail({
         where: { token, type: TokenType.authenticationToken },
+        relations: ['user'],
       })
       .then(async (tokenObject: Token) => {
         //delete linked authentication tokens
