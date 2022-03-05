@@ -16,9 +16,13 @@ import moment from 'moment';
 import chaiAsPromised from 'chai-as-promised';
 import { UnavailableTimeslot } from '../models/unavaliable.timeslot.entity';
 import { AppointmentTimeslot } from '../models/appointment.timeslot.entity';
+import { MessagingController } from './messaging.controller';
+import sinonChai from 'sinon-chai';
+import Sinon from 'sinon';
 
 chai.use(chaiHttp);
 chai.use(chaiAsPromised);
+chai.use(sinonChai);
 chai.should();
 
 describe('RoomController', () => {
@@ -29,6 +33,7 @@ describe('RoomController', () => {
   let visitorHeader: string;
   let visitor: User;
   let repository: Repository<Room>;
+  let sandbox: Sinon.SinonSandbox;
 
   before(async () => {
     process.env.NODE_ENV = 'testing';
@@ -47,10 +52,13 @@ describe('RoomController', () => {
 
     visitorHeader = await Helpers.getAuthHeader(false);
     visitor = users.visitor;
+
+    sandbox = Sinon.createSandbox();
   });
 
   afterEach(async () => {
     app.shutdownJobs();
+    sandbox.restore();
   });
 
   describe('GET /rooms', () => {
@@ -1288,6 +1296,37 @@ describe('RoomController', () => {
           return await repository.findOneOrFail(room.id);
         })()
       ).to.be.rejected;
+    });
+
+    it('should notify users of future appointments if room is deleted', async () => {
+      const room = await factory(Room)().create();
+      expect(
+        (async () => {
+          return await repository.findOneOrFail(room.id);
+        })()
+      ).to.be.fulfilled;
+
+      await getRepository(AppointmentTimeslot).save({
+        start: moment().add(1, 'day').toDate(),
+        end: moment().add(1, 'day').add(1, 'hour').toDate(),
+        room,
+        user: admin,
+      });
+
+      const spy = sandbox.spy(MessagingController, 'sendMessage');
+
+      const res = await chai
+        .request(app.app)
+        .delete(uri.replace(':id', room.id))
+        .set('Authorization', adminHeader);
+
+      expect(res.status).to.equal(204);
+      expect(
+        (async () => {
+          return await repository.findOneOrFail(room.id);
+        })()
+      ).to.be.rejected;
+      spy.should.have.been.called;
     });
   });
 

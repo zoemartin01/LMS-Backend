@@ -442,7 +442,7 @@ export class OrderController {
 
     const wasAccepted =
       req.body.status === OrderStatus.ordered &&
-      order.status === OrderStatus.ordered;
+      order.status === OrderStatus.pending;
 
     // get updated data of order to return for order view page
     order = await orderRepository.findOneOrFail({
