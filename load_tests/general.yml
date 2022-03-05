@@ -1,29 +1,57 @@
 config:
-  target: "http://localhost/api/v1"
+  target: "http://localhost:3000/api/v1"
   phases:
-    - duration: 60
-      arrivalRate: 5
+#    - duration: 1
+#      arrivalRate: 1
+#      name: Test
+    - duration: 30
+      arrivalRate: 10
       name: Warm up
-    - duration: 120
-      arrivalRate: 5
+    - duration: 60
+      arrivalRate: 10
       rampTo: 50
       name: Ramp up load
-    - duration: 600
+    - duration: 300
       arrivalRate: 50
       name: Sustained load
 
 scenarios:
-  - name: "random shit"
+  - name: "login and open user list"
     flow:
-      - get:
-          url: "/user"
-          capture:
-            - json: "$.results[0].id"
-              as: "userId"
-      - get:
-          ur: "/users/{{ userId }}"
-      - think: 5
       - post:
-          url: "/application-settings"
+          url: "/token"
           json:
-            productId: "{{ userId }}"
+            email: "admin@test.com"
+            password: "admin"
+          capture:
+            json: "$.accessToken"
+            as: "token"
+      - get:
+          url: "/users/accepted?limit=10&offset=0"
+          headers:
+            authorization: "Bearer {{ token }}"
+  - name: "login and open room calendar"
+    flow:
+      - post:
+          url: "/token"
+          json:
+            email: "admin@test.com"
+            password: "admin"
+          capture:
+            json: "$.accessToken"
+            as: "token"
+      - get:
+          url: "/rooms"
+          headers:
+            authorization: "Bearer {{ token }}"
+          capture:
+            json: "$.data[0].id"
+            as: "roomId"
+      - get:
+          url: "/rooms/{{ roomId }}/calendar"
+          headers:
+            authorization: "Bearer {{ token }}"
+          capture:
+            json: "$.data[0].id"
+            as: "roomId"
+
