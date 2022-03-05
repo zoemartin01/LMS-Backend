@@ -19,6 +19,7 @@ import { TimeSlotRecurrence } from '../types/enums/timeslot-recurrence';
 import { isISO8601 } from 'class-validator';
 import DurationConstructor = moment.unitOfTime.DurationConstructor;
 import { v4 } from 'uuid';
+import { MessagingController } from './messaging.controller';
 
 /**
  * Controller for room management
@@ -539,6 +540,25 @@ export class RoomController {
       res.status(404).json({ message: 'Room not found' });
       return;
     }
+
+    const appointments = await getRepository(AppointmentTimeslot).find({
+      where: {
+        room: { id: room.id },
+        confirmationStatus: Not(ConfirmationStatus.denied),
+        start: MoreThan(moment().toDate()),
+      },
+      relations: ['user'],
+    });
+
+    await Promise.all(
+      appointments.map(async (appointment: AppointmentTimeslot) => {
+        return await MessagingController.sendMessage(
+          appointment.user,
+          'Your booking has been canceled ',
+          'Your booking has been canceled, because the affiliated room has been removed'
+        );
+      })
+    );
 
     await repository.remove(room).then(() => {
       res.sendStatus(204);

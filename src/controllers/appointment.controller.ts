@@ -843,6 +843,7 @@ export class AppointmentController {
       }
 
       await repository.update(appointment.id, { confirmationStatus });
+      const statusMessage = confirmationStatus === ConfirmationStatus.accepted ? 'accepted' : 'rejected';
 
       await MessagingController.sendMessage(
         appointment.user,
@@ -855,7 +856,7 @@ export class AppointmentController {
           moment(appointment.end).format('HH:mm') +
           ' in room ' +
           appointment.room.name +
-          ' was edited by an admin.',
+          ` was ${statusMessage} by an admin.`,
         'View Appointments',
         '/appointments'
       );
@@ -1037,6 +1038,7 @@ export class AppointmentController {
         { confirmationStatus }
       );
       res.json(await repository.find({ where: { seriesId: seriesId } }));
+      const statusMessage = confirmationStatus === ConfirmationStatus.accepted ? 'accepted' : 'rejected';
 
       await MessagingController.sendMessage(
         user,
@@ -1049,7 +1051,7 @@ export class AppointmentController {
           moment(first.end).format('HH:mm') +
           ' in room ' +
           room.name +
-          ' was edited by an admin.',
+          ` was ${statusMessage} by an admin.`,
         'View Appointments',
         '/appointments'
       );

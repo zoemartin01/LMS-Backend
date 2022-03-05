@@ -1482,5 +1482,26 @@ describe('AdminController', () => {
 
       expect(res.status).to.equal(204);
     });
+
+    it('should send a message to the deleted user via email', async () => {
+      const spy = sandbox.stub(MessagingController, 'sendMessageViaEmail').resolves();
+      const user = await factory(User)({
+        role: UserRole.visitor,
+        emailVerification: true,
+      }).create();
+      expect(
+        (async () => {
+          return await userRepository.findOneOrFail(user.id);
+        })()
+      ).to.be.fulfilled;
+
+      const res = await chai
+        .request(app.app)
+        .delete(uri.replace(':id', user.id))
+        .set('Authorization', adminHeader);
+
+      expect(res.status).to.equal(204);
+      spy.should.have.been.calledWith(user);
+    });
   });
 });

@@ -440,6 +440,10 @@ export class OrderController {
       }
     }
 
+    const wasAccepted =
+      req.body.status === OrderStatus.ordered &&
+      order.status === OrderStatus.ordered;
+
     // get updated data of order to return for order view page
     order = await orderRepository.findOneOrFail({
       where: { id: req.params.id },
@@ -455,7 +459,9 @@ export class OrderController {
       await MessagingController.sendMessage(
         order.user,
         'Updated Order',
-        'Your order request of ' + itemName + ' has been updated by an admin',
+        'Your order request of ' +
+          itemName +
+          ` has been ${wasAccepted ? 'accepted' : 'updated'} by an admin`,
         'Your Orders',
         '/orders'
       );
@@ -463,7 +469,9 @@ export class OrderController {
       await MessagingController.sendMessage(
         currentUser,
         'Updated Order Request Confirmation',
-        'Your order request of ' + itemName + ' has been updated.',
+        'Your order request of ' +
+          itemName +
+          ` has been ${wasAccepted ? 'accepted' : 'updated'}.`,
         'Your Orders',
         '/orders'
       );
