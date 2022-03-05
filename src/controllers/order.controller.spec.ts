@@ -1227,6 +1227,30 @@ describe('OrderController', () => {
       );
     });
 
+    it('should send a message to the user if order is accepted', async () => {
+      const spy = sandbox.spy(MessagingController, 'sendMessage');
+      const order = await factory(Order)({
+        user: visitor,
+        status: OrderStatus.pending,
+      }).create();
+      expect(
+        (async () => {
+          return await repository.findOneOrFail(order.id);
+        })()
+      ).to.be.fulfilled;
+
+      const res = await chai
+        .request(app.app)
+        .patch(uri.replace(':id', order.id))
+        .set('Authorization', adminHeader)
+        .send({ status: OrderStatus.ordered });
+
+      res.should.have.status(200);
+      expect(spy).to.have.been.calledWith(
+        await getRepository(User).findOneOrFail(visitor.id)
+      );
+    });
+
     it('should send a message to all admins that a order has been edited', async () => {
       const spy = sandbox.spy(MessagingController, 'sendMessageToAllAdmins');
       const order = await factory(Order)({
