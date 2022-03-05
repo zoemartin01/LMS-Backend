@@ -72,19 +72,23 @@ describe('UserController', () => {
       res.should.have.status(409);
     });
 
-    //todo(zoe) test registration
-    /*
     it('should register user', async () => {
+      const spy = sandbox.stub(MessagingController, 'sendMessageViaEmail');
+      const email = 'test@test.de';
       const res = await chai.request(app.app).post(uri).send({
         firstName: 'first',
         lastName: 'last',
-        email: 'test@test.de',
+        email: email,
         password: 'testPassword',
       });
-      //todo(zoe) test token and password hash
+      const user = await getRepository(User).findOneOrFail({
+        where: { email },
+      });
+
+      expect(res.status).to.equal(201);
+      bcrypt.compareSync('testPassword', user.password).should.be.true;
       res.should.have.status(201);
     });
-     */
 
     it('should send a message to the user with the registration link', async () => {
       const spy = sandbox.spy(MessagingController, 'sendMessage');
