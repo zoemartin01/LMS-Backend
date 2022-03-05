@@ -888,4 +888,30 @@ describe('MessagingController', () => {
       });
     });
   });
+
+  describe('#closeAllUserWebsockets()', () => {
+    it('should close all user websockets (1)', async () => {
+      MessagingController.messageSockets = {};
+      await MessagingController.closeAllUserWebsockets(admin);
+
+      expect(MessagingController.messageSockets[admin.id]).to.be.undefined;
+    });
+
+    it('should close all user websockets (2)', async () => {
+      MessagingController.messageSockets = {};
+
+      mockReq = new MockExpressRequest();
+      mockReq.body = { user: { id: admin.id } };
+      messageWebsocket = WebSocketMock();
+      const spy = sandbox.spy(messageWebsocket, 'close');
+      await MessagingController.registerUnreadMessagesSocket(
+        messageWebsocket,
+        mockReq
+      );
+      await MessagingController.closeAllUserWebsockets(admin);
+
+      MessagingController.messageSockets[admin.id].should.be.empty;
+      spy.should.have.been.called;
+    });
+  });
 });
