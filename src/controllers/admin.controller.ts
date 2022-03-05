@@ -43,14 +43,7 @@ export class AdminController {
    */
   public static async updateGlobalSettings(req: Request, res: Response) {
     const repository = getRepository(GlobalSetting);
-    const globalSettings: GlobalSetting[] | undefined = req.body;
-
-    if (globalSettings === undefined) {
-      res.status(404).json({
-        message: `Global setting not found.`,
-      });
-      return;
-    }
+    const globalSettings: GlobalSetting[] = req.body;
 
     for (const globalSetting in globalSettings) {
       if (globalSettings[globalSetting].value === undefined) {
