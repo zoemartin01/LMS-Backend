@@ -469,9 +469,7 @@ export class OrderController {
       await MessagingController.sendMessage(
         currentUser,
         'Updated Order Request Confirmation',
-        'Your order request of ' +
-          itemName +
-          ` has been ${wasAccepted ? 'accepted' : 'updated'}.`,
+        'Your order request of ' + itemName + ' has been updated.',
         'Your Orders',
         '/orders'
       );
