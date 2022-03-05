@@ -196,10 +196,6 @@ export class RoomController {
       index,
       j;
     for (availableTimespan of availableTimeSlots) {
-      // if (availableTimespan.start == null || availableTimespan.end == null) {
-      //   continue;
-      // }
-
       timespanStart = +moment(availableTimespan.start).format('HH');
       if (timespanStart < minTimeslot) {
         minTimeslot = timespanStart;
@@ -236,10 +232,6 @@ export class RoomController {
 
     //add available timeslots to calendar
     for (availableTimespan of availableTimeSlots) {
-      // if (availableTimespan.start == null || availableTimespan.end == null) {
-      //   continue;
-      // }
-
       timespanEnd = +moment(availableTimespan.end).format('HH');
       if (timespanEnd === 0) {
         timespanEnd = 24;
@@ -258,13 +250,6 @@ export class RoomController {
 
     //set unavailable timeslots
     for (unavailableTimeSlot of unavailableTimeSlots) {
-      // if (
-      //   unavailableTimeSlot.start == null ||
-      //   unavailableTimeSlot.end == null
-      // ) {
-      //   continue;
-      // }
-
       timespanEnd = +moment(unavailableTimeSlot.end).format('HH');
       if (timespanEnd === 0) {
         timespanEnd = 24;
@@ -286,10 +271,6 @@ export class RoomController {
     //add appointments
     try {
       for (appointment of appointments) {
-        // if (appointment.start == null || appointment.end == null) {
-        //   continue;
-        // }
-
         start = moment(appointment.start);
         hour = +start.format('HH') - minTimeslot;
         day = (+start.format('e') + 6) % 7;
@@ -338,7 +319,6 @@ export class RoomController {
           }
 
           //shorten available timeslots on left side of timeslots
-          // @todo(zoe) wann wird das benutzt?
           if (index !== j) {
             calendar[i][day][j] = `available ${index - j}`;
           }
