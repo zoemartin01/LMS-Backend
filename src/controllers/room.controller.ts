@@ -1130,6 +1130,8 @@ export class RoomController {
       return;
     }
 
+    const id = timeslot.id;
+
     const type = timeslot.type;
 
     if (type === TimeSlotType.booked) {
@@ -1273,9 +1275,7 @@ export class RoomController {
     mergables = mergables.filter((mergable) =>
       moment(mergable.start).isSame(mStart, 'day')
     );
-    mergables = mergables.filter(
-      (mergable) => mergable.id !== timeslot?.id ?? ''
-    );
+    mergables = mergables.filter((mergable) => mergable.id !== id);
 
     if (mergables.length > 0) {
       const minStart = min([
