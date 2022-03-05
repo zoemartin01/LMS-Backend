@@ -109,7 +109,6 @@ describe('AdminController', () => {
         });
     });
 
-    //todo 49-52
     it('should fail with undefined body', (done) => {
       chai
         .request(app.app)
@@ -146,7 +145,17 @@ describe('AdminController', () => {
         });
     });
 
-    //todo 87-88 failing update due to invalid inputs
+    it('should fail with invalid value (2)', (done) => {
+      chai
+        .request(app.app)
+        .patch(uri)
+        .set('Authorization', adminHeader)
+        .send([{ key: 'a'.repeat(260), value: 3 }])
+        .end((err, res) => {
+          expect(res.status).to.equal(400);
+          done();
+        });
+    });
 
     it('should update global settings', async () => {
       const res = await chai
@@ -687,7 +696,7 @@ describe('AdminController', () => {
       expect(res.status).to.equal(404);
     });
 
-    //todo 343-344
+    //todo 336-337
     it('should fail with invalid input', async () => {
       const retailer = await factory(Retailer)().create();
       const domain = await factory(RetailerDomain)(retailer).create();
@@ -700,8 +709,21 @@ describe('AdminController', () => {
       expect(res.status).to.equal(404);
     });
 
-    //todo 343-344
+    //todo 336-337
     it('should fail with invalid input', async () => {
+      const retailer = await factory(Retailer)().create();
+      const domain = await factory(RetailerDomain)(retailer).create();
+
+      const res = await chai
+        .request(app.app)
+        .patch(uri.replace(':id', retailer.id).replace(':domainId', domain.id))
+        .set('Authorization', adminHeader)
+        .send({ domain: undefined });
+      expect(res.status).to.equal(404);
+    });
+
+    //todo 336-337
+    it('should fail with invalid input 2', async () => {
       const retailer = await factory(Retailer)().create();
       const domain = await factory(RetailerDomain)(retailer).create();
 
@@ -713,8 +735,8 @@ describe('AdminController', () => {
       expect(res.status).to.equal(404);
     });
 
-    //todo 343-344
-    it('should fail with invalid input', async () => {
+    //todo 336-337
+    it('should fail with invalid input 3', async () => {
       const retailer = await factory(Retailer)().create();
       const domain = await factory(RetailerDomain)(retailer).create();
 
@@ -726,8 +748,8 @@ describe('AdminController', () => {
       expect(res.status).to.equal(404);
     });
 
-    //todo 343-344
-    it('should fail with invalid input', async () => {
+    //todo 336-337
+    it('should fail with invalid input 4', async () => {
       const retailer = await factory(Retailer)().create();
       const domain = await factory(RetailerDomain)(retailer).create();
 
@@ -809,7 +831,20 @@ describe('AdminController', () => {
         });
     });
 
-    //todo test email verification not true
+    it('should fail with email verification false', async () => {
+      const count = 10;
+      await factory(User)({
+        role: UserRole.pending,
+        emailVerification: false,
+      }).createMany(count);
+
+      const res = await chai
+        .request(app.app)
+        .get(uri)
+        .set('Authorization', adminHeader);
+
+      expect(res.status).to.equal(400);
+    });
 
     it('should get all users without limit/offset', async () => {
       const count = 10;
@@ -917,7 +952,20 @@ describe('AdminController', () => {
         });
     });
 
-    //todo fail email verification false
+    it('should fail with email verification false', async () => {
+      const count = 10;
+      await factory(User)({
+        role: UserRole.visitor,
+        emailVerification: false,
+      }).createMany(count);
+
+      const res = await chai
+        .request(app.app)
+        .get(uri)
+        .set('Authorization', adminHeader);
+
+      expect(res.status).to.equal(400);
+    });
 
     it('should get all users without limit/offset', async () => {
       const count = 10;
@@ -1130,8 +1178,7 @@ describe('AdminController', () => {
       expect(res.status).to.equal(400);
     });
 
-    //todo 611-612
-    it('should fail to update invalid input', async () => {
+    it('should fail to update invalid input 1', async () => {
       const user = Helpers.JSONify(
         await factory(User)({
           role: UserRole.visitor,
@@ -1145,6 +1192,24 @@ describe('AdminController', () => {
         .patch(uri.replace(':id', user.id))
         .set('Authorization', adminHeader)
         .send({ lastName: null });
+
+      expect(res.status).to.equal(400);
+    });
+
+    it('should fail to update invalid input 2', async () => {
+      const user = Helpers.JSONify(
+        await factory(User)({
+          role: UserRole.visitor,
+          emailVerification: true,
+          firstName: null,
+          notificationChannel: null,
+        }).create()
+      );
+      const res = await chai
+        .request(app.app)
+        .patch(uri.replace(':id', user.id))
+        .set('Authorization', adminHeader)
+        .send({ lastName: null, password: 'test' });
 
       expect(res.status).to.equal(400);
     });
@@ -1292,7 +1357,22 @@ describe('AdminController', () => {
         });
     });
 
-    //todo 694-695 error when creating the new user mango
+    //todo 687-688 error when creating the new user mango
+    /*
+    it('should fail with invalid user (1)', async () => {
+      sandbox.stub(MessagingController, 'sendMessageViaEmail').resolves();
+      const user = await factory(User)({
+        role: UserRole.visitor,
+        password: undefined,
+      }).create();
+      const res = await chai
+        .request(app.app)
+        .delete(uri.replace(':id', user.id))
+        .set('Authorization', adminHeader)
+      expect(res.status).to.equal(400);
+    });
+
+     */
 
     it('should delete a specific user', async () => {
       sandbox.stub(MessagingController, 'sendMessageViaEmail').resolves();
