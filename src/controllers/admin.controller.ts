@@ -673,20 +673,15 @@ export class AdminController {
       'Your account has been deleted by an admin. Bye!'
     );
 
-    try {
-      await userRepository.update(
-        { id: user.id },
-        {
-          firstName: '<deleted>',
-          lastName: '<deleted>',
-          email: '<deleted>',
-          password: '<deleted>',
-        }
-      );
-    } catch (err) {
-      res.status(400).json(err);
-      return;
-    }
+    await userRepository.update(
+      { id: user.id },
+      {
+        firstName: '<deleted>',
+        lastName: '<deleted>',
+        email: '<deleted>',
+        password: '<deleted>',
+      }
+    );
 
     await userRepository.softDelete(user.id);
 
