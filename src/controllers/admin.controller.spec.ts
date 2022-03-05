@@ -684,7 +684,7 @@ describe('AdminController', () => {
       expect(res.status).to.equal(403);
     });
 
-    it('should fail with invalid input', async () => {
+    it('should fail with invalid input 404', async () => {
       const retailer = await factory(Retailer)().create();
       const domain = await factory(RetailerDomain)(retailer).create();
 
@@ -696,69 +696,52 @@ describe('AdminController', () => {
       expect(res.status).to.equal(404);
     });
 
-    //todo 336-337
-    it('should fail with invalid input', async () => {
+    it('should fail with invalid input 1', async () => {
       const retailer = await factory(Retailer)().create();
-      const domain = await factory(RetailerDomain)(retailer).create();
+      const domain = await factory(RetailerDomain)({ retailer }).create();
 
       const res = await chai
         .request(app.app)
         .patch(uri.replace(':id', retailer.id).replace(':domainId', domain.id))
         .set('Authorization', adminHeader)
-        .send({ domain: null });
-      expect(res.status).to.equal(404);
+        .send({ domain: '' });
+      expect(res.status).to.equal(400);
     });
 
-    //todo 336-337
-    it('should fail with invalid input', async () => {
-      const retailer = await factory(Retailer)().create();
-      const domain = await factory(RetailerDomain)(retailer).create();
-
-      const res = await chai
-        .request(app.app)
-        .patch(uri.replace(':id', retailer.id).replace(':domainId', domain.id))
-        .set('Authorization', adminHeader)
-        .send({ domain: undefined });
-      expect(res.status).to.equal(404);
-    });
-
-    //todo 336-337
     it('should fail with invalid input 2', async () => {
       const retailer = await factory(Retailer)().create();
-      const domain = await factory(RetailerDomain)(retailer).create();
+      const domain = await factory(RetailerDomain)({ retailer }).create();
 
       const res = await chai
         .request(app.app)
         .patch(uri.replace(':id', retailer.id).replace(':domainId', domain.id))
         .set('Authorization', adminHeader)
         .send({ domain: 8 });
-      expect(res.status).to.equal(404);
+      expect(res.status).to.equal(400);
     });
 
-    //todo 336-337
     it('should fail with invalid input 3', async () => {
       const retailer = await factory(Retailer)().create();
-      const domain = await factory(RetailerDomain)(retailer).create();
+      const domain = await factory(RetailerDomain)({ retailer }).create();
 
       const res = await chai
         .request(app.app)
         .patch(uri.replace(':id', retailer.id).replace(':domainId', domain.id))
         .set('Authorization', adminHeader)
         .send({ domain: 0 });
-      expect(res.status).to.equal(404);
+      expect(res.status).to.equal(400);
     });
 
-    //todo 336-337
     it('should fail with invalid input 4', async () => {
       const retailer = await factory(Retailer)().create();
-      const domain = await factory(RetailerDomain)(retailer).create();
+      const domain = await factory(RetailerDomain)({ retailer }).create();
 
       const res = await chai
         .request(app.app)
         .patch(uri.replace(':id', retailer.id).replace(':domainId', domain.id))
         .set('Authorization', adminHeader)
         .send({ domain: -2 });
-      expect(res.status).to.equal(404);
+      expect(res.status).to.equal(400);
     });
 
     it('should patch a specific domain of retailer', async () => {
@@ -829,21 +812,6 @@ describe('AdminController', () => {
           expect(res.status).to.equal(403);
           done();
         });
-    });
-
-    it('should fail with email verification false', async () => {
-      const count = 10;
-      await factory(User)({
-        role: UserRole.pending,
-        emailVerification: false,
-      }).createMany(count);
-
-      const res = await chai
-        .request(app.app)
-        .get(uri)
-        .set('Authorization', adminHeader);
-
-      expect(res.status).to.equal(400);
     });
 
     it('should get all users without limit/offset', async () => {
@@ -950,21 +918,6 @@ describe('AdminController', () => {
           expect(res.status).to.equal(403);
           done();
         });
-    });
-
-    it('should fail with email verification false', async () => {
-      const count = 10;
-      await factory(User)({
-        role: UserRole.visitor,
-        emailVerification: false,
-      }).createMany(count);
-
-      const res = await chai
-        .request(app.app)
-        .get(uri)
-        .set('Authorization', adminHeader);
-
-      expect(res.status).to.equal(400);
     });
 
     it('should get all users without limit/offset', async () => {
@@ -1289,6 +1242,30 @@ describe('AdminController', () => {
       expect(res.body).to.deep.equal({ ...user, email: 'test@test.de' });
     });
 
+    it('should succeed to degrade admin', async () => {
+      const user = Helpers.JSONify(
+        await userRepository.findOneOrFail(
+          (
+            await factory(User)({
+              role: UserRole.admin,
+              emailVerification: true,
+            }).create()
+          ).id
+        )
+      );
+      const res = await chai
+        .request(app.app)
+        .patch(uri.replace(':id', admin.id))
+        .set('Authorization', adminHeader)
+        .send({ role: UserRole.visitor });
+
+      expect(res.status).to.equal(200);
+      expect(res.body).to.deep.equal({
+        ...Helpers.JSONify(admin),
+        role: UserRole.visitor,
+      });
+    });
+
     it('should update a the password of a specific user', async () => {
       const user = Helpers.JSONify(
         await userRepository.findOneOrFail(
@@ -1356,23 +1333,6 @@ describe('AdminController', () => {
           done();
         });
     });
-
-    //todo 687-688 error when creating the new user mango
-    /*
-    it('should fail with invalid user (1)', async () => {
-      sandbox.stub(MessagingController, 'sendMessageViaEmail').resolves();
-      const user = await factory(User)({
-        role: UserRole.visitor,
-        password: undefined,
-      }).create();
-      const res = await chai
-        .request(app.app)
-        .delete(uri.replace(':id', user.id))
-        .set('Authorization', adminHeader)
-      expect(res.status).to.equal(400);
-    });
-
-     */
 
     it('should delete a specific user', async () => {
       sandbox.stub(MessagingController, 'sendMessageViaEmail').resolves();
