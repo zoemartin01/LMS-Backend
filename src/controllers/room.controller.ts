@@ -116,7 +116,8 @@ export class RoomController {
       req.query.date === undefined ? moment() : moment(+req.query.date * 1000);
 
     const from: string = date.day(1).format('YYYY-MM-DD');
-    const to: string = date.day(1).add(7, 'days').format('YYYY-MM-DD');
+    const to: string = date.day(1).add(7, 'days').subtract(1, 'minute')
+      .format('YYYY-MM-DD');
 
     const room = await getRepository(Room).findOne(req.params.id);
 
@@ -125,6 +126,7 @@ export class RoomController {
       return;
     }
 
+    //get separate lists of appointments and timeslots
     const timeSlotRepository = getRepository(TimeSlot);
     const appointmentRepository = getRepository(AppointmentTimeslot);
     const appointments = await appointmentRepository.find({
@@ -144,6 +146,7 @@ export class RoomController {
       ],
       order: {
         start: 'ASC',
+        end: 'DESC',
       },
     });
     const availableTimeSlots = await timeSlotRepository.find({
@@ -186,7 +189,8 @@ export class RoomController {
       start,
       hour,
       day,
-      index;
+      index,
+      j;
     for (availableTimespan of availableTimeSlots) {
       if (availableTimespan.start == null || availableTimespan.end == null) {
         continue;
@@ -198,6 +202,10 @@ export class RoomController {
       }
 
       timespanEnd = +moment(availableTimespan.end).format('HH');
+      if (timespanEnd === 0) {
+        timespanEnd = 24;
+      }
+
       if (timespanEnd > maxTimeslot) {
         maxTimeslot = timespanEnd - 1;
       }
@@ -222,40 +230,49 @@ export class RoomController {
       }
     }
 
-    //set available timeslots
+    //add available timeslots to calendar
     for (availableTimespan of availableTimeSlots) {
       if (availableTimespan.start == null || availableTimespan.end == null) {
         continue;
       }
 
+      timespanEnd = +moment(availableTimespan.end).format('HH');
+      if (timespanEnd === 0) {
+        timespanEnd = 24;
+      }
+
       for (
         let i = +moment(availableTimespan.start).format('HH');
-        i < +moment(availableTimespan.end).format('HH');
+        i < timespanEnd;
         i++
       ) {
         calendar[i - minTimeslot][
           (+moment(availableTimespan.start).format('e') + 6) % 7
-        ][0] = 'available';
+        ][0] = `available ${room.maxConcurrentBookings}`;
       }
     }
 
     //set unavailable timeslots
     for (unavailableTimeSlot of unavailableTimeSlots) {
-      if (
-        unavailableTimeSlot.start == null ||
-        unavailableTimeSlot.end == null
-      ) {
+      if (unavailableTimeSlot.start == null || unavailableTimeSlot.end == null) {
         continue;
+      }
+
+      timespanEnd = +moment(unavailableTimeSlot.end).format('HH');
+      if (timespanEnd === 0) {
+        timespanEnd = 24;
       }
 
       for (
         let i = +moment(unavailableTimeSlot.start).format('HH');
-        i < +moment(unavailableTimeSlot.end).format('HH');
+        i < timespanEnd;
         i++
       ) {
-        calendar[i - minTimeslot][
-          (+moment(unavailableTimeSlot.start).format('e') + 6) % 7
-        ][0] = 'unavailable';
+        if (minTimeslot <= i && i < maxTimeslot) {
+          calendar[i - minTimeslot][
+            (+moment(unavailableTimeSlot.start).format('e') + 6) % 7
+          ][0] = 'unavailable';
+        }
       }
     }
 
@@ -270,19 +287,50 @@ export class RoomController {
         hour = +start.format('HH') - minTimeslot;
         day = (+start.format('e') + 6) % 7;
 
-        for (index = 0; calendar[hour][day][index] === null; index++) {
-          //
+        if (calendar[hour][day][0] === 'unavailable') {
+          continue;
+        }
+
+        //find next available index
+        for (index = 0;
+             typeof calendar[hour][day][index] !== 'string'
+             || (<string>calendar[hour][day][index]).split(' ')[0] !== 'available';
+             index++) {
+          if (index === room.maxConcurrentBookings) {
+            throw Error('max concurrent bookings violated');
+          }
+        }
+
+        timespanEnd = +moment(appointment.end).format('HH');
+        if (timespanEnd === 0) {
+          timespanEnd = 24;
+        }
+
+        for (let i = hour; i < timespanEnd - minTimeslot; i++) {
+          //find starting block of available timeslot that hits this appointment
+          for (j = index; 0 <= j; j--) {
+            if (typeof calendar[i][day][j] === 'string'
+              && (<string>calendar[i][day][j]).split(' ')[0] === 'available') {
+              break;
+            }
+          }
+
+          //add available timeslots on right side of timeslots if needed
+          const availableTimeslotLength = +(<string>calendar[i][day][j]).split(' ')[1];
+          if (0 < j + availableTimeslotLength - index - 1) {
+            calendar[i][day][index + 1] = `available ${j + availableTimeslotLength - index - 1}`;
+          }
+
+          //shorten available timeslots on left side of timeslots
+          if (index !== j) {
+            calendar[i][day][j] = `available ${index - j}`;
+          }
+
+          //mark fields blocked by the appointment
+          calendar[i][day][index] = 'appointment_blocked';
         }
 
         calendar[hour][day][index] = appointment;
-
-        for (
-          let i = hour + 1;
-          i <= +moment(appointment.end).format('HH') - minTimeslot - 1;
-          i++
-        ) {
-          calendar[i][day][index] = null;
-        }
       }
     } catch (e) {
       res.status(500).json({
@@ -308,7 +356,8 @@ export class RoomController {
       req.query.date === undefined ? moment() : moment(+req.query.date * 1000);
 
     const from: string = date.day(1).format('YYYY-MM-DD');
-    const to: string = date.day(1).add(7, 'days').format('YYYY-MM-DD');
+    const to: string = date.day(1).add(7, 'days').subtract(1, 'minute')
+      .format('YYYY-MM-DD');
 
     const room = await getRepository(Room).findOne(req.params.id);
 
@@ -348,7 +397,7 @@ export class RoomController {
     });
 
     //initialise array (timeslot, days, parallel bookings)
-    let availableTimespan, unavailableTimeSlot, timespanStart, timespanEnd;
+    let availableTimespan, unavailableTimeSlot, timespanEnd;
     const calendar: string[][] = [...Array(24)].map(() => [...Array(7)]);
 
     //set available timeslots
@@ -357,9 +406,14 @@ export class RoomController {
         continue;
       }
 
+      timespanEnd = +moment(availableTimespan.end).format('HH');
+      if (timespanEnd === 0) {
+        timespanEnd = 24;
+      }
+
       for (
         let i = +moment(availableTimespan.start).format('HH');
-        i < +moment(availableTimespan.end).format('HH');
+        i < timespanEnd;
         i++
       ) {
         calendar[i][
@@ -377,9 +431,14 @@ export class RoomController {
         continue;
       }
 
+      timespanEnd = +moment(unavailableTimeSlot.end).format('HH');
+      if (timespanEnd === 0) {
+        timespanEnd = 24;
+      }
+
       for (
         let i = +moment(unavailableTimeSlot.start).format('HH');
-        i < +moment(unavailableTimeSlot.end).format('HH');
+        i < timespanEnd;
         i++
       ) {
         calendar[i][
@@ -424,7 +483,7 @@ export class RoomController {
    * @routeParam {string} id - id of the room
    * @bodyParam {string [Optional]} name - name of the room
    * @bodyParam {string [Optional]} description - description of the room
-   * @bodyParam {number [Optional]} maxConcurrentBooking - max number of concurrent bookings
+   * @bodyParam {number [Optional]} maxConcurrentBookings - max number of concurrent bookings
    * @bodyParam {boolean [Optional]} autoAcceptBookings - if bookings are automatically accepted
    * @param {Request} req frontend request to change data about one room
    * @param {Response} res backend response with data change of one room
@@ -435,6 +494,17 @@ export class RoomController {
 
     if (room === undefined) {
       res.status(404).json({ message: 'Room not found' });
+      return;
+    }
+
+    //todo please fix max concurrent bookings edit check
+    if (
+      req.body.maxConcurrentBookings !== undefined &&
+      +req.body.maxConcurrentBookings < room.maxConcurrentBookings
+    ) {
+      res
+        .status(409)
+        .json({ message: 'Maximum concurrent bookings can not be set lower.' });
       return;
     }
 

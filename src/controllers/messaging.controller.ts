@@ -46,8 +46,11 @@ export class MessagingController {
   private static async getUnreadMessagesAmountsUtil(user: User): Promise<{
     sum: number;
     appointments: number;
+    appointments_admin: number;
     orders: number;
+    orders_admin: number;
     users: number;
+    settings: number;
   }> {
     const messageRepository = getRepository(Message);
 
@@ -67,13 +70,14 @@ export class MessagingController {
       .groupBy('message.correspondingUrl')
       .getRawMany();
 
-    //@todo categorize unreadMessages
-
     return {
       sum: +unreadMessagesSum.sum,
-      appointments: 0,
-      orders: 0,
-      users: 0,
+      appointments: +(unreadMessages.filter(el => el.message_correspondingUrl === '/appointments')[0]?.sum ?? 0),
+      appointments_admin: +(unreadMessages.filter(el => el.message_correspondingUrl === '/appointments/all')[0]?.sum ?? 0),
+      orders: +(unreadMessages.filter(el => el.message_correspondingUrl === '/orders')[0]?.sum ?? 0),
+      orders_admin: +(unreadMessages.filter(el => el.message_correspondingUrl === '/orders/all')[0]?.sum ?? 0),
+      users: +(unreadMessages.filter(el => el.message_correspondingUrl === '/users')[0]?.sum ?? 0),
+      settings: +(unreadMessages.filter(el => el.message_correspondingUrl === '/settings')[0]?.sum ?? 0),
     };
   }
 
@@ -243,8 +247,8 @@ export class MessagingController {
     linkUrl: string | null = null
   ): Promise<void> {
     if (
-      NotificationChannel.emailAndMessageBox ||
-      NotificationChannel.messageBoxOnly
+      recipient.notificationChannel === NotificationChannel.emailAndMessageBox ||
+      recipient.notificationChannel === NotificationChannel.messageBoxOnly
     ) {
       await MessagingController.sendMessageViaMessageBox(
         recipient,
@@ -256,8 +260,8 @@ export class MessagingController {
     }
 
     if (
-      NotificationChannel.emailAndMessageBox ||
-      NotificationChannel.emailOnly
+      recipient.notificationChannel === NotificationChannel.emailAndMessageBox ||
+      recipient.notificationChannel === NotificationChannel.emailOnly
     ) {
       await MessagingController.sendMessageViaEmail(
         recipient,
