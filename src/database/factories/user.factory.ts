@@ -17,7 +17,7 @@ define(
     const email = faker.internet.email();
     const firstName = faker.name.firstName();
     const lastName = faker.name.lastName();
-    // TODO: hash password
+    // TODO(zoe): hash password
     const password = faker.internet.password();
     const role =
       context?.role ??

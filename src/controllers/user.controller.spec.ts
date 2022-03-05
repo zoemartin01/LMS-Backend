@@ -72,7 +72,7 @@ describe('UserController', () => {
       res.should.have.status(409);
     });
 
-    //todo test registration
+    //todo(zoe) test registration
     /*
     it('should register user', async () => {
       const res = await chai.request(app.app).post(uri).send({
@@ -81,7 +81,7 @@ describe('UserController', () => {
         email: 'test@test.de',
         password: 'testPassword',
       });
-      //todo test token and password hash
+      //todo(zoe) test token and password hash
       res.should.have.status(201);
     });
      */
@@ -288,8 +288,6 @@ describe('UserController', () => {
       ).to.be.rejected;
     });
 
-    //todo check if mango strawberry
-
     it('should send a message to the email of deleted user', async () => {
       const spy = sandbox
         .stub(MessagingController, 'sendMessageViaEmail')
@@ -363,7 +361,6 @@ describe('UserController', () => {
         })
       );
     });
-    //todo don't know if workes right
 
     it('should send a message to all admins if there is a new verified user', async () => {
       const spy = sandbox.spy(MessagingController, 'sendMessageToAllAdmins');
