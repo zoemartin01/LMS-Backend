@@ -541,22 +541,24 @@ export class RoomController {
       return;
     }
 
-    (
-      await getRepository(AppointmentTimeslot).find({
-        where: {
-          room,
-          status: Not(ConfirmationStatus.denied),
-          start: MoreThan(moment().toDate()),
-        },
-        relations: ['user'],
-      })
-    ).forEach(async (appointment: AppointmentTimeslot) => {
-      MessagingController.sendMessage(
-        appointment.user,
-        'Your booking has been canceled ',
-        'Your booking has been canceled, because the affiliated room has been removed'
-      );
+    const appointments = await getRepository(AppointmentTimeslot).find({
+      where: {
+        room: { id: room.id },
+        confirmationStatus: Not(ConfirmationStatus.denied),
+        start: MoreThan(moment().toDate()),
+      },
+      relations: ['user'],
     });
+
+    await Promise.all(
+      appointments.map(async (appointment: AppointmentTimeslot) => {
+        return await MessagingController.sendMessage(
+          appointment.user,
+          'Your booking has been canceled ',
+          'Your booking has been canceled, because the affiliated room has been removed'
+        );
+      })
+    );
 
     await repository.remove(room).then(() => {
       res.sendStatus(204);
