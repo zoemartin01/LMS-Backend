@@ -659,7 +659,7 @@ export class AdminController {
         },
       });
 
-      if (adminCount <= 1) {
+      if (adminCount < 2) {
         res.status(403).json({
           message: 'Not allowed to delete last admin',
         });
