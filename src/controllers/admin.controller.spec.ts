@@ -831,7 +831,7 @@ describe('AdminController', () => {
       Helpers.checkAuthentication('GET', 'fails', app, uri);
     });
 
-    it('should check a specific domain of retailer', async () => {
+    it('should check a specific domain of retailer, find', async () => {
       const retailer = await factory(Retailer)().create();
       const domain = await factory(RetailerDomain)({ retailer }).create();
       const domainRepository = getRepository(RetailerDomain);
@@ -842,10 +842,76 @@ describe('AdminController', () => {
       const res = await chai
         .request(app.app)
         .post(uri)
+        .send({ domain: domain.domain })
         .set('Authorization', adminHeader);
 
       expect(res.status).to.equal(200);
-      //todo better expect
+      expect(res.body).to.have.a.property('isWhitelisted', true);
+    });
+
+    it('should check a specific domain of retailer, no exact match, find (1)', async () => {
+      const retailer = await factory(Retailer)().create();
+      const domain = await factory(RetailerDomain)({ retailer }).create();
+      const domainRepository = getRepository(RetailerDomain);
+
+      domainRepository.findOne({ id: domain.id }).then((domain) => {
+        expect(domain).to.be.not.undefined;
+      });
+      const res = await chai
+        .request(app.app)
+        .post(uri)
+        .send({ domain: 'www.' + domain.domain + '.de' })
+        .set('Authorization', adminHeader);
+
+      expect(res.status).to.equal(200);
+      expect(res.body).to.have.a.property('isWhitelisted', true);
+    });
+
+    it('should check a specific domain of retailer, no exact match, find (2)', async () => {
+      const retailer = await factory(Retailer)().create();
+      const domain = await factory(RetailerDomain)({ retailer }).create();
+      const domainRepository = getRepository(RetailerDomain);
+
+      domainRepository.findOne({ id: domain.id }).then((domain) => {
+        expect(domain).to.be.not.undefined;
+      });
+      const res = await chai
+        .request(app.app)
+        .post(uri)
+        .send({ domain: domain.domain + '/testItem/product' })
+        .set('Authorization', adminHeader);
+
+      expect(res.status).to.equal(200);
+      expect(res.body).to.have.a.property('isWhitelisted', true);
+    });
+
+    it('should check a specific domain of retailer, no exact match, find (3)', async () => {
+      const retailer = await factory(Retailer)().create();
+      const domain = await factory(RetailerDomain)({ retailer }).create();
+      const domainRepository = getRepository(RetailerDomain);
+
+      domainRepository.findOne({ id: domain.id }).then((domain) => {
+        expect(domain).to.be.not.undefined;
+      });
+      const res = await chai
+        .request(app.app)
+        .post(uri)
+        .send({ domain: 'https:// ' + domain.domain })
+        .set('Authorization', adminHeader);
+
+      expect(res.status).to.equal(200);
+      expect(res.body).to.have.a.property('isWhitelisted', true);
+    });
+
+    it('should check a specific domain of retailer, no find', async () => {
+      const res = await chai
+        .request(app.app)
+        .post(uri)
+        .send({ domain: 'failingTest' })
+        .set('Authorization', adminHeader);
+
+      expect(res.status).to.equal(200);
+      expect(res.body).to.have.a.property('isWhitelisted', false);
     });
   });
 
