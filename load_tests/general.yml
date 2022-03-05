@@ -16,7 +16,45 @@ config:
       name: Sustained load
 
 scenarios:
-  - name: "login and open user list"
+  # - name: "login and open user list"
+  #   flow:
+  #     - post:
+  #         url: "/token"
+  #         json:
+  #           email: "admin@test.com"
+  #           password: "admin"
+  #         capture:
+  #           json: "$.accessToken"
+  #           as: "token"
+  #     - get:
+  #         url: "/users/accepted?limit=10&offset=0"
+  #         headers:
+  #           authorization: "Bearer {{ token }}"
+  # - name: "login and open room calendar"
+  #   flow:
+  #     - post:
+  #         url: "/token"
+  #         json:
+  #           email: "admin@test.com"
+  #           password: "admin"
+  #         capture:
+  #           json: "$.accessToken"
+  #           as: "token"
+  #     - get:
+  #         url: "/rooms"
+  #         headers:
+  #           authorization: "Bearer {{ token }}"
+  #         capture:
+  #           json: "$.data[0].id"
+  #           as: "roomId"
+  #     - get:
+  #         url: "/rooms/{{ roomId }}/calendar"
+  #         headers:
+  #           authorization: "Bearer {{ token }}"
+  #         capture:
+  #           json: "$.data[0].id"
+  #           as: "roomId"
+  - name: "login, get item, create order, get order"
     flow:
       - post:
           url: "/token"
@@ -27,31 +65,28 @@ scenarios:
             json: "$.accessToken"
             as: "token"
       - get:
-          url: "/users/accepted?limit=10&offset=0"
+          url: "/inventory-items"
           headers:
             authorization: "Bearer {{ token }}"
-  - name: "login and open room calendar"
-    flow:
+          capture:
+            json: "$.data[0].name"
+            as: "itemName "
       - post:
-          url: "/token"
+          url: "/orders"
+          headers:
+            authorization: "Bearer {{ token }}"
           json:
-            email: "admin@test.com"
-            password: "admin"
+            itemName: "{{ itemName }}"
+            quantity: 1
+            url: "test.com"
           capture:
-            json: "$.accessToken"
-            as: "token"
+            json: "$.id"
+            as: "orderId"
       - get:
-          url: "/rooms"
+          url: "/orders/{{ orderId }}"
           headers:
             authorization: "Bearer {{ token }}"
           capture:
-            json: "$.data[0].id"
-            as: "roomId"
-      - get:
-          url: "/rooms/{{ roomId }}/calendar"
-          headers:
-            authorization: "Bearer {{ token }}"
-          capture:
-            json: "$.data[0].id"
-            as: "roomId"
+            json: "$.status"
+            as: "orderStatus"
 
