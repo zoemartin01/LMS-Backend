@@ -47,6 +47,10 @@ describe('Unavailable Timeslot Entity', () => {
       expect(a).to.have.a.property('type', TimeSlotType.unavailable);
 
       expect(a).to.include.all.keys('room');
+      const newRoom = await connection
+        .getRepository(Room)
+        .findOneOrFail(room.id, { relations: ['unavailableTimeSlots'] });
+      expect(newRoom.unavailableTimeSlots).to.deep.include(a);
 
       // Base Entity keys
       expect(a).to.include.all.keys(
