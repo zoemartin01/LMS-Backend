@@ -533,6 +533,21 @@ export class AdminController {
       return;
     }
 
+    const email = req.body.email;
+
+    if (email !== undefined) {
+      const existingUser = await userRepository.count({
+        where: { email },
+      });
+
+      if (existingUser !== 0) {
+        res.status(409).json({
+          message: 'User with this email already exists.',
+        });
+        return;
+      }
+    }
+
     //checking for user is last admin
     if (user.role === UserRole.admin) {
       const adminCount = await userRepository.count({
