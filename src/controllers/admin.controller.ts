@@ -252,6 +252,8 @@ export class AdminController {
     req: Request,
     res: Response
   ) {
+    const domain = encodeURIComponent(req.body.domain ?? '').toLowerCase();
+
     const repository = getRepository(RetailerDomain);
     const retailer: Retailer | undefined = await getRepository(
       Retailer
@@ -268,8 +270,8 @@ export class AdminController {
 
     try {
       const retailerDomain = await repository.save(
-        repository.create(<DeepPartial<RetailerDomain>>{
-          ...req.body,
+        repository.create({
+          domain,
           retailer,
         })
       );
@@ -295,6 +297,8 @@ export class AdminController {
     req: Request,
     res: Response
   ) {
+    const domain = encodeURIComponent(req.body.domain ?? '').toLowerCase();
+
     const retailer = await getRepository(Retailer).findOne({
       where: { id: req.params.id },
     });
@@ -329,7 +333,7 @@ export class AdminController {
         { id: retailerDomain.id },
         repository.create(<DeepPartial<RetailerDomain>>{
           ...retailerDomain,
-          ...req.body,
+          domain,
         })
       );
     } catch (err) {
@@ -395,7 +399,7 @@ export class AdminController {
    * @param {Response} res backend response to check a domain against whitelist
    */
   public static async checkDomainAgainstWhitelist(req: Request, res: Response) {
-    const domain = encodeURIComponent(req.body.domain);
+    const domain = encodeURIComponent(req.body.domain).toLowerCase();
 
     const domainRepository = getRepository(RetailerDomain);
     const count = await domainRepository
