@@ -1205,6 +1205,22 @@ describe('AdminController', () => {
       expect(res.status).to.equal(403);
     });
 
+    it('should fail to update user to have same email as other', async () => {
+      const user = Helpers.JSONify(
+        await factory(User)({
+          role: UserRole.visitor,
+          emailVerification: true,
+        }).create()
+      );
+      const res = await chai
+        .request(app.app)
+        .patch(uri.replace(':id', visitor.id))
+        .set('Authorization', adminHeader)
+        .send({ email: user.email });
+
+      res.should.have.status(409);
+    });
+
     it('should fail to update the id', async () => {
       const user = Helpers.JSONify(
         await factory(User)({
@@ -1484,7 +1500,9 @@ describe('AdminController', () => {
     });
 
     it('should send a message to the deleted user via email', async () => {
-      const spy = sandbox.stub(MessagingController, 'sendMessageViaEmail').resolves();
+      const spy = sandbox
+        .stub(MessagingController, 'sendMessageViaEmail')
+        .resolves();
       const user = await factory(User)({
         role: UserRole.visitor,
         emailVerification: true,
