@@ -300,12 +300,19 @@ describe('RoomController', () => {
       await getRepository(AvailableTimeslot).save({
         room,
         start: moment()
+          .day(1)
           .hours(10)
           .minutes(0)
           .seconds(0)
           .milliseconds(0)
           .toDate(),
-        end: moment().hours(14).minutes(0).seconds(0).milliseconds(0).toDate(),
+        end: moment()
+          .day(1)
+          .hours(14)
+          .minutes(0)
+          .seconds(0)
+          .milliseconds(0)
+          .toDate(),
       });
 
       const res = await chai
@@ -321,12 +328,19 @@ describe('RoomController', () => {
       const timeslot = await getRepository(AvailableTimeslot).save({
         room,
         start: moment()
+          .day(1)
           .hours(10)
           .minutes(0)
           .seconds(0)
           .milliseconds(0)
           .toDate(),
-        end: moment().hours(14).minutes(0).seconds(0).milliseconds(0).toDate(),
+        end: moment()
+          .day(1)
+          .hours(14)
+          .minutes(0)
+          .seconds(0)
+          .milliseconds(0)
+          .toDate(),
       });
 
       const diff = moment
