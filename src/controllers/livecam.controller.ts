@@ -9,7 +9,7 @@ import { AuthController } from './auth.controller';
 import { WebSocket } from 'ws';
 import { GlobalSetting } from '../models/global_settings.entity';
 import moment from 'moment';
-import { minDate } from 'class-validator';
+import { isISO8601, minDate } from 'class-validator';
 
 /**
  * Controller for the LiveCam System
@@ -157,6 +157,16 @@ export class LivecamController {
       (await repository.count({ where: { user } })) >= +limit.value
     ) {
       res.status(400).json({ message: 'Max recording limit reached' });
+      return;
+    }
+
+    if (!isISO8601(start)) {
+      res.status(400).json({ message: 'Invalid start format.' });
+      return;
+    }
+
+    if (!isISO8601(end)) {
+      res.status(400).json({ message: 'Invalid end format.' });
       return;
     }
 

@@ -453,9 +453,35 @@ describe('LivecamController', () => {
         .request(app.app)
         .post(uri)
         .set('Authorization', adminHeader)
-        .send({});
+        .send({
+          start: moment().add(1, 'hour').toDate(),
+          end: moment().add(2, 'hours').toDate(),
+          bitrate: -1,
+        });
 
       response.should.have.status(400);
+    });
+
+    it('should return 400 with invalid start', async () => {
+      const response = await chai
+        .request(app.app)
+        .post(uri)
+        .set('Authorization', adminHeader)
+        .send({ start: 'invalid', end: moment().add(2, 'hours').toDate() });
+
+      response.should.have.status(400);
+      response.body.should.have.property('message', 'Invalid start format.');
+    });
+
+    it('should return 400 with invalid end', async () => {
+      const response = await chai
+        .request(app.app)
+        .post(uri)
+        .set('Authorization', adminHeader)
+        .send({ end: 'invalid', start: moment().add(2, 'hours').toDate() });
+
+      response.should.have.status(400);
+      response.body.should.have.property('message', 'Invalid end format.');
     });
 
     it('should fail to schedule a recording if the livecam server is not available', async () => {
