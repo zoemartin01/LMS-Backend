@@ -8,6 +8,8 @@ import axios, { AxiosResponse } from 'axios';
 import { AuthController } from './auth.controller';
 import { WebSocket } from 'ws';
 import { GlobalSetting } from '../models/global_settings.entity';
+import moment from 'moment';
+import { minDate } from 'class-validator';
 
 /**
  * Controller for the LiveCam System
@@ -142,6 +144,8 @@ export class LivecamController {
    * @param {Response} res backend response
    */
   public static async scheduleRecording(req: Request, res: Response) {
+    const { start, end } = req.body;
+
     const user = await AuthController.getCurrentUser(req);
     const limit = await getRepository(GlobalSetting).findOne({
       where: { key: 'user.max_recordings' },
@@ -153,6 +157,22 @@ export class LivecamController {
       (await repository.count({ where: { user } })) >= +limit.value
     ) {
       res.status(400).json({ message: 'Max recording limit reached' });
+      return;
+    }
+
+    const mStart = moment(start);
+    const mEnd = moment(end);
+
+    if (!minDate(mStart.toDate(), moment().toDate())) {
+      res.status(400).json({ message: 'Start must be in the future.' });
+      return;
+    }
+
+    if (
+      !minDate(mEnd.toDate(), mStart.toDate()) ||
+      mEnd.diff(mStart).valueOf() == 0
+    ) {
+      res.status(400).json({ message: 'End must be after start.' });
       return;
     }
 
