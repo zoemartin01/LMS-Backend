@@ -17,6 +17,8 @@ import { WebSocket, WebSocketServer } from 'ws';
 import { Request } from 'express';
 import axios from 'axios';
 import { GlobalSetting } from '../models/global_settings.entity';
+import moment from 'moment';
+import { VideoResolution } from '../types/enums/video-resolution';
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const MockExpressRequest = require('mock-express-request');
 
@@ -404,6 +406,41 @@ describe('LivecamController', () => {
         'message',
         'Max recording limit reached'
       );
+    });
+
+    it('should return 400 if start is in the past', async () => {
+      const response = await chai
+        .request(app.app)
+        .post(uri)
+        .set('Authorization', adminHeader)
+        .send({
+          start: moment().subtract(1, 'hour').toDate(),
+          end: moment().toDate(),
+          bitrate: 1,
+          resolution: VideoResolution.V1080,
+        });
+
+      response.should.have.status(400);
+      response.body.should.have.property(
+        'message',
+        'Start must be in the future.'
+      );
+    });
+
+    it('should return 400 if end is before start', async () => {
+      const response = await chai
+        .request(app.app)
+        .post(uri)
+        .set('Authorization', adminHeader)
+        .send({
+          start: moment().add(1, 'hour').toDate(),
+          end: moment().toDate(),
+          bitrate: 1,
+          resolution: VideoResolution.V1080,
+        });
+
+      response.should.have.status(400);
+      response.body.should.have.property('message', 'End must be after start.');
     });
 
     it('should fail with invalid parameters', async () => {
