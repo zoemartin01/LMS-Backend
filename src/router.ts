@@ -10,6 +10,7 @@ import { OrderController } from './controllers/order.controller';
 import { RoomController } from './controllers/room.controller';
 import { UserController } from './controllers/user.controller';
 import environment from './environment';
+import { ForbiddenInputMiddleware } from './forbidden_input.middleware';
 
 const addUUIDRegexToRoute = (route: string) => {
   const uuid_regex =
@@ -52,7 +53,7 @@ class AppRouter {
       MessagingController.getMessages
     );
     this.router.ws(
-      environment.apiRoutes.messages.getCurrentUserUnreadMessagesAmounts,
+      environment.apiRoutes.messages.registerMessageWebsocket,
       AuthController.checkWebSocketAuthenticationMiddleware,
       MessagingController.registerUnreadMessagesSocket
     );
@@ -69,6 +70,7 @@ class AppRouter {
     this.router.patch(
       addUUIDRegexToRoute(environment.apiRoutes.messages.updateMessage),
       AuthController.checkAuthenticationMiddleware,
+      ForbiddenInputMiddleware,
       MessagingController.updateMessage
     );
 
@@ -80,6 +82,7 @@ class AppRouter {
     );
     this.router.post(
       environment.apiRoutes.user_settings.register,
+      ForbiddenInputMiddleware,
       UserController.register
     );
     this.router.post(
@@ -89,6 +92,7 @@ class AppRouter {
     this.router.patch(
       environment.apiRoutes.user_settings.updateCurrentUser,
       AuthController.checkAuthenticationMiddleware,
+      ForbiddenInputMiddleware,
       UserController.updateUser
     );
     this.router.delete(
@@ -113,8 +117,8 @@ class AppRouter {
       addUUIDRegexToRoute(
         environment.apiRoutes.admin_settings.getWhitelistRetailer
       ),
-      AuthController.checkAdminMiddleware,
       AuthController.checkAuthenticationMiddleware,
+      AuthController.checkAdminMiddleware,
       AdminController.getWhitelistRetailer
     );
 
@@ -128,6 +132,7 @@ class AppRouter {
       environment.apiRoutes.admin_settings.createWhitelistRetailer,
       AuthController.checkAuthenticationMiddleware,
       AuthController.checkAdminMiddleware,
+      ForbiddenInputMiddleware,
       AdminController.createWhitelistRetailer
     );
     this.router.patch(
@@ -136,6 +141,7 @@ class AppRouter {
       ),
       AuthController.checkAuthenticationMiddleware,
       AuthController.checkAdminMiddleware,
+      ForbiddenInputMiddleware,
       AdminController.updateWhitelistRetailer
     );
     this.router.delete(
@@ -152,6 +158,7 @@ class AppRouter {
       ),
       AuthController.checkAuthenticationMiddleware,
       AuthController.checkAdminMiddleware,
+      ForbiddenInputMiddleware,
       AdminController.addDomainToWhitelistRetailer
     );
     this.router.patch(
@@ -160,6 +167,7 @@ class AppRouter {
       ),
       AuthController.checkAuthenticationMiddleware,
       AuthController.checkAdminMiddleware,
+      ForbiddenInputMiddleware,
       AdminController.editDomainOfWhitelistRetailer
     );
     this.router.delete(
@@ -173,6 +181,7 @@ class AppRouter {
     this.router.post(
       environment.apiRoutes.admin_settings.checkDomainAgainstWhitelist,
       AuthController.checkAuthenticationMiddleware,
+      ForbiddenInputMiddleware,
       AdminController.checkDomainAgainstWhitelist
     );
 
@@ -198,6 +207,7 @@ class AppRouter {
       addUUIDRegexToRoute(environment.apiRoutes.user_management.updateUser),
       AuthController.checkAuthenticationMiddleware,
       AuthController.checkAdminMiddleware,
+      ForbiddenInputMiddleware,
       AdminController.updateUser
     );
     this.router.delete(
@@ -227,12 +237,14 @@ class AppRouter {
       environment.apiRoutes.rooms.createRoom,
       AuthController.checkAuthenticationMiddleware,
       AuthController.checkAdminMiddleware,
+      ForbiddenInputMiddleware,
       RoomController.createRoom
     );
     this.router.patch(
       addUUIDRegexToRoute(environment.apiRoutes.rooms.updateRoom),
       AuthController.checkAuthenticationMiddleware,
       AuthController.checkAdminMiddleware,
+      ForbiddenInputMiddleware,
       RoomController.updateRoom
     );
     this.router.delete(
@@ -272,24 +284,28 @@ class AppRouter {
       addUUIDRegexToRoute(environment.apiRoutes.rooms.createTimeslot),
       AuthController.checkAuthenticationMiddleware,
       AuthController.checkAdminMiddleware,
+      ForbiddenInputMiddleware,
       RoomController.createTimeslot
     );
     this.router.post(
       addUUIDRegexToRoute(environment.apiRoutes.rooms.createTimeslotSeries),
       AuthController.checkAuthenticationMiddleware,
       AuthController.checkAdminMiddleware,
+      ForbiddenInputMiddleware,
       RoomController.createTimeslotSeries
     );
     this.router.patch(
       addUUIDRegexToRoute(environment.apiRoutes.rooms.updateTimeslot),
       AuthController.checkAuthenticationMiddleware,
       AuthController.checkAdminMiddleware,
+      ForbiddenInputMiddleware,
       RoomController.updateTimeslot
     );
     this.router.patch(
       addUUIDRegexToRoute(environment.apiRoutes.rooms.updateTimeslotSeries),
       AuthController.checkAuthenticationMiddleware,
       AuthController.checkAdminMiddleware,
+      ForbiddenInputMiddleware,
       RoomController.updateTimeslotSeries
     );
     this.router.delete(
@@ -319,13 +335,6 @@ class AppRouter {
     );
     this.router.get(
       addUUIDRegexToRoute(
-        environment.apiRoutes.appointments.getRoomAppointments
-      ),
-      AuthController.checkAuthenticationMiddleware,
-      AppointmentController.getAppointmentsForRoom
-    );
-    this.router.get(
-      addUUIDRegexToRoute(
         environment.apiRoutes.appointments.getSeriesAppointments
       ),
       AuthController.checkAuthenticationMiddleware,
@@ -341,16 +350,19 @@ class AppRouter {
     this.router.post(
       environment.apiRoutes.appointments.createAppointment,
       AuthController.checkAuthenticationMiddleware,
+      ForbiddenInputMiddleware,
       AppointmentController.createAppointment
     );
     this.router.post(
       environment.apiRoutes.appointments.createAppointmentSeries,
       AuthController.checkAuthenticationMiddleware,
+      ForbiddenInputMiddleware,
       AppointmentController.createAppointmentSeries
     );
     this.router.patch(
       addUUIDRegexToRoute(environment.apiRoutes.appointments.updateAppointment),
       AuthController.checkAuthenticationMiddleware,
+      ForbiddenInputMiddleware,
       AppointmentController.updateAppointment
     );
     this.router.patch(
@@ -358,6 +370,7 @@ class AppRouter {
         environment.apiRoutes.appointments.updateAppointmentSeries
       ),
       AuthController.checkAuthenticationMiddleware,
+      ForbiddenInputMiddleware,
       AppointmentController.updateAppointmentSeries
     );
     this.router.delete(
@@ -370,7 +383,6 @@ class AppRouter {
         environment.apiRoutes.appointments.deleteAppointmentSeries
       ),
       AuthController.checkAuthenticationMiddleware,
-      AuthController.checkAdminMiddleware,
       AppointmentController.deleteAppointmentSeries
     );
 
@@ -394,12 +406,14 @@ class AppRouter {
       environment.apiRoutes.inventory_item.createItem,
       AuthController.checkAuthenticationMiddleware,
       AuthController.checkAdminMiddleware,
+      ForbiddenInputMiddleware,
       InventoryController.createInventoryItem
     );
     this.router.patch(
       addUUIDRegexToRoute(environment.apiRoutes.inventory_item.updateItem),
       AuthController.checkAuthenticationMiddleware,
       AuthController.checkAdminMiddleware,
+      ForbiddenInputMiddleware,
       InventoryController.updateInventoryItem
     );
     this.router.delete(
@@ -451,11 +465,13 @@ class AppRouter {
     this.router.post(
       environment.apiRoutes.orders.createOrder,
       AuthController.checkAuthenticationMiddleware,
+      ForbiddenInputMiddleware,
       OrderController.createOrder
     );
     this.router.patch(
       addUUIDRegexToRoute(environment.apiRoutes.orders.updateOrder),
       AuthController.checkAuthenticationMiddleware,
+      ForbiddenInputMiddleware,
       OrderController.updateOrder
     );
     this.router.delete(
@@ -487,12 +503,14 @@ class AppRouter {
       environment.apiRoutes.livecam.createSchedule,
       AuthController.checkAuthenticationMiddleware,
       AuthController.checkAdminMiddleware,
+      ForbiddenInputMiddleware,
       LivecamController.scheduleRecording
     );
     this.router.patch(
       addUUIDRegexToRoute(environment.apiRoutes.livecam.updateRecording),
       AuthController.checkAuthenticationMiddleware,
       AuthController.checkAdminMiddleware,
+      ForbiddenInputMiddleware,
       LivecamController.updateRecording
     );
     this.router.get(

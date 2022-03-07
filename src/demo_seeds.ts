@@ -11,6 +11,8 @@ import { Recording } from './models/recording.entity';
 import { Order } from './models/order.entity';
 import { InventoryItem } from './models/inventory-item.entity';
 import * as faker from 'faker';
+import { Room } from './models/room.entity';
+import { createTimeslots } from './database/helpers';
 
 const initDB = async () => {
   const connection = await createConnection();
@@ -21,17 +23,17 @@ const initDB = async () => {
   const password = 'admin';
 
   const user = await getRepository(User).save({
-    email: 'admin@zoemartin.me',
+    email: 'admin@example.com',
     firstName: 'Zoe',
     lastName: 'Martin',
     role: UserRole.admin,
     emailVerification: true,
-    notificationChannel: NotificationChannel.emailAndMessageBox,
+    notificationChannel: NotificationChannel.messageBoxOnly,
     password: await bcrypt.hash(password, environment.pwHashSaltRound),
   });
   console.log('===========================================================');
   console.log('Admin user created with credentials:');
-  console.log(`email: admin@zoemartin.me`);
+  console.log(`email: admin@example.com`);
   console.log(`password: ${password}`);
   console.log('Change this password after first login!');
   console.log('===========================================================');
@@ -44,6 +46,8 @@ const initDB = async () => {
     user,
     item: faker.random.arrayElement(items),
   }).createMany(6);
+  const room = await factory(Room)().create();
+  await createTimeslots(room);
 
   console.log('Done initializing database');
 };

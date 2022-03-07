@@ -1,4 +1,4 @@
-import { IsNumber, IsOptional, Min } from 'class-validator';
+import { IsDefined, IsNumber, IsOptional, Min } from 'class-validator';
 import { Column, Entity, ManyToOne } from 'typeorm';
 import { VideoResolution } from '../types/enums/video-resolution';
 import { BaseEntity } from './base.entity';
@@ -26,7 +26,7 @@ export class Recording extends BaseEntity {
    * @type {User}
    * @readonly
    */
-  @ManyToOne(() => User, (user) => user.recordings)
+  @ManyToOne(() => User, (user) => user.recordings, { eager: true })
   readonly user: User;
 
   /**
@@ -36,6 +36,7 @@ export class Recording extends BaseEntity {
    * @readonly
    */
   @Column()
+  @IsDefined()
   readonly start: Date;
 
   /**
@@ -45,6 +46,7 @@ export class Recording extends BaseEntity {
    * @readonly
    */
   @Column()
+  @IsDefined()
   readonly end: Date;
 
   /**
@@ -57,6 +59,7 @@ export class Recording extends BaseEntity {
     type: 'enum',
     enum: VideoResolution,
   })
+  @IsDefined()
   readonly resolution: VideoResolution;
 
   /**
@@ -66,8 +69,9 @@ export class Recording extends BaseEntity {
    * @readonly
    */
   @Column()
+  @IsDefined()
   @IsNumber()
-  @Min(0)
+  @Min(1)
   readonly bitrate: number;
 
   /**

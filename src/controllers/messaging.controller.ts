@@ -26,9 +26,7 @@ export class MessagingController {
   public static async getMessages(req: Request, res: Response): Promise<void> {
     const { offset, limit } = req.query;
     const messageRepository = getRepository(Message);
-
     const user = await AuthController.getCurrentUser(req);
-
     const total = await messageRepository.count({ where: { recipient: user } });
 
     const messages = await messageRepository.find({
@@ -72,12 +70,36 @@ export class MessagingController {
 
     return {
       sum: +unreadMessagesSum.sum,
-      appointments: +(unreadMessages.filter(el => el.message_correspondingUrl === '/appointments')[0]?.sum ?? 0),
-      appointments_admin: +(unreadMessages.filter(el => el.message_correspondingUrl === '/appointments/all')[0]?.sum ?? 0),
-      orders: +(unreadMessages.filter(el => el.message_correspondingUrl === '/orders')[0]?.sum ?? 0),
-      orders_admin: +(unreadMessages.filter(el => el.message_correspondingUrl === '/orders/all')[0]?.sum ?? 0),
-      users: +(unreadMessages.filter(el => el.message_correspondingUrl === '/users')[0]?.sum ?? 0),
-      settings: +(unreadMessages.filter(el => el.message_correspondingUrl === '/settings')[0]?.sum ?? 0),
+      appointments: +(
+        unreadMessages.filter(
+          (el) => el.message_correspondingUrl === '/appointments'
+        )[0]?.sum ?? 0
+      ),
+      appointments_admin: +(
+        unreadMessages.filter(
+          (el) => el.message_correspondingUrl === '/appointments/all'
+        )[0]?.sum ?? 0
+      ),
+      orders: +(
+        unreadMessages.filter(
+          (el) => el.message_correspondingUrl === '/orders'
+        )[0]?.sum ?? 0
+      ),
+      orders_admin: +(
+        unreadMessages.filter(
+          (el) => el.message_correspondingUrl === '/orders/all'
+        )[0]?.sum ?? 0
+      ),
+      users: +(
+        unreadMessages.filter(
+          (el) => el.message_correspondingUrl === '/users'
+        )[0]?.sum ?? 0
+      ),
+      settings: +(
+        unreadMessages.filter(
+          (el) => el.message_correspondingUrl === '/settings'
+        )[0]?.sum ?? 0
+      ),
     };
   }
 
@@ -90,11 +112,6 @@ export class MessagingController {
    */
   public static async getUnreadMessagesAmounts(req: Request, res: Response) {
     const user = await AuthController.getCurrentUser(req);
-
-    if (user === null) {
-      return;
-    }
-
     res.json(await MessagingController.getUnreadMessagesAmountsUtil(user));
   }
 
@@ -103,6 +120,11 @@ export class MessagingController {
    */
   static messageSockets: { [key: string]: WebSocket[] } = {};
 
+  /**
+   * @route {WebSocket} /user/messages/websocket
+   * @param {Request} req frontend request to register a message box websocket
+   * @param {WebSocket} ws the websocket connection
+   */
   public static async registerUnreadMessagesSocket(
     ws: WebSocket,
     req: Request
@@ -130,6 +152,17 @@ export class MessagingController {
   }
 
   /**
+   * Closes all message box websockets for a user
+   * @param user User the websockets belong to
+   */
+  public static async closeAllUserWebsockets(user: User) {
+    const array = MessagingController.messageSockets[user.id];
+    if (array !== undefined) {
+      array.forEach((ws) => ws.close());
+    }
+  }
+
+  /**
    * Deletes a message from database
    *
    * @route {DELETE} /messages/:id
@@ -153,23 +186,34 @@ export class MessagingController {
       });
       return;
     }
+    const currentUser = await AuthController.getCurrentUser(req);
+
+    if (currentUser.id !== message.recipient.id) {
+      res.status(403).json({
+        message: 'No permission to delete other users message.',
+      });
+      return;
+    }
 
     await messageRepository.delete(message.id);
 
+    await MessagingController.broadcastUnreadMessages(message.recipient);
     res.sendStatus(204);
+  }
 
-    const ws = MessagingController.messageSockets[message.recipient.id];
+  public static async broadcastUnreadMessages(user: User) {
+    const ws = MessagingController.messageSockets[user.id];
 
     if (ws !== undefined) {
-      ws.forEach(async (ws) => {
-        ws.send(
-          JSON.stringify(
-            await MessagingController.getUnreadMessagesAmountsUtil(
-              message.recipient
+      await Promise.all(
+        ws.map(async (ws) =>
+          ws.send(
+            JSON.stringify(
+              await MessagingController.getUnreadMessagesAmountsUtil(user)
             )
           )
-        );
-      });
+        )
+      );
     }
   }
 
@@ -188,7 +232,7 @@ export class MessagingController {
   ): Promise<void> {
     const messageRepository = getRepository(Message);
 
-    if (req.body === {}) {
+    if (Object.keys(req.body).length === 0) {
       res.sendStatus(204);
       return;
     }
@@ -211,23 +255,19 @@ export class MessagingController {
       return;
     }
 
+    const currentUser = await AuthController.getCurrentUser(req);
+
+    if (currentUser.id !== message.recipient.id) {
+      res.status(403).json({
+        message: 'No permission to edit other users message.',
+      });
+      return;
+    }
+
     await messageRepository.update({ id: message.id }, req.body);
 
-    res.json(message);
-
-    const ws = MessagingController.messageSockets[message.recipient.id];
-
-    if (ws !== undefined) {
-      ws.forEach(async (ws) => {
-        ws.send(
-          JSON.stringify(
-            await MessagingController.getUnreadMessagesAmountsUtil(
-              message.recipient
-            )
-          )
-        );
-      });
-    }
+    await MessagingController.broadcastUnreadMessages(message.recipient);
+    res.json(await messageRepository.findOneOrFail(message.id));
   }
 
   /**
@@ -247,7 +287,8 @@ export class MessagingController {
     linkUrl: string | null = null
   ): Promise<void> {
     if (
-      recipient.notificationChannel === NotificationChannel.emailAndMessageBox ||
+      recipient.notificationChannel ===
+        NotificationChannel.emailAndMessageBox ||
       recipient.notificationChannel === NotificationChannel.messageBoxOnly
     ) {
       await MessagingController.sendMessageViaMessageBox(
@@ -260,7 +301,8 @@ export class MessagingController {
     }
 
     if (
-      recipient.notificationChannel === NotificationChannel.emailAndMessageBox ||
+      recipient.notificationChannel ===
+        NotificationChannel.emailAndMessageBox ||
       recipient.notificationChannel === NotificationChannel.emailOnly
     ) {
       await MessagingController.sendMessageViaEmail(
@@ -272,17 +314,7 @@ export class MessagingController {
       );
     }
 
-    const ws = MessagingController.messageSockets[recipient.id];
-
-    if (ws !== undefined) {
-      ws.forEach(async (ws) => {
-        ws.send(
-          JSON.stringify(
-            await MessagingController.getUnreadMessagesAmountsUtil(recipient)
-          )
-        );
-      });
-    }
+    await MessagingController.broadcastUnreadMessages(recipient);
   }
 
   /**
@@ -355,9 +387,9 @@ export class MessagingController {
 
     try {
       const transporter = nodemailer.createTransport(environment.smtpConfig);
-      console.log(await transporter.sendMail(message));
+      console.info(await transporter.sendMail(message));
     } catch (e) {
-      console.log(e);
+      console.error(e);
     }
   }
 

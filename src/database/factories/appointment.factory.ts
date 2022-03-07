@@ -17,10 +17,33 @@ define(
       room: Room;
       seriesId?: string;
       availableTimeSlot?: AvailableTimeslot;
+      ignoreRules?: boolean;
+      confirmationStatus?: ConfirmationStatus;
+      isDirty?: boolean;
     }
   ) => {
     if (!context || !context.user || !context.room)
       throw new Error('Factory AppointmentTimeslot requires user and room');
+
+    if (context.ignoreRules) {
+      const start = moment(faker.date.future())
+        .hours(faker.random.number({ min: 0, max: 12 }))
+        .minutes(0)
+        .seconds(0)
+        .milliseconds(0);
+      const end = start.add(faker.random.number({ min: 1, max: 12 }), 'hours');
+
+      return getRepository(AppointmentTimeslot).create({
+        start: start.toDate(),
+        end: end.toDate(),
+        room: context.room,
+        user: context.user,
+        confirmationStatus:
+          context?.confirmationStatus ?? ConfirmationStatus.pending,
+        seriesId: context.seriesId,
+        isDirty: context.isDirty,
+      });
+    }
 
     const availableTimeSlot =
       context.availableTimeSlot ||
@@ -61,11 +84,13 @@ define(
 
     const room = context.room;
     const user = context.user;
-    const confirmationStatus = faker.random.arrayElement([
-      ConfirmationStatus.pending,
-      ConfirmationStatus.accepted,
-      ConfirmationStatus.denied,
-    ]);
+    const confirmationStatus =
+      context?.confirmationStatus ??
+      faker.random.arrayElement([
+        ConfirmationStatus.pending,
+        ConfirmationStatus.accepted,
+        ConfirmationStatus.denied,
+      ]);
 
     if (context.seriesId === undefined) {
       return getRepository(AppointmentTimeslot).create({
@@ -74,6 +99,7 @@ define(
         room,
         user,
         confirmationStatus,
+        isDirty: context.isDirty,
       });
     }
     return getRepository(AppointmentTimeslot).create({
@@ -83,6 +109,7 @@ define(
       user,
       confirmationStatus,
       seriesId: context.seriesId,
+      isDirty: context.isDirty,
     });
   }
 );

@@ -1,3 +1,4 @@
+import { IsDefined } from 'class-validator';
 import { ChildEntity, ManyToOne } from 'typeorm';
 import { TimeSlotType } from '../types/enums/timeslot-type';
 import { Room } from './room.entity';
@@ -24,5 +25,6 @@ export class AvailableTimeslot extends TimeSlot {
     eager: true,
     onDelete: 'CASCADE',
   })
+  @IsDefined()
   readonly room: Room;
 }
