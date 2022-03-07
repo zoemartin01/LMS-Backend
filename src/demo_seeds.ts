@@ -21,17 +21,17 @@ const initDB = async () => {
   const password = 'admin';
 
   const user = await getRepository(User).save({
-    email: 'admin@zoemartin.me',
+    email: 'admin@example.com',
     firstName: 'Zoe',
     lastName: 'Martin',
     role: UserRole.admin,
     emailVerification: true,
-    notificationChannel: NotificationChannel.emailAndMessageBox,
+    notificationChannel: NotificationChannel.messageBoxOnly,
     password: await bcrypt.hash(password, environment.pwHashSaltRound),
   });
   console.log('===========================================================');
   console.log('Admin user created with credentials:');
-  console.log(`email: admin@zoemartin.me`);
+  console.log(`email: admin@example.com`);
   console.log(`password: ${password}`);
   console.log('Change this password after first login!');
   console.log('===========================================================');
