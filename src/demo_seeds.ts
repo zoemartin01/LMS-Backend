@@ -11,6 +11,8 @@ import { Recording } from './models/recording.entity';
 import { Order } from './models/order.entity';
 import { InventoryItem } from './models/inventory-item.entity';
 import * as faker from 'faker';
+import { Room } from './models/room.entity';
+import { createTimeslots } from './database/helpers';
 
 const initDB = async () => {
   const connection = await createConnection();
@@ -44,6 +46,8 @@ const initDB = async () => {
     user,
     item: faker.random.arrayElement(items),
   }).createMany(6);
+  const room = await factory(Room)().create();
+  await createTimeslots(room);
 
   console.log('Done initializing database');
 };
