@@ -85,7 +85,7 @@ export class User extends BaseEntity {
   })
   @IsOptional()
   @IsEnum(UserRole)
-  role: UserRole;
+  role: UserRole = UserRole.pending;
 
   /**
    * The email verification status of the user.
@@ -121,7 +121,7 @@ export class User extends BaseEntity {
   })
   @IsOptional()
   @IsEnum(NotificationChannel)
-  notificationChannel: NotificationChannel;
+  notificationChannel: NotificationChannel = NotificationChannel.emailOnly;
 
   /**
    * The bookings of the user.
