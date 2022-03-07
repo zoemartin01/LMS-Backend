@@ -121,7 +121,6 @@ export class RoomController {
     const to: string = date
       .day(1)
       .add(7, 'days')
-      .subtract(1, 'minute')
       .format('YYYY-MM-DD');
 
     const room = await getRepository(Room).findOne(req.params.id);
@@ -192,6 +191,7 @@ export class RoomController {
       timespanStart,
       timespanEnd,
       start,
+      end,
       hour,
       day,
       index,
@@ -273,11 +273,22 @@ export class RoomController {
     try {
       for (appointment of appointments) {
         start = moment(appointment.start);
+        end = moment(appointment.end);
         hour = +start.format('HH') - minTimeslot;
         day = (+start.format('e') + 6) % 7;
 
-        // @todo(zoe) this is a weird one
-        if (calendar[hour][day][0] === 'unavailable') {
+        if (start.format('YYYY-MM-DD') === to || (end.format('YYYY-MM-DD') === from && +end.format('HH') === 0)) {
+          continue;
+        }
+
+        let nextIteration = false;
+        for (let i = hour; i < +end.format('HH') - minTimeslot; i++) {
+          if (calendar[i][day][0] === 'unavailable') {
+            nextIteration = true;
+            break;
+          }
+        }
+        if (nextIteration) {
           continue;
         }
 
@@ -358,7 +369,6 @@ export class RoomController {
     const to: string = date
       .day(1)
       .add(7, 'days')
-      .subtract(1, 'minute')
       .format('YYYY-MM-DD');
 
     const room = await getRepository(Room).findOne(req.params.id);
@@ -404,13 +414,14 @@ export class RoomController {
 
     //set available timeslots
     for (availableTimespan of availableTimeSlots) {
-      // if (availableTimespan.start == null || availableTimespan.end == null) {
-      //   continue;
-      // }
-
       timespanEnd = +moment(availableTimespan.end).format('HH');
       if (timespanEnd === 0) {
         timespanEnd = 24;
+      }
+
+      if (moment(availableTimespan.start).format('YYYY-MM-DD') === to
+        || (timespanEnd === 0 && moment(availableTimespan.end).format('YYYY-MM-DD') === from)) {
+        continue;
       }
 
       for (
@@ -426,16 +437,14 @@ export class RoomController {
 
     //set unavailable timeslots
     for (unavailableTimeSlot of unavailableTimeSlots) {
-      // if (
-      //   unavailableTimeSlot.start == null ||
-      //   unavailableTimeSlot.end == null
-      // ) {
-      //   continue;
-      // }
-
       timespanEnd = +moment(unavailableTimeSlot.end).format('HH');
       if (timespanEnd === 0) {
         timespanEnd = 24;
+      }
+
+      if (moment(unavailableTimeSlot.start).format('YYYY-MM-DD') === to
+        || (timespanEnd === 0 && moment(unavailableTimeSlot.end).format('YYYY-MM-DD') === from)) {
+        continue;
       }
 
       for (
