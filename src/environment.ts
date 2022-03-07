@@ -43,6 +43,7 @@ const environment = {
     messages: {
       getCurrentUserMessages: '/user/messages',
       getCurrentUserUnreadMessagesAmounts: '/user/messages/unread-amounts',
+      registerMessageWebsocket: '/user/messages/websocket',
 
       deleteMessage: '/messages/:id',
       updateMessage: '/messages/:id',
@@ -108,7 +109,6 @@ const environment = {
     },
     appointments: {
       getCurrentUserAppointments: '/user/appointments',
-      getRoomAppointments: '/rooms/:id/appointments',
       getSeriesAppointments: '/appointments/series/:id',
 
       getAllAppointments: '/appointments',
