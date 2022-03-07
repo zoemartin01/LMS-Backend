@@ -109,7 +109,6 @@ describe('AdminController', () => {
         });
     });
 
-    //todo 49-52
     it('should fail with undefined body', (done) => {
       chai
         .request(app.app)
@@ -146,7 +145,17 @@ describe('AdminController', () => {
         });
     });
 
-    //todo 87-88 failing update due to invalid inputs
+    it('should fail with invalid value (2)', (done) => {
+      chai
+        .request(app.app)
+        .patch(uri)
+        .set('Authorization', adminHeader)
+        .send([{ key: 'a'.repeat(260), value: 3 }])
+        .end((err, res) => {
+          expect(res.status).to.equal(400);
+          done();
+        });
+    });
 
     it('should update global settings', async () => {
       const res = await chai
@@ -172,17 +181,6 @@ describe('AdminController', () => {
       Helpers.checkAuthentication('GET', 'fails', app, uri)
     );
 
-    it('should fail as non-admin', (done) => {
-      chai
-        .request(app.app)
-        .get(uri)
-        .set('Authorization', visitorHeader)
-        .end((err, res) => {
-          expect(res.status).to.equal(403);
-          done();
-        });
-    });
-
     it('should get all initial whitelist retailers', (done) => {
       chai
         .request(app.app)
@@ -194,6 +192,60 @@ describe('AdminController', () => {
           expect(res.body.data.length).to.be.equal(0);
           done();
         });
+    });
+
+    it('should get retailers with offset', async () => {
+      const count = 10;
+      const offset = 3;
+      await factory(Retailer)().createMany(count);
+
+      const res = await chai
+        .request(app.app)
+        .get(uri)
+        .query({ offset })
+        .set('Authorization', adminHeader);
+
+      const retailers = Helpers.JSONify(
+        await retailerRepository.find({
+          order: { name: 'ASC' },
+          skip: offset,
+          relations: ['domains'],
+        })
+      );
+
+      expect(res.status).to.equal(200);
+      expect(res.body.total).to.equal(count);
+      expect(res.body.data)
+        .to.be.an('array')
+        .that.has.a.lengthOf(count - offset)
+        .and.that.has.same.deep.members(retailers);
+    });
+
+    it('should get correct retailers with limit', async () => {
+      const count = 10;
+      const limit = 3;
+
+      await factory(Retailer)().createMany(count);
+      const retailers = Helpers.JSONify(
+        await retailerRepository.find({
+          order: { name: 'ASC' },
+          take: limit,
+          relations: ['domains'],
+        })
+      );
+
+      const res = await chai
+        .request(app.app)
+        .get(uri)
+        .query({ limit })
+        .set('Authorization', adminHeader);
+
+      expect(res.status).to.equal(200);
+      expect(res.body.total).to.equal(count);
+      expect(res.body.data)
+        .to.be.an('array')
+        .that.has.a.lengthOf(limit)
+        .and.that.has.same.deep.members(retailers);
     });
 
     it('should get 3 more retailers', async () => {
@@ -675,7 +727,7 @@ describe('AdminController', () => {
       expect(res.status).to.equal(403);
     });
 
-    it('should fail with invalid input', async () => {
+    it('should fail with invalid input 404', async () => {
       const retailer = await factory(Retailer)().create();
       const domain = await factory(RetailerDomain)(retailer).create();
 
@@ -687,56 +739,52 @@ describe('AdminController', () => {
       expect(res.status).to.equal(404);
     });
 
-    //todo 343-344
-    it('should fail with invalid input', async () => {
+    it('should fail with invalid input 1', async () => {
       const retailer = await factory(Retailer)().create();
-      const domain = await factory(RetailerDomain)(retailer).create();
+      const domain = await factory(RetailerDomain)({ retailer }).create();
 
       const res = await chai
         .request(app.app)
         .patch(uri.replace(':id', retailer.id).replace(':domainId', domain.id))
         .set('Authorization', adminHeader)
-        .send({ domain: null });
-      expect(res.status).to.equal(404);
+        .send({ domain: '' });
+      expect(res.status).to.equal(400);
     });
 
-    //todo 343-344
-    it('should fail with invalid input', async () => {
+    it('should fail with invalid input 2', async () => {
       const retailer = await factory(Retailer)().create();
-      const domain = await factory(RetailerDomain)(retailer).create();
+      const domain = await factory(RetailerDomain)({ retailer }).create();
 
       const res = await chai
         .request(app.app)
         .patch(uri.replace(':id', retailer.id).replace(':domainId', domain.id))
         .set('Authorization', adminHeader)
         .send({ domain: 8 });
-      expect(res.status).to.equal(404);
+      expect(res.status).to.equal(400);
     });
 
-    //todo 343-344
-    it('should fail with invalid input', async () => {
+    it('should fail with invalid input 3', async () => {
       const retailer = await factory(Retailer)().create();
-      const domain = await factory(RetailerDomain)(retailer).create();
+      const domain = await factory(RetailerDomain)({ retailer }).create();
 
       const res = await chai
         .request(app.app)
         .patch(uri.replace(':id', retailer.id).replace(':domainId', domain.id))
         .set('Authorization', adminHeader)
         .send({ domain: 0 });
-      expect(res.status).to.equal(404);
+      expect(res.status).to.equal(400);
     });
 
-    //todo 343-344
-    it('should fail with invalid input', async () => {
+    it('should fail with invalid input 4', async () => {
       const retailer = await factory(Retailer)().create();
-      const domain = await factory(RetailerDomain)(retailer).create();
+      const domain = await factory(RetailerDomain)({ retailer }).create();
 
       const res = await chai
         .request(app.app)
         .patch(uri.replace(':id', retailer.id).replace(':domainId', domain.id))
         .set('Authorization', adminHeader)
         .send({ domain: -2 });
-      expect(res.status).to.equal(404);
+      expect(res.status).to.equal(400);
     });
 
     it('should patch a specific domain of retailer', async () => {
@@ -772,7 +820,7 @@ describe('AdminController', () => {
       Helpers.checkAuthentication('GET', 'fails', app, uri);
     });
 
-    it('should check a specific domain of retailer', async () => {
+    it('should check a specific domain of retailer, find', async () => {
       const retailer = await factory(Retailer)().create();
       const domain = await factory(RetailerDomain)({ retailer }).create();
       const domainRepository = getRepository(RetailerDomain);
@@ -783,10 +831,76 @@ describe('AdminController', () => {
       const res = await chai
         .request(app.app)
         .post(uri)
+        .send({ domain: domain.domain })
         .set('Authorization', adminHeader);
 
       expect(res.status).to.equal(200);
-      //todo better expect
+      expect(res.body).to.have.a.property('isWhitelisted', true);
+    });
+
+    it('should check a specific domain of retailer, no exact match, find (1)', async () => {
+      const retailer = await factory(Retailer)().create();
+      const domain = await factory(RetailerDomain)({ retailer }).create();
+      const domainRepository = getRepository(RetailerDomain);
+
+      domainRepository.findOne({ id: domain.id }).then((domain) => {
+        expect(domain).to.be.not.undefined;
+      });
+      const res = await chai
+        .request(app.app)
+        .post(uri)
+        .send({ domain: 'www.' + domain.domain + '.de' })
+        .set('Authorization', adminHeader);
+
+      expect(res.status).to.equal(200);
+      expect(res.body).to.have.a.property('isWhitelisted', true);
+    });
+
+    it('should check a specific domain of retailer, no exact match, find (2)', async () => {
+      const retailer = await factory(Retailer)().create();
+      const domain = await factory(RetailerDomain)({ retailer }).create();
+      const domainRepository = getRepository(RetailerDomain);
+
+      domainRepository.findOne({ id: domain.id }).then((domain) => {
+        expect(domain).to.be.not.undefined;
+      });
+      const res = await chai
+        .request(app.app)
+        .post(uri)
+        .send({ domain: domain.domain + '/testItem/product' })
+        .set('Authorization', adminHeader);
+
+      expect(res.status).to.equal(200);
+      expect(res.body).to.have.a.property('isWhitelisted', true);
+    });
+
+    it('should check a specific domain of retailer, no exact match, find (3)', async () => {
+      const retailer = await factory(Retailer)().create();
+      const domain = await factory(RetailerDomain)({ retailer }).create();
+      const domainRepository = getRepository(RetailerDomain);
+
+      domainRepository.findOne({ id: domain.id }).then((domain) => {
+        expect(domain).to.be.not.undefined;
+      });
+      const res = await chai
+        .request(app.app)
+        .post(uri)
+        .send({ domain: 'https:// ' + domain.domain })
+        .set('Authorization', adminHeader);
+
+      expect(res.status).to.equal(200);
+      expect(res.body).to.have.a.property('isWhitelisted', true);
+    });
+
+    it('should check a specific domain of retailer, no find', async () => {
+      const res = await chai
+        .request(app.app)
+        .post(uri)
+        .send({ domain: 'failingTest' })
+        .set('Authorization', adminHeader);
+
+      expect(res.status).to.equal(200);
+      expect(res.body).to.have.a.property('isWhitelisted', false);
     });
   });
 
@@ -808,8 +922,6 @@ describe('AdminController', () => {
           done();
         });
     });
-
-    //todo test email verification not true
 
     it('should get all users without limit/offset', async () => {
       const count = 10;
@@ -916,8 +1028,6 @@ describe('AdminController', () => {
           done();
         });
     });
-
-    //todo fail email verification false
 
     it('should get all users without limit/offset', async () => {
       const count = 10;
@@ -1095,6 +1205,22 @@ describe('AdminController', () => {
       expect(res.status).to.equal(403);
     });
 
+    it('should fail to update user to have same email as other', async () => {
+      const user = Helpers.JSONify(
+        await factory(User)({
+          role: UserRole.visitor,
+          emailVerification: true,
+        }).create()
+      );
+      const res = await chai
+        .request(app.app)
+        .patch(uri.replace(':id', visitor.id))
+        .set('Authorization', adminHeader)
+        .send({ email: user.email });
+
+      res.should.have.status(409);
+    });
+
     it('should fail to update the id', async () => {
       const user = Helpers.JSONify(
         await factory(User)({
@@ -1130,8 +1256,7 @@ describe('AdminController', () => {
       expect(res.status).to.equal(400);
     });
 
-    //todo 611-612
-    it('should fail to update invalid input', async () => {
+    it('should fail to update invalid input 1', async () => {
       const user = Helpers.JSONify(
         await factory(User)({
           role: UserRole.visitor,
@@ -1145,6 +1270,24 @@ describe('AdminController', () => {
         .patch(uri.replace(':id', user.id))
         .set('Authorization', adminHeader)
         .send({ lastName: null });
+
+      expect(res.status).to.equal(400);
+    });
+
+    it('should fail to update invalid input 2', async () => {
+      const user = Helpers.JSONify(
+        await factory(User)({
+          role: UserRole.visitor,
+          emailVerification: true,
+          firstName: null,
+          notificationChannel: null,
+        }).create()
+      );
+      const res = await chai
+        .request(app.app)
+        .patch(uri.replace(':id', user.id))
+        .set('Authorization', adminHeader)
+        .send({ lastName: null, password: 'test' });
 
       expect(res.status).to.equal(400);
     });
@@ -1224,6 +1367,30 @@ describe('AdminController', () => {
       expect(res.body).to.deep.equal({ ...user, email: 'test@test.de' });
     });
 
+    it('should succeed to degrade admin', async () => {
+      const user = Helpers.JSONify(
+        await userRepository.findOneOrFail(
+          (
+            await factory(User)({
+              role: UserRole.admin,
+              emailVerification: true,
+            }).create()
+          ).id
+        )
+      );
+      const res = await chai
+        .request(app.app)
+        .patch(uri.replace(':id', admin.id))
+        .set('Authorization', adminHeader)
+        .send({ role: UserRole.visitor });
+
+      expect(res.status).to.equal(200);
+      expect(res.body).to.deep.equal({
+        ...Helpers.JSONify(admin),
+        role: UserRole.visitor,
+      });
+    });
+
     it('should update a the password of a specific user', async () => {
       const user = Helpers.JSONify(
         await userRepository.findOneOrFail(
@@ -1292,7 +1459,25 @@ describe('AdminController', () => {
         });
     });
 
-    //todo 694-695 error when creating the new user mango
+    it('should delete a admin', async () => {
+      sandbox.stub(MessagingController, 'sendMessageViaEmail').resolves();
+      const user = await factory(User)({
+        role: UserRole.admin,
+        emailVerification: true,
+      }).create();
+      expect(
+        (async () => {
+          return await userRepository.findOneOrFail(user.id);
+        })()
+      ).to.be.fulfilled;
+
+      const res = await chai
+        .request(app.app)
+        .delete(uri.replace(':id', user.id))
+        .set('Authorization', adminHeader);
+
+      expect(res.status).to.equal(204);
+    });
 
     it('should delete a specific user', async () => {
       sandbox.stub(MessagingController, 'sendMessageViaEmail').resolves();
@@ -1313,47 +1498,28 @@ describe('AdminController', () => {
 
       expect(res.status).to.equal(204);
     });
+
+    it('should send a message to the deleted user via email', async () => {
+      const spy = sandbox
+        .stub(MessagingController, 'sendMessageViaEmail')
+        .resolves();
+      const user = await factory(User)({
+        role: UserRole.visitor,
+        emailVerification: true,
+      }).create();
+      expect(
+        (async () => {
+          return await userRepository.findOneOrFail(user.id);
+        })()
+      ).to.be.fulfilled;
+
+      const res = await chai
+        .request(app.app)
+        .delete(uri.replace(':id', user.id))
+        .set('Authorization', adminHeader);
+
+      expect(res.status).to.equal(204);
+      spy.should.have.been.calledWith(user);
+    });
   });
 });
-
-/*
-
-    this.router.post(
-      environment.apiRoutes.admin_settings.checkDomainAgainstWhitelist,
-      AuthController.checkAuthenticationMiddleware,
-      ForbiddenInputMiddleware,
-      AdminController.checkDomainAgainstWhitelist
-    );
-
-    this.router.get(
-      environment.apiRoutes.user_management.getAllPendingUsers,
-      AuthController.checkAuthenticationMiddleware,
-      AuthController.checkAdminMiddleware,
-      AdminController.getPendingUsers
-    );
-    this.router.get(
-      environment.apiRoutes.user_management.getAllAcceptedUsers,
-      AuthController.checkAuthenticationMiddleware,
-      AuthController.checkAdminMiddleware,
-      AdminController.getAcceptedUsers
-    );
-    this.router.get(
-      addUUIDRegexToRoute(environment.apiRoutes.user_management.getSingleUser),
-      AuthController.checkAuthenticationMiddleware,
-      AuthController.checkAdminMiddleware,
-      AdminController.getUser
-    );
-    this.router.patch(
-      addUUIDRegexToRoute(environment.apiRoutes.user_management.updateUser),
-      AuthController.checkAuthenticationMiddleware,
-      AuthController.checkAdminMiddleware,
-      ForbiddenInputMiddleware,
-      AdminController.updateUser
-    );
-    this.router.delete(
-      addUUIDRegexToRoute(environment.apiRoutes.user_management.deleteUser),
-      AuthController.checkAuthenticationMiddleware,
-      AuthController.checkAdminMiddleware,
-      AdminController.deleteUser
-    );
-   */

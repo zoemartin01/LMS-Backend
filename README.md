@@ -19,3 +19,11 @@ To reset the database and seed it with test data:
 ```
 $ npm run reseed
 ```
+
+To run the demo:
+
+```
+$ npm run schema:drop
+$ npx ts-mocha src/demo_seeds.ts
+$ npm run dev
+```

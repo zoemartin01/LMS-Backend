@@ -4123,7 +4123,7 @@ describe('AppointmentController', () => {
       response.should.have.status(400);
     });
 
-    it('should send a message to the user the appointment belongs to on status patch', async () => {
+    it('should send a message to the user the appointment belongs to on status patch (1)', async () => {
       const spy = sandbox.spy(MessagingController, 'sendMessage');
 
       const appointment = await factory(AppointmentTimeslot)({
@@ -4138,6 +4138,26 @@ describe('AppointmentController', () => {
         .patch(uri.replace(':id', appointment.id))
         .set('Authorization', adminHeader)
         .send({ confirmationStatus: ConfirmationStatus.accepted });
+      response.should.have.status(200);
+
+      expect(spy).to.have.been.calledWith(appointment.user);
+    });
+
+    it('should send a message to the user the appointment belongs to on status patch (2)', async () => {
+      const spy = sandbox.spy(MessagingController, 'sendMessage');
+
+      const appointment = await factory(AppointmentTimeslot)({
+        user: visitor,
+        room: room,
+        ignoreRules: true,
+        ConfirmationStatus: ConfirmationStatus.pending,
+      }).create();
+
+      const response = await chai
+        .request(app.app)
+        .patch(uri.replace(':id', appointment.id))
+        .set('Authorization', adminHeader)
+        .send({ confirmationStatus: ConfirmationStatus.denied });
       response.should.have.status(200);
 
       expect(spy).to.have.been.calledWith(appointment.user);
@@ -5389,7 +5409,7 @@ describe('AppointmentController', () => {
       response.should.have.status(400);
     });
 
-    it('should send a message to the user the appointment belongs to on status patch', async () => {
+    it('should send a message to the user the appointment belongs to on status patch (1)', async () => {
       const spy = sandbox.spy(MessagingController, 'sendMessage');
 
       const response = await chai
@@ -5397,6 +5417,19 @@ describe('AppointmentController', () => {
         .patch(uri.replace(':id', appointment.seriesId))
         .set('Authorization', adminHeader)
         .send({ confirmationStatus: ConfirmationStatus.accepted });
+      response.should.have.status(200);
+
+      expect(spy).to.have.been.calledWith(appointment.user);
+    });
+
+    it('should send a message to the user the appointment belongs to on status patch (2)', async () => {
+      const spy = sandbox.spy(MessagingController, 'sendMessage');
+
+      const response = await chai
+        .request(app.app)
+        .patch(uri.replace(':id', appointment.seriesId))
+        .set('Authorization', adminHeader)
+        .send({ confirmationStatus: ConfirmationStatus.denied });
       response.should.have.status(200);
 
       expect(spy).to.have.been.calledWith(appointment.user);

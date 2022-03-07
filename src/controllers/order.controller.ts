@@ -263,7 +263,7 @@ export class OrderController {
    * @route {POST} /orders
    * @bodyParam {string} itemName - name of the order item
    * @bodyParam {number} quantity - quantity of the order
-   * @bodyParam {string} purchaseURL - the purchase url
+   * @bodyParam {string} url - the purchase url
    * @param {Request} req frontend request to create a new order
    * @param {Response} res backend response creation of a new order
    */
@@ -440,6 +440,10 @@ export class OrderController {
       }
     }
 
+    const wasAccepted =
+      req.body.status === OrderStatus.ordered &&
+      order.status === OrderStatus.pending;
+
     // get updated data of order to return for order view page
     order = await orderRepository.findOneOrFail({
       where: { id: req.params.id },
@@ -455,7 +459,9 @@ export class OrderController {
       await MessagingController.sendMessage(
         order.user,
         'Updated Order',
-        'Your order request of ' + itemName + ' has been updated by an admin',
+        'Your order request of ' +
+          itemName +
+          ` has been ${wasAccepted ? 'accepted' : 'updated'} by an admin`,
         'Your Orders',
         '/orders'
       );

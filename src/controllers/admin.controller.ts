@@ -43,14 +43,7 @@ export class AdminController {
    */
   public static async updateGlobalSettings(req: Request, res: Response) {
     const repository = getRepository(GlobalSetting);
-    const globalSettings: GlobalSetting[] | undefined = req.body;
-
-    if (globalSettings === undefined) {
-      res.status(404).json({
-        message: `Global setting not found.`,
-      });
-      return;
-    }
+    const globalSettings: GlobalSetting[] = req.body;
 
     for (const globalSetting in globalSettings) {
       if (globalSettings[globalSetting].value === undefined) {
@@ -259,6 +252,8 @@ export class AdminController {
     req: Request,
     res: Response
   ) {
+    const domain = encodeURIComponent(req.body.domain ?? '').toLowerCase();
+
     const repository = getRepository(RetailerDomain);
     const retailer: Retailer | undefined = await getRepository(
       Retailer
@@ -275,8 +270,8 @@ export class AdminController {
 
     try {
       const retailerDomain = await repository.save(
-        repository.create(<DeepPartial<RetailerDomain>>{
-          ...req.body,
+        repository.create({
+          domain,
           retailer,
         })
       );
@@ -302,6 +297,8 @@ export class AdminController {
     req: Request,
     res: Response
   ) {
+    const domain = encodeURIComponent(req.body.domain ?? '').toLowerCase();
+
     const retailer = await getRepository(Retailer).findOne({
       where: { id: req.params.id },
     });
@@ -336,7 +333,7 @@ export class AdminController {
         { id: retailerDomain.id },
         repository.create(<DeepPartial<RetailerDomain>>{
           ...retailerDomain,
-          ...req.body,
+          domain,
         })
       );
     } catch (err) {
@@ -402,7 +399,7 @@ export class AdminController {
    * @param {Response} res backend response to check a domain against whitelist
    */
   public static async checkDomainAgainstWhitelist(req: Request, res: Response) {
-    const domain = encodeURIComponent(req.body.domain);
+    const domain = encodeURIComponent(req.body.domain).toLowerCase();
 
     const domainRepository = getRepository(RetailerDomain);
     const count = await domainRepository
@@ -536,6 +533,21 @@ export class AdminController {
       return;
     }
 
+    const email = req.body.email;
+
+    if (email !== undefined) {
+      const existingUser = await userRepository.count({
+        where: { email },
+      });
+
+      if (existingUser !== 0) {
+        res.status(409).json({
+          message: 'User with this email already exists.',
+        });
+        return;
+      }
+    }
+
     //checking for user is last admin
     if (user.role === UserRole.admin) {
       const adminCount = await userRepository.count({
@@ -589,6 +601,7 @@ export class AdminController {
       'Account updated',
       'Your account has been updated by an admin. ' +
         Object.keys(req.body)
+          .filter((key: string) => key !== 'password')
           .map((e: string) => `${e}: ${req.body[e]}`)
           .join(', '),
       'User Settings',
@@ -666,7 +679,7 @@ export class AdminController {
         },
       });
 
-      if (adminCount <= 1) {
+      if (adminCount < 2) {
         res.status(403).json({
           message: 'Not allowed to delete last admin',
         });
@@ -680,20 +693,15 @@ export class AdminController {
       'Your account has been deleted by an admin. Bye!'
     );
 
-    try {
-      await userRepository.update(
-        { id: user.id },
-        {
-          firstName: '<deleted>',
-          lastName: '<deleted>',
-          email: '<deleted>',
-          password: '<deleted>',
-        }
-      );
-    } catch (err) {
-      res.status(400).json(err);
-      return;
-    }
+    await userRepository.update(
+      { id: user.id },
+      {
+        firstName: '<deleted>',
+        lastName: '<deleted>',
+        email: '<deleted>',
+        password: '<deleted>',
+      }
+    );
 
     await userRepository.softDelete(user.id);
 

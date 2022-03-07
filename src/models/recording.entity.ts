@@ -71,7 +71,7 @@ export class Recording extends BaseEntity {
   @Column()
   @IsDefined()
   @IsNumber()
-  @Min(0)
+  @Min(1)
   readonly bitrate: number;
 
   /**

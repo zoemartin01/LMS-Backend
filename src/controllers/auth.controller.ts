@@ -278,6 +278,7 @@ export class AuthController {
     tokenRepository
       .findOneOrFail({
         where: { token, type: TokenType.authenticationToken },
+        relations: ['user'],
       })
       .then(async (tokenObject: Token) => {
         //delete linked authentication tokens
@@ -293,6 +294,8 @@ export class AuthController {
           .from(Token)
           .where('id = :id', { id: tokenObject.refreshTokenId })
           .execute();
+
+        MessagingController.closeAllUserWebsockets(tokenObject.user);
 
         res.sendStatus(204);
       });

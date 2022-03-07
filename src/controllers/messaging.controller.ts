@@ -152,6 +152,17 @@ export class MessagingController {
   }
 
   /**
+   * Closes all message box websockets for a user
+   * @param user User the websockets belong to
+   */
+  public static async closeAllUserWebsockets(user: User) {
+    const array = MessagingController.messageSockets[user.id];
+    if (array !== undefined) {
+      array.forEach((ws) => ws.close());
+    }
+  }
+
+  /**
    * Deletes a message from database
    *
    * @route {DELETE} /messages/:id

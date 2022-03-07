@@ -76,47 +76,43 @@ describe('Appointment Entity', () => {
 
       // room undefined
       await expect(
-        (async () =>
-          await repository.save(
-            repository.create(<DeepPartial<AppointmentTimeslot>>{
-              ...validAppointment,
-              room: undefined,
-            })
-          ))()
-      ).to.be.rejected;
+        repository.save(
+          repository.create(<DeepPartial<AppointmentTimeslot>>{
+            ...validAppointment,
+            room: undefined,
+          })
+        )
+      ).to.be.eventually.rejected;
 
       // user undefined
       await expect(
-        (async () =>
-          await repository.save(
-            repository.create(<DeepPartial<AppointmentTimeslot>>{
-              ...validAppointment,
-              user: undefined,
-            })
-          ))()
-      ).to.be.rejected;
+        repository.save(
+          repository.create(<DeepPartial<AppointmentTimeslot>>{
+            ...validAppointment,
+            user: undefined,
+          })
+        )
+      ).to.be.eventually.rejected;
 
       // start undefined
       await expect(
-        (async () =>
-          await repository.save(
-            repository.create(<DeepPartial<AppointmentTimeslot>>{
-              ...validAppointment,
-              start: undefined,
-            })
-          ))()
-      ).to.be.rejected;
+        repository.save(
+          repository.create(<DeepPartial<AppointmentTimeslot>>{
+            ...validAppointment,
+            start: undefined,
+          })
+        )
+      ).to.be.eventually.rejected;
 
       // end undefined
       await expect(
-        (async () =>
-          await repository.save(
-            repository.create(<DeepPartial<AppointmentTimeslot>>{
-              ...validAppointment,
-              end: undefined,
-            })
-          ))()
-      ).to.be.rejected;
+        repository.save(
+          repository.create(<DeepPartial<AppointmentTimeslot>>{
+            ...validAppointment,
+            end: undefined,
+          })
+        )
+      ).to.be.eventually.rejected;
     });
 
     it('should set the default confirmation status', async () => {

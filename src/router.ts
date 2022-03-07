@@ -125,7 +125,6 @@ class AppRouter {
     this.router.get(
       environment.apiRoutes.admin_settings.getWhitelistRetailers,
       AuthController.checkAuthenticationMiddleware,
-      AuthController.checkAdminMiddleware,
       AdminController.getWhitelistRetailers
     );
 

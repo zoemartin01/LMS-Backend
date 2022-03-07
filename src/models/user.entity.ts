@@ -3,7 +3,7 @@ import {
   IsEmail,
   IsEnum,
   IsNotEmpty,
-  ValidateIf,
+  IsOptional,
 } from 'class-validator';
 import { Entity, Column, OneToMany } from 'typeorm';
 import { NotificationChannel } from '../types/enums/notification-channel';
@@ -83,7 +83,7 @@ export class User extends BaseEntity {
     enum: UserRole,
     default: UserRole.pending,
   })
-  @ValidateIf((user) => user.role)
+  @IsOptional()
   @IsEnum(UserRole)
   role: UserRole;
 
@@ -94,7 +94,7 @@ export class User extends BaseEntity {
    * @default false
    */
   @Column({ default: false })
-  @ValidateIf((user) => user.emailVerification)
+  @IsOptional()
   @IsBoolean()
   emailVerification: boolean;
 
@@ -119,7 +119,7 @@ export class User extends BaseEntity {
     enum: NotificationChannel,
     default: NotificationChannel.emailOnly,
   })
-  @ValidateIf((user) => user.notificationChannel)
+  @IsOptional()
   @IsEnum(NotificationChannel)
   notificationChannel: NotificationChannel;
 

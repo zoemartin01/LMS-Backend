@@ -339,6 +339,22 @@ describe('MessagingController', () => {
       MessagingController.messageSockets.should.have.key(admin.id);
     });
 
+    it('should add the new websocket to the broadcasting list (3)', async () => {
+      MessagingController.messageSockets[admin.id] = [];
+
+      const ws = WebSocketMock();
+      const req = new MockExpressRequest();
+      req.body = { user: { id: admin.id } };
+
+      await MessagingController.registerUnreadMessagesSocket(ws, req);
+
+      MessagingController.messageSockets.should.have.key(admin.id);
+
+      await MessagingController.closeAllUserWebsockets(admin);
+
+      MessagingController.messageSockets[admin.id].should.be.empty;
+    });
+
     it('should send the unread messages on registration', async () => {
       const ws = WebSocketMock();
       const spy = sandbox.spy(ws, 'send');
@@ -870,6 +886,32 @@ describe('MessagingController', () => {
       ).forEach((admin) => {
         spy.should.have.been.calledWith(admin, 'title', 'content');
       });
+    });
+  });
+
+  describe('#closeAllUserWebsockets()', () => {
+    it('should close all user websockets (1)', async () => {
+      MessagingController.messageSockets = {};
+      await MessagingController.closeAllUserWebsockets(admin);
+
+      expect(MessagingController.messageSockets[admin.id]).to.be.undefined;
+    });
+
+    it('should close all user websockets (2)', async () => {
+      MessagingController.messageSockets = {};
+
+      mockReq = new MockExpressRequest();
+      mockReq.body = { user: { id: admin.id } };
+      messageWebsocket = WebSocketMock();
+      const spy = sandbox.spy(messageWebsocket, 'close');
+      await MessagingController.registerUnreadMessagesSocket(
+        messageWebsocket,
+        mockReq
+      );
+      await MessagingController.closeAllUserWebsockets(admin);
+
+      MessagingController.messageSockets[admin.id].should.be.empty;
+      spy.should.have.been.called;
     });
   });
 });

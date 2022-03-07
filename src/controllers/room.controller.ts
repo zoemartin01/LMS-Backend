@@ -19,6 +19,7 @@ import { TimeSlotRecurrence } from '../types/enums/timeslot-recurrence';
 import { isISO8601 } from 'class-validator';
 import DurationConstructor = moment.unitOfTime.DurationConstructor;
 import { v4 } from 'uuid';
+import { MessagingController } from './messaging.controller';
 
 /**
  * Controller for room management
@@ -196,10 +197,6 @@ export class RoomController {
       index,
       j;
     for (availableTimespan of availableTimeSlots) {
-      // if (availableTimespan.start == null || availableTimespan.end == null) {
-      //   continue;
-      // }
-
       timespanStart = +moment(availableTimespan.start).format('HH');
       if (timespanStart < minTimeslot) {
         minTimeslot = timespanStart;
@@ -236,10 +233,6 @@ export class RoomController {
 
     //add available timeslots to calendar
     for (availableTimespan of availableTimeSlots) {
-      // if (availableTimespan.start == null || availableTimespan.end == null) {
-      //   continue;
-      // }
-
       timespanEnd = +moment(availableTimespan.end).format('HH');
       if (timespanEnd === 0) {
         timespanEnd = 24;
@@ -258,13 +251,6 @@ export class RoomController {
 
     //set unavailable timeslots
     for (unavailableTimeSlot of unavailableTimeSlots) {
-      // if (
-      //   unavailableTimeSlot.start == null ||
-      //   unavailableTimeSlot.end == null
-      // ) {
-      //   continue;
-      // }
-
       timespanEnd = +moment(unavailableTimeSlot.end).format('HH');
       if (timespanEnd === 0) {
         timespanEnd = 24;
@@ -272,7 +258,7 @@ export class RoomController {
 
       for (
         let i = +moment(unavailableTimeSlot.start).format('HH');
-        i <= timespanEnd;
+        i < timespanEnd;
         i++
       ) {
         if (minTimeslot <= i && i <= maxTimeslot) {
@@ -286,10 +272,6 @@ export class RoomController {
     //add appointments
     try {
       for (appointment of appointments) {
-        // if (appointment.start == null || appointment.end == null) {
-        //   continue;
-        // }
-
         start = moment(appointment.start);
         hour = +start.format('HH') - minTimeslot;
         day = (+start.format('e') + 6) % 7;
@@ -338,7 +320,6 @@ export class RoomController {
           }
 
           //shorten available timeslots on left side of timeslots
-          // @todo(zoe) wann wird das benutzt?
           if (index !== j) {
             calendar[i][day][j] = `available ${index - j}`;
           }
@@ -560,6 +541,25 @@ export class RoomController {
       return;
     }
 
+    const appointments = await getRepository(AppointmentTimeslot).find({
+      where: {
+        room: { id: room.id },
+        confirmationStatus: Not(ConfirmationStatus.denied),
+        start: MoreThan(moment().toDate()),
+      },
+      relations: ['user'],
+    });
+
+    await Promise.all(
+      appointments.map(async (appointment: AppointmentTimeslot) => {
+        return await MessagingController.sendMessage(
+          appointment.user,
+          'Your booking has been canceled ',
+          'Your booking has been canceled, because the affiliated room has been removed'
+        );
+      })
+    );
+
     await repository.remove(room).then(() => {
       res.sendStatus(204);
     });
@@ -774,12 +774,22 @@ export class RoomController {
     }
 
     if (type === TimeSlotType.unavailable && !force) {
-      const timeslots = await repository.count({
-        where: {
-          room: room,
-          start: LessThan(end),
-          end: MoreThan(start),
-        },
+      const timeslots = await getRepository(AppointmentTimeslot).count({
+        where: [
+          {
+            room,
+            start: Between(mStart.toDate(), mEnd.toDate()),
+          },
+          {
+            room,
+            end: Between(mStart.toDate(), mEnd.toDate()),
+          },
+          {
+            room,
+            start: LessThan(mStart.toDate()),
+            end: MoreThan(mEnd.toDate()),
+          },
+        ],
       });
 
       if (timeslots > 0) {
@@ -890,11 +900,12 @@ export class RoomController {
    * @bodyParam {TimeSlotType} type - The type of the time slot.
    * @bodyParam {TimeSlotRecurrence} timeSlotRecurrence - The recurrence of the time slot.
    * @bodyParam {number} amount - The amount of the time slot.
+   * @bodyParam {boolean} force - If true, the unavailable time slot will be created even if it overlaps with an appointment.
    * @param {Request} req frontend request to create a new available timeslot of a room
    * @param {Response} res backend response creation of a new available timeslot of a room
    */
   public static async createTimeslotSeries(req: Request, res: Response) {
-    const { start, end, type, timeSlotRecurrence, amount } = req.body;
+    const { start, end, type, timeSlotRecurrence, amount, force } = req.body;
     const seriesId = v4();
 
     const room = await getRepository(Room).findOne(req.params.roomId);
@@ -990,6 +1001,34 @@ export class RoomController {
     const timeslots = [];
 
     for (let i = 0; i < +amount; i++) {
+      if (type === TimeSlotType.unavailable && !force) {
+        const timeslots = await getRepository(AppointmentTimeslot).count({
+          where: [
+            {
+              room,
+              start: Between(mStart.toDate(), mEnd.toDate()),
+            },
+            {
+              room,
+              end: Between(mStart.toDate(), mEnd.toDate()),
+            },
+            {
+              room,
+              start: LessThan(mStart.toDate()),
+              end: MoreThan(mEnd.toDate()),
+            },
+          ],
+        });
+
+        if (timeslots > 0) {
+          res.status(409).json({
+            message:
+              'Creation of unavailable timeslot conflicts with existing appointments.',
+          });
+          return;
+        }
+      }
+
       let timeslot = repository.create({
         room,
         start: mStart.add(i > 0 ? 1 : 0, recurrence).toDate(),
@@ -1091,6 +1130,7 @@ export class RoomController {
    * @routeParam {string} timeslotId - id of the timeslot
    * @bodyParam {Date [Optional]} start - The start time of the time slot.
    * @bodyParam {Date [Optional]} end - The end time of the time slot.
+   * @bodyParam {boolean} force - If true, the timeslot will be updated even if there are conflicting appointments.
    * @param {Request} req frontend request to create a new available timeslot of a room
    * @param {Response} res backend response creation of a new available timeslot of a room
    */
@@ -1109,6 +1149,8 @@ export class RoomController {
       res.status(404).json({ message: 'Timeslot not found.' });
       return;
     }
+
+    const id = timeslot.id;
 
     const type = timeslot.type;
 
@@ -1157,6 +1199,34 @@ export class RoomController {
     if (duration.asHours() < 1) {
       res.status(400).json({ message: 'Duration must be at least 1h.' });
       return;
+    }
+
+    if (type === TimeSlotType.unavailable && !req.body.force) {
+      const timeslots = await getRepository(AppointmentTimeslot).count({
+        where: [
+          {
+            room,
+            start: Between(mStart.toDate(), mEnd.toDate()),
+          },
+          {
+            room,
+            end: Between(mStart.toDate(), mEnd.toDate()),
+          },
+          {
+            room,
+            start: LessThan(mStart.toDate()),
+            end: MoreThan(mEnd.toDate()),
+          },
+        ],
+      });
+
+      if (timeslots > 0) {
+        res.status(409).json({
+          message:
+            'Creation of unavailable timeslot conflicts with existing appointments.',
+        });
+        return;
+      }
     }
 
     let newTimeslot;
@@ -1225,9 +1295,7 @@ export class RoomController {
     mergables = mergables.filter((mergable) =>
       moment(mergable.start).isSame(mStart, 'day')
     );
-    mergables = mergables.filter(
-      (mergable) => mergable.id !== timeslot?.id ?? ''
-    );
+    mergables = mergables.filter((mergable) => mergable.id !== id);
 
     if (mergables.length > 0) {
       const minStart = min([
@@ -1261,6 +1329,7 @@ export class RoomController {
    * @bodyParam {Date [Optional]} end - The end time of the time slot.
    * @bodyParam {TimeSlotRecurrence [Optional]} timeSlotRecurrence - The recurrence of the time slot.
    * @bodyParam {number [Optional]} amount - The amount of the time slot.
+   * @bodyParam {boolean} force - If true, the timeslot will be created even if there are conflicts.
    * @param {Request} req frontend request to create a new available timeslot of a room
    * @param {Response} res backend response creation of a new available timeslot of a room
    */
@@ -1375,6 +1444,34 @@ export class RoomController {
     const newTimeslots = [];
 
     for (let i = 0; i < +amount; i++) {
+      if (type === TimeSlotType.unavailable && !req.body.force) {
+        const timeslots = await getRepository(AppointmentTimeslot).count({
+          where: [
+            {
+              room,
+              start: Between(mStart.toDate(), mEnd.toDate()),
+            },
+            {
+              room,
+              end: Between(mStart.toDate(), mEnd.toDate()),
+            },
+            {
+              room,
+              start: LessThan(mStart.toDate()),
+              end: MoreThan(mEnd.toDate()),
+            },
+          ],
+        });
+
+        if (timeslots > 0) {
+          res.status(409).json({
+            message:
+              'Creation of unavailable timeslot conflicts with existing appointments.',
+          });
+          return;
+        }
+      }
+
       let newTimeslot = repository.create({
         room,
         start: mStart.add(i > 0 ? 1 : 0, recurrence).toDate(),
@@ -1487,6 +1584,8 @@ export class RoomController {
     const timeslot = await repository.findOne(req.params.timeslotId);
     const room = await getRepository(Room).findOne(req.body.roomId);
 
+    const force = req.body.force || false;
+
     if (room === undefined) {
       res.status(404).json({ message: 'Room not found.' });
       return;
@@ -1509,13 +1608,23 @@ export class RoomController {
       return;
     }
 
-    if (timeslot.type === TimeSlotType.available && !req.body.force) {
+    if (timeslot.type === TimeSlotType.available && !force) {
       const appointments = await getRepository(AppointmentTimeslot).count({
-        where: {
-          room,
-          start: LessThan(timeslot.end),
-          end: MoreThan(timeslot.start),
-        },
+        where: [
+          {
+            room,
+            start: Between(timeslot.start, timeslot.end),
+          },
+          {
+            room,
+            end: Between(timeslot.start, timeslot.end),
+          },
+          {
+            room,
+            start: LessThan(timeslot.start),
+            end: MoreThan(timeslot.end),
+          },
+        ],
       });
 
       if (appointments > 0) {
@@ -1538,13 +1647,16 @@ export class RoomController {
    * @route {DELETE} /rooms/:roomId/timeslots/series/:seriesId
    * @routeParam {string} roomId - id of the room
    * @routeParam {string} seriesId - id of the series
+   * @bodyParam {boolean} force - If true, the series will be deleted even if it contains an appointment.
    * @param {Request} req frontend request to delete one room
    * @param {Response} res backend response deletion
    */
   public static async deleteTimeslotSeries(req: Request, res: Response) {
     const repository = getRepository(TimeSlot);
+    const room = await getRepository(Room).findOne(req.body.roomId);
+    const force = req.body.force || false;
 
-    if ((await getRepository(Room).findOne(req.body.roomId)) === undefined) {
+    if (room === undefined) {
       res.status(404).json({ message: 'Room not found.' });
       return;
     }
@@ -1579,6 +1691,41 @@ export class RoomController {
         seriesId: timeslot.seriesId,
       },
     });
+
+    if (timeslot.type === TimeSlotType.available && !force) {
+      const appointments = (
+        await Promise.all(
+          timeslots.map(
+            async (t: TimeSlot) =>
+              await getRepository(AppointmentTimeslot).count({
+                where: [
+                  {
+                    room,
+                    start: Between(t.start, t.end),
+                  },
+                  {
+                    room,
+                    end: Between(t.start, t.end),
+                  },
+                  {
+                    room,
+                    start: LessThan(t.start),
+                    end: MoreThan(t.end),
+                  },
+                ],
+              })
+          )
+        )
+      ).reduce((partialSum, a) => partialSum + a, 0);
+
+      if (appointments > 0) {
+        res.status(409).json({
+          message:
+            'Cannot delete available timeslot because at least one booked appointment depends on it.',
+        });
+        return;
+      }
+    }
 
     repository.remove(timeslots).then(() => {
       res.sendStatus(204);
