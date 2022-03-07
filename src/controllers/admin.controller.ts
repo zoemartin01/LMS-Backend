@@ -601,6 +601,7 @@ export class AdminController {
       'Account updated',
       'Your account has been updated by an admin. ' +
         Object.keys(req.body)
+          .filter((key: string) => key !== 'password')
           .map((e: string) => `${e}: ${req.body[e]}`)
           .join(', '),
       'User Settings',
