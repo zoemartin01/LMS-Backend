@@ -20,30 +20,14 @@ describe('Global Settings Entity', () => {
     repository = getRepository(GlobalSetting);
   });
 
-  it('should not allow duplicate keys', async () => {
-    await repository.save({
-      key: 'test',
-      value: 'test',
-    });
-
-    expect(
-      (async () => {
-        return await repository.save({
-          key: 'test',
-          value: 'test',
-        });
-      })()
-    ).to.be.rejected;
-  });
-
   it('should set the default description to ""', async () => {
-    expect(
-      (async () => {
-        return await repository.save({
+    await expect(
+      repository.save(
+        repository.create({
           key: 'test',
           value: 'test',
-        });
-      })()
+        })
+      )
     ).to.eventually.have.property('description', '');
   });
 });

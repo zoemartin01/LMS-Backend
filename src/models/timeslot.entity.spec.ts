@@ -79,14 +79,13 @@ describe('Timeslot Entity', () => {
       });
 
       await expect(
-        (async () =>
-          await repository.save(
-            repository.create(<DeepPartial<AvailableTimeslot>>{
-              ...validTimeslot,
-              start: undefined,
-            })
-          ))()
-      ).to.be.rejected;
+        repository.save(
+          repository.create(<DeepPartial<AvailableTimeslot>>{
+            ...validTimeslot,
+            start: undefined,
+          })
+        )
+      ).to.be.eventually.rejected;
     });
 
     it('should fail to create a new timeslot with invalid start', async () => {
@@ -101,14 +100,13 @@ describe('Timeslot Entity', () => {
       const { start } = JSON.parse(JSON.stringify({ start: 'invalid' }));
 
       await expect(
-        (async () =>
-          await repository.save(
-            repository.create(<DeepPartial<AvailableTimeslot>>{
-              ...validTimeslot,
-              start,
-            })
-          ))()
-      ).to.be.rejected;
+        repository.save(
+          repository.create(<DeepPartial<AvailableTimeslot>>{
+            ...validTimeslot,
+            start,
+          })
+        )
+      ).to.be.eventually.rejected;
     });
 
     it('should fail to create a new timeslot with undefined end', async () => {
@@ -121,14 +119,13 @@ describe('Timeslot Entity', () => {
       });
 
       await expect(
-        (async () =>
-          await repository.save(
-            repository.create(<DeepPartial<AvailableTimeslot>>{
-              ...validTimeslot,
-              end: undefined,
-            })
-          ))()
-      ).to.be.rejected;
+        repository.save(
+          repository.create(<DeepPartial<AvailableTimeslot>>{
+            ...validTimeslot,
+            end: undefined,
+          })
+        )
+      ).to.be.eventually.rejected;
     });
 
     it('should fail to create a new timeslot with invalid end', async () => {
@@ -143,14 +140,13 @@ describe('Timeslot Entity', () => {
       const { end } = JSON.parse(JSON.stringify({ end: 'invalid' }));
 
       await expect(
-        (async () =>
-          await repository.save(
-            repository.create(<DeepPartial<AvailableTimeslot>>{
-              ...validTimeslot,
-              end,
-            })
-          ))()
-      ).to.be.rejected;
+        repository.save(
+          repository.create(<DeepPartial<AvailableTimeslot>>{
+            ...validTimeslot,
+            end,
+          })
+        )
+      ).to.be.eventually.rejected;
     });
 
     it('should fail to create a new timeslot with undefined room', async () => {
@@ -163,14 +159,13 @@ describe('Timeslot Entity', () => {
       });
 
       await expect(
-        (async () =>
-          await repository.save(
-            repository.create(<DeepPartial<AvailableTimeslot>>{
-              ...validTimeslot,
-              room: undefined,
-            })
-          ))()
-      ).to.be.rejected;
+        repository.save(
+          repository.create(<DeepPartial<AvailableTimeslot>>{
+            ...validTimeslot,
+            room: undefined,
+          })
+        )
+      ).to.be.eventually.rejected;
     });
 
     it('should fail to create a new timeslot with invalid room', async () => {
@@ -185,14 +180,13 @@ describe('Timeslot Entity', () => {
       const { invalidRoom } = JSON.parse(JSON.stringify({ room: 'invalid' }));
 
       await expect(
-        (async () =>
-          await repository.save(
-            repository.create({
-              ...validTimeslot,
-              room: invalidRoom,
-            } as AvailableTimeslot)
-          ))()
-      ).to.be.rejected;
+        repository.save(
+          repository.create({
+            ...validTimeslot,
+            room: invalidRoom,
+          } as AvailableTimeslot)
+        )
+      ).to.be.eventually.rejected;
     });
 
     it('should fail to create a new timeslot with invalid seriesId', async () => {
@@ -207,14 +201,13 @@ describe('Timeslot Entity', () => {
       const { seriesId } = JSON.parse(JSON.stringify({ seriesId: 'invalid' }));
 
       await expect(
-        (async () =>
-          await repository.save(
-            repository.create({
-              ...validTimeslot,
-              seriesId,
-            } as AvailableTimeslot)
-          ))()
-      ).to.be.rejected;
+        repository.save(
+          repository.create({
+            ...validTimeslot,
+            seriesId,
+          } as AvailableTimeslot)
+        )
+      ).to.be.eventually.rejected;
     });
 
     it('should allow seriesId to be null', async () => {
@@ -229,13 +222,12 @@ describe('Timeslot Entity', () => {
       const { seriesId } = JSON.parse(JSON.stringify({ seriesId: null }));
 
       await expect(
-        (async () =>
-          await repository.save(
-            repository.create({
-              ...validTimeslot,
-              seriesId,
-            } as AvailableTimeslot)
-          ))()
+        repository.save(
+          repository.create({
+            ...validTimeslot,
+            seriesId,
+          } as AvailableTimeslot)
+        )
       ).to.eventually.have.property('seriesId', null);
     });
 
@@ -251,14 +243,13 @@ describe('Timeslot Entity', () => {
       const { amount } = JSON.parse(JSON.stringify({ amount: 'invalid' }));
 
       await expect(
-        (async () =>
-          await repository.save(
-            repository.create({
-              ...validTimeslot,
-              amount,
-            } as AvailableTimeslot)
-          ))()
-      ).to.be.rejected;
+        repository.save(
+          repository.create({
+            ...validTimeslot,
+            amount,
+          } as AvailableTimeslot)
+        )
+      ).to.be.eventually.rejected;
     });
 
     it('should fail to create a new timeslot with amount below 1', async () => {
@@ -271,24 +262,22 @@ describe('Timeslot Entity', () => {
       });
 
       await expect(
-        (async () =>
-          await repository.save(
-            repository.create({
-              ...validTimeslot,
-              amount: 0,
-            } as AvailableTimeslot)
-          ))()
-      ).to.be.rejected;
+        repository.save(
+          repository.create({
+            ...validTimeslot,
+            amount: 0,
+          } as AvailableTimeslot)
+        )
+      ).to.be.eventually.rejected;
 
       await expect(
-        (async () =>
-          await repository.save(
-            repository.create({
-              ...validTimeslot,
-              amount: -1,
-            } as AvailableTimeslot)
-          ))()
-      ).to.be.rejected;
+        repository.save(
+          repository.create({
+            ...validTimeslot,
+            amount: -1,
+          } as AvailableTimeslot)
+        )
+      ).to.be.eventually.rejected;
     });
 
     it('should set amount default to 1', async () => {
@@ -300,9 +289,10 @@ describe('Timeslot Entity', () => {
         end: moment().add(1, 'hour').toDate(),
       });
 
-      await expect(
-        (async () => await repository.save(validTimeslot))()
-      ).to.eventually.have.property('amount', 1);
+      await expect(repository.save(validTimeslot)).to.eventually.have.property(
+        'amount',
+        1
+      );
     });
 
     it('should fail to create a new timeslot with invalid timeslot recurrence', async () => {
@@ -319,14 +309,13 @@ describe('Timeslot Entity', () => {
       );
 
       await expect(
-        (async () =>
-          await repository.save(
-            repository.create({
-              ...validTimeslot,
-              timeSlotRecurrence,
-            } as AvailableTimeslot)
-          ))()
-      ).to.be.rejected;
+        repository.save(
+          repository.create({
+            ...validTimeslot,
+            timeSlotRecurrence,
+          } as AvailableTimeslot)
+        )
+      ).to.be.eventually.rejected;
     });
 
     it('should set timeslot recurrence default to single', async () => {
@@ -338,9 +327,7 @@ describe('Timeslot Entity', () => {
         end: moment().add(1, 'hour').toDate(),
       });
 
-      await expect(
-        (async () => await repository.save(validTimeslot))()
-      ).to.eventually.have.property(
+      await expect(repository.save(validTimeslot)).to.eventually.have.property(
         'timeSlotRecurrence',
         TimeSlotRecurrence.single
       );
@@ -361,7 +348,7 @@ describe('Timeslot Entity', () => {
             });
 
             return await expect(
-              (async () => await repository.save(timeslot))()
+              repository.save(timeslot)
             ).to.eventually.have.property(
               'timeSlotRecurrence',
               index as TimeSlotRecurrence
@@ -382,14 +369,13 @@ describe('Timeslot Entity', () => {
       const { isDirty } = JSON.parse(JSON.stringify({ isDirty: 'invalid' }));
 
       await expect(
-        (async () =>
-          await repository.save(
-            repository.create({
-              ...validTimeslot,
-              isDirty,
-            } as AvailableTimeslot)
-          ))()
-      ).to.be.rejected;
+        repository.save(
+          repository.create({
+            ...validTimeslot,
+            isDirty,
+          } as AvailableTimeslot)
+        )
+      ).to.be.eventually.rejected;
     });
 
     it('should set isDirty recurrence default to false', async () => {
@@ -401,9 +387,10 @@ describe('Timeslot Entity', () => {
         end: moment().add(1, 'hour').toDate(),
       });
 
-      await expect(
-        (async () => await repository.save(validTimeslot))()
-      ).to.eventually.have.property('isDirty', false);
+      await expect(repository.save(validTimeslot)).to.eventually.have.property(
+        'isDirty',
+        false
+      );
     });
 
     it('should allow isDirty to be set to any boolean value', async () => {
@@ -416,23 +403,21 @@ describe('Timeslot Entity', () => {
       });
 
       await expect(
-        (async () =>
-          await repository.save(
-            repository.create({
-              ...validTimeslot,
-              isDirty: false,
-            } as AvailableTimeslot)
-          ))()
+        repository.save(
+          repository.create({
+            ...validTimeslot,
+            isDirty: false,
+          } as AvailableTimeslot)
+        )
       ).to.eventually.have.property('isDirty', false);
 
       await expect(
-        (async () =>
-          await repository.save(
-            repository.create({
-              ...validTimeslot,
-              isDirty: true,
-            } as AvailableTimeslot)
-          ))()
+        repository.save(
+          repository.create({
+            ...validTimeslot,
+            isDirty: true,
+          } as AvailableTimeslot)
+        )
       ).to.eventually.have.property('isDirty', true);
     });
   });

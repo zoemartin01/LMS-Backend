@@ -68,36 +68,33 @@ describe('Available Timeslot Entity', () => {
 
       // room undefined
       await expect(
-        (async () =>
-          await repository.save(
-            repository.create(<DeepPartial<AvailableTimeslot>>{
-              ...validTimeslot,
-              room: undefined,
-            })
-          ))()
-      ).to.be.rejected;
+        repository.save(
+          repository.create(<DeepPartial<AvailableTimeslot>>{
+            ...validTimeslot,
+            room: undefined,
+          })
+        )
+      ).to.be.eventually.rejected;
 
       // start undefined
       await expect(
-        (async () =>
-          await repository.save(
-            repository.create(<DeepPartial<AvailableTimeslot>>{
-              ...validTimeslot,
-              start: undefined,
-            })
-          ))()
-      ).to.be.rejected;
+        repository.save(
+          repository.create(<DeepPartial<AvailableTimeslot>>{
+            ...validTimeslot,
+            start: undefined,
+          })
+        )
+      ).to.be.eventually.rejected;
 
       // end undefined
       await expect(
-        (async () =>
-          await repository.save(
-            repository.create(<DeepPartial<AvailableTimeslot>>{
-              ...validTimeslot,
-              end: undefined,
-            })
-          ))()
-      ).to.be.rejected;
+        repository.save(
+          repository.create(<DeepPartial<AvailableTimeslot>>{
+            ...validTimeslot,
+            end: undefined,
+          })
+        )
+      ).to.be.eventually.rejected;
     });
   });
 });
