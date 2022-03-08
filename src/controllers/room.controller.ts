@@ -118,10 +118,7 @@ export class RoomController {
       req.query.date === undefined ? moment() : moment(+req.query.date * 1000);
 
     const from: string = date.day(1).format('YYYY-MM-DD');
-    const to: string = date
-      .day(1)
-      .add(7, 'days')
-      .format('YYYY-MM-DD');
+    const to: string = date.day(1).add(7, 'days').format('YYYY-MM-DD');
 
     const room = await getRepository(Room).findOne(req.params.id);
 
@@ -282,12 +279,15 @@ export class RoomController {
           timespanEnd = 24;
         }
 
-        if (start.format('YYYY-MM-DD') === to || (end.format('YYYY-MM-DD') === from && timespanEnd === 0)) {
+        if (
+          start.format('YYYY-MM-DD') === to ||
+          (end.format('YYYY-MM-DD') === from && timespanEnd === 0)
+        ) {
           continue;
         }
 
         let nextIteration = false;
-        for (let i = hour; i < (timespanEnd - minTimeslot); i++) {
+        for (let i = hour; i < timespanEnd - minTimeslot; i++) {
           if (calendar[i][day][0] === 'unavailable') {
             nextIteration = true;
             break;
@@ -371,10 +371,7 @@ export class RoomController {
       req.query.date === undefined ? moment() : moment(+req.query.date * 1000);
 
     const from: string = date.day(1).format('YYYY-MM-DD');
-    const to: string = date
-      .day(1)
-      .add(7, 'days')
-      .format('YYYY-MM-DD');
+    const to: string = date.day(1).add(7, 'days').format('YYYY-MM-DD');
 
     const room = await getRepository(Room).findOne(req.params.id);
 
@@ -424,8 +421,11 @@ export class RoomController {
         timespanEnd = 24;
       }
 
-      if (moment(availableTimespan.start).format('YYYY-MM-DD') === to
-        || (timespanEnd === 0 && moment(availableTimespan.end).format('YYYY-MM-DD') === from)) {
+      if (
+        moment(availableTimespan.start).format('YYYY-MM-DD') === to ||
+        (timespanEnd === 0 &&
+          moment(availableTimespan.end).format('YYYY-MM-DD') === from)
+      ) {
         continue;
       }
 
@@ -447,8 +447,11 @@ export class RoomController {
         timespanEnd = 24;
       }
 
-      if (moment(unavailableTimeSlot.start).format('YYYY-MM-DD') === to
-        || (timespanEnd === 0 && moment(unavailableTimeSlot.end).format('YYYY-MM-DD') === from)) {
+      if (
+        moment(unavailableTimeSlot.start).format('YYYY-MM-DD') === to ||
+        (timespanEnd === 0 &&
+          moment(unavailableTimeSlot.end).format('YYYY-MM-DD') === from)
+      ) {
         continue;
       }
 
@@ -1193,7 +1196,8 @@ export class RoomController {
       timeslot = unavailableTimeslot;
     }
 
-    const { start, end } = req.body;
+    const start = req.body.start || timeslot.start.toISOString();
+    const end = req.body.end || timeslot.end.toISOString();
 
     if (!isISO8601(start)) {
       res.status(400).json({ message: 'Invalid start format.' });
