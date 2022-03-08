@@ -277,12 +277,17 @@ export class RoomController {
         hour = +start.format('HH') - minTimeslot;
         day = (+start.format('e') + 6) % 7;
 
-        if (start.format('YYYY-MM-DD') === to || (end.format('YYYY-MM-DD') === from && +end.format('HH') === 0)) {
+        timespanEnd = +end.format('HH');
+        if (timespanEnd === 0) {
+          timespanEnd = 24;
+        }
+
+        if (start.format('YYYY-MM-DD') === to || (end.format('YYYY-MM-DD') === from && timespanEnd === 0)) {
           continue;
         }
 
         let nextIteration = false;
-        for (let i = hour; i < +end.format('HH') - minTimeslot; i++) {
+        for (let i = hour; i < (timespanEnd - minTimeslot); i++) {
           if (calendar[i][day][0] === 'unavailable') {
             nextIteration = true;
             break;
