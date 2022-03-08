@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, Request, Response } from 'express';
 import expressWs from 'express-ws';
 import { AdminController } from './controllers/admin.controller';
 import { AppointmentController } from './controllers/appointment.controller';
@@ -23,6 +23,19 @@ const addUUIDRegexToRoute = (route: string) => {
   return route;
 };
 
+const asyncErrorHandler = async (
+  req: Request,
+  res: Response,
+  fn: (req: Request, res: Response) => Promise<void>
+) => {
+  try {
+    await fn(req, res);
+  } catch (err) {
+    if (!res.headersSent)
+      res.status(500).json({ message: 'An unknown server error occurred.' });
+  }
+};
+
 class AppRouter {
   public router = Router();
 
@@ -34,23 +47,25 @@ class AppRouter {
     this.router.delete(
       environment.apiRoutes.auth.logout,
       AuthController.checkAuthenticationMiddleware,
-      AuthController.logout
+      async (req, res) => asyncErrorHandler(req, res, AuthController.logout)
     );
     this.router.post(
       environment.apiRoutes.auth.tokenRefresh,
-      AuthController.refreshToken
+      async (req, res) =>
+        asyncErrorHandler(req, res, AuthController.refreshToken)
     );
     this.router.post(
       environment.apiRoutes.auth.tokenCheck,
       AuthController.checkAuthenticationMiddleware,
-      AuthController.checkToken
+      async (req, res) => asyncErrorHandler(req, res, AuthController.checkToken)
     );
 
     // Messaging
     this.router.get(
       environment.apiRoutes.messages.getCurrentUserMessages,
       AuthController.checkAuthenticationMiddleware,
-      MessagingController.getMessages
+      async (req, res) =>
+        asyncErrorHandler(req, res, MessagingController.getMessages)
     );
     this.router.ws(
       environment.apiRoutes.messages.registerMessageWebsocket,
@@ -60,57 +75,67 @@ class AppRouter {
     this.router.get(
       environment.apiRoutes.messages.getCurrentUserUnreadMessagesAmounts,
       AuthController.checkAuthenticationMiddleware,
-      MessagingController.getUnreadMessagesAmounts
+      async (req, res) =>
+        asyncErrorHandler(
+          req,
+          res,
+          MessagingController.getUnreadMessagesAmounts
+        )
     );
     this.router.delete(
       addUUIDRegexToRoute(environment.apiRoutes.messages.deleteMessage),
       AuthController.checkAuthenticationMiddleware,
-      MessagingController.deleteMessage
+      async (req, res) =>
+        asyncErrorHandler(req, res, MessagingController.deleteMessage)
     );
     this.router.patch(
       addUUIDRegexToRoute(environment.apiRoutes.messages.updateMessage),
       AuthController.checkAuthenticationMiddleware,
       ForbiddenInputMiddleware,
-      MessagingController.updateMessage
+      async (req, res) =>
+        asyncErrorHandler(req, res, MessagingController.updateMessage)
     );
 
     // Personal User Settings
     this.router.get(
       environment.apiRoutes.user_settings.getCurrentUser,
       AuthController.checkAuthenticationMiddleware,
-      UserController.getUser
+      async (req, res) => asyncErrorHandler(req, res, UserController.getUser)
     );
     this.router.post(
       environment.apiRoutes.user_settings.register,
       ForbiddenInputMiddleware,
-      UserController.register
+      async (req, res) => asyncErrorHandler(req, res, UserController.register)
     );
     this.router.post(
       environment.apiRoutes.user_settings.verifyEmail,
-      UserController.verifyEmail
+      async (req, res) =>
+        asyncErrorHandler(req, res, UserController.verifyEmail)
     );
     this.router.patch(
       environment.apiRoutes.user_settings.updateCurrentUser,
       AuthController.checkAuthenticationMiddleware,
       ForbiddenInputMiddleware,
-      UserController.updateUser
+      async (req, res) => asyncErrorHandler(req, res, UserController.updateUser)
     );
     this.router.delete(
       environment.apiRoutes.user_settings.deleteCurrentUser,
       AuthController.checkAuthenticationMiddleware,
-      UserController.deleteUser
+      async (req, res) => asyncErrorHandler(req, res, UserController.deleteUser)
     );
 
     // Admin (General Settings & User Management)
     this.router.get(
       environment.apiRoutes.admin_settings.getGlobalSettings,
-      AdminController.getGlobalSettings
+      async (req, res) =>
+        asyncErrorHandler(req, res, AdminController.getGlobalSettings)
     );
     this.router.patch(
       environment.apiRoutes.admin_settings.updateGlobalSettings,
       AuthController.checkAuthenticationMiddleware,
       AuthController.checkAdminMiddleware,
-      AdminController.updateGlobalSettings
+      async (req, res) =>
+        asyncErrorHandler(req, res, AdminController.updateGlobalSettings)
     );
 
     this.router.get(
@@ -119,13 +144,15 @@ class AppRouter {
       ),
       AuthController.checkAuthenticationMiddleware,
       AuthController.checkAdminMiddleware,
-      AdminController.getWhitelistRetailer
+      async (req, res) =>
+        asyncErrorHandler(req, res, AdminController.getWhitelistRetailer)
     );
 
     this.router.get(
       environment.apiRoutes.admin_settings.getWhitelistRetailers,
       AuthController.checkAuthenticationMiddleware,
-      AdminController.getWhitelistRetailers
+      async (req, res) =>
+        asyncErrorHandler(req, res, AdminController.getWhitelistRetailers)
     );
 
     this.router.post(
@@ -133,7 +160,8 @@ class AppRouter {
       AuthController.checkAuthenticationMiddleware,
       AuthController.checkAdminMiddleware,
       ForbiddenInputMiddleware,
-      AdminController.createWhitelistRetailer
+      async (req, res) =>
+        asyncErrorHandler(req, res, AdminController.createWhitelistRetailer)
     );
     this.router.patch(
       addUUIDRegexToRoute(
@@ -142,7 +170,8 @@ class AppRouter {
       AuthController.checkAuthenticationMiddleware,
       AuthController.checkAdminMiddleware,
       ForbiddenInputMiddleware,
-      AdminController.updateWhitelistRetailer
+      async (req, res) =>
+        asyncErrorHandler(req, res, AdminController.updateWhitelistRetailer)
     );
     this.router.delete(
       addUUIDRegexToRoute(
@@ -150,7 +179,8 @@ class AppRouter {
       ),
       AuthController.checkAuthenticationMiddleware,
       AuthController.checkAdminMiddleware,
-      AdminController.deleteWhitelistRetailer
+      async (req, res) =>
+        asyncErrorHandler(req, res, AdminController.deleteWhitelistRetailer)
     );
     this.router.post(
       addUUIDRegexToRoute(
@@ -159,7 +189,12 @@ class AppRouter {
       AuthController.checkAuthenticationMiddleware,
       AuthController.checkAdminMiddleware,
       ForbiddenInputMiddleware,
-      AdminController.addDomainToWhitelistRetailer
+      async (req, res) =>
+        asyncErrorHandler(
+          req,
+          res,
+          AdminController.addDomainToWhitelistRetailer
+        )
     );
     this.router.patch(
       addUUIDRegexToRoute(
@@ -168,7 +203,12 @@ class AppRouter {
       AuthController.checkAuthenticationMiddleware,
       AuthController.checkAdminMiddleware,
       ForbiddenInputMiddleware,
-      AdminController.editDomainOfWhitelistRetailer
+      async (req, res) =>
+        asyncErrorHandler(
+          req,
+          res,
+          AdminController.editDomainOfWhitelistRetailer
+        )
     );
     this.router.delete(
       addUUIDRegexToRoute(
@@ -176,82 +216,95 @@ class AppRouter {
       ),
       AuthController.checkAuthenticationMiddleware,
       AuthController.checkAdminMiddleware,
-      AdminController.deleteDomainOfWhitelistRetailer
+      async (req, res) =>
+        asyncErrorHandler(
+          req,
+          res,
+          AdminController.deleteDomainOfWhitelistRetailer
+        )
     );
     this.router.post(
       environment.apiRoutes.admin_settings.checkDomainAgainstWhitelist,
       AuthController.checkAuthenticationMiddleware,
       ForbiddenInputMiddleware,
-      AdminController.checkDomainAgainstWhitelist
+      async (req, res) =>
+        asyncErrorHandler(req, res, AdminController.checkDomainAgainstWhitelist)
     );
 
     this.router.get(
       environment.apiRoutes.user_management.getAllPendingUsers,
       AuthController.checkAuthenticationMiddleware,
       AuthController.checkAdminMiddleware,
-      AdminController.getPendingUsers
+      async (req, res) =>
+        asyncErrorHandler(req, res, AdminController.getPendingUsers)
     );
     this.router.get(
       environment.apiRoutes.user_management.getAllAcceptedUsers,
       AuthController.checkAuthenticationMiddleware,
       AuthController.checkAdminMiddleware,
-      AdminController.getAcceptedUsers
+      async (req, res) =>
+        asyncErrorHandler(req, res, AdminController.getAcceptedUsers)
     );
     this.router.get(
       addUUIDRegexToRoute(environment.apiRoutes.user_management.getSingleUser),
       AuthController.checkAuthenticationMiddleware,
       AuthController.checkAdminMiddleware,
-      AdminController.getUser
+      async (req, res) => asyncErrorHandler(req, res, AdminController.getUser)
     );
     this.router.patch(
       addUUIDRegexToRoute(environment.apiRoutes.user_management.updateUser),
       AuthController.checkAuthenticationMiddleware,
       AuthController.checkAdminMiddleware,
       ForbiddenInputMiddleware,
-      AdminController.updateUser
+      async (req, res) =>
+        asyncErrorHandler(req, res, AdminController.updateUser)
     );
     this.router.delete(
       addUUIDRegexToRoute(environment.apiRoutes.user_management.deleteUser),
       AuthController.checkAuthenticationMiddleware,
       AuthController.checkAdminMiddleware,
-      AdminController.deleteUser
+      async (req, res) =>
+        asyncErrorHandler(req, res, AdminController.deleteUser)
     );
 
     // Room Management
     this.router.get(
       environment.apiRoutes.rooms.getAllRooms,
       AuthController.checkAuthenticationMiddleware,
-      RoomController.getAllRooms
+      async (req, res) =>
+        asyncErrorHandler(req, res, RoomController.getAllRooms)
     );
     this.router.get(
       addUUIDRegexToRoute(environment.apiRoutes.rooms.getSingleRoom),
       AuthController.checkAuthenticationMiddleware,
-      RoomController.getRoomById
+      async (req, res) =>
+        asyncErrorHandler(req, res, RoomController.getRoomById)
     );
     this.router.get(
       addUUIDRegexToRoute(environment.apiRoutes.rooms.getRoomCalendar),
       AuthController.checkAuthenticationMiddleware,
-      RoomController.getRoomCalendar
+      async (req, res) =>
+        asyncErrorHandler(req, res, RoomController.getRoomCalendar)
     );
     this.router.post(
       environment.apiRoutes.rooms.createRoom,
       AuthController.checkAuthenticationMiddleware,
       AuthController.checkAdminMiddleware,
       ForbiddenInputMiddleware,
-      RoomController.createRoom
+      async (req, res) => asyncErrorHandler(req, res, RoomController.createRoom)
     );
     this.router.patch(
       addUUIDRegexToRoute(environment.apiRoutes.rooms.updateRoom),
       AuthController.checkAuthenticationMiddleware,
       AuthController.checkAdminMiddleware,
       ForbiddenInputMiddleware,
-      RoomController.updateRoom
+      async (req, res) => asyncErrorHandler(req, res, RoomController.updateRoom)
     );
     this.router.delete(
       addUUIDRegexToRoute(environment.apiRoutes.rooms.deleteRoom),
       AuthController.checkAuthenticationMiddleware,
       AuthController.checkAdminMiddleware,
-      RoomController.deleteRoom
+      async (req, res) => asyncErrorHandler(req, res, RoomController.deleteRoom)
     );
     this.router.get(
       addUUIDRegexToRoute(
@@ -259,7 +312,12 @@ class AppRouter {
       ),
       AuthController.checkAuthenticationMiddleware,
       AuthController.checkAdminMiddleware,
-      RoomController.getAllAvailableTimeslotsForRoom
+      async (req, res) =>
+        asyncErrorHandler(
+          req,
+          res,
+          RoomController.getAllAvailableTimeslotsForRoom
+        )
     );
     this.router.get(
       addUUIDRegexToRoute(
@@ -267,58 +325,71 @@ class AppRouter {
       ),
       AuthController.checkAuthenticationMiddleware,
       AuthController.checkAdminMiddleware,
-      RoomController.getAllUnavailableTimeslotsForRoom
+      async (req, res) =>
+        asyncErrorHandler(
+          req,
+          res,
+          RoomController.getAllUnavailableTimeslotsForRoom
+        )
     );
     this.router.get(
       addUUIDRegexToRoute(environment.apiRoutes.rooms.getAvailabilityCalendar),
       AuthController.checkAuthenticationMiddleware,
-      RoomController.getAvailabilityCalendar
+      async (req, res) =>
+        asyncErrorHandler(req, res, RoomController.getAvailabilityCalendar)
     );
     this.router.get(
       addUUIDRegexToRoute(environment.apiRoutes.rooms.getTimeslot),
       AuthController.checkAuthenticationMiddleware,
       AuthController.checkAdminMiddleware,
-      RoomController.getTimeslotById
+      async (req, res) =>
+        asyncErrorHandler(req, res, RoomController.getTimeslotById)
     );
     this.router.post(
       addUUIDRegexToRoute(environment.apiRoutes.rooms.createTimeslot),
       AuthController.checkAuthenticationMiddleware,
       AuthController.checkAdminMiddleware,
       ForbiddenInputMiddleware,
-      RoomController.createTimeslot
+      async (req, res) =>
+        asyncErrorHandler(req, res, RoomController.createTimeslot)
     );
     this.router.post(
       addUUIDRegexToRoute(environment.apiRoutes.rooms.createTimeslotSeries),
       AuthController.checkAuthenticationMiddleware,
       AuthController.checkAdminMiddleware,
       ForbiddenInputMiddleware,
-      RoomController.createTimeslotSeries
+      async (req, res) =>
+        asyncErrorHandler(req, res, RoomController.createTimeslotSeries)
     );
     this.router.patch(
       addUUIDRegexToRoute(environment.apiRoutes.rooms.updateTimeslot),
       AuthController.checkAuthenticationMiddleware,
       AuthController.checkAdminMiddleware,
       ForbiddenInputMiddleware,
-      RoomController.updateTimeslot
+      async (req, res) =>
+        asyncErrorHandler(req, res, RoomController.updateTimeslot)
     );
     this.router.patch(
       addUUIDRegexToRoute(environment.apiRoutes.rooms.updateTimeslotSeries),
       AuthController.checkAuthenticationMiddleware,
       AuthController.checkAdminMiddleware,
       ForbiddenInputMiddleware,
-      RoomController.updateTimeslotSeries
+      async (req, res) =>
+        asyncErrorHandler(req, res, RoomController.updateTimeslotSeries)
     );
     this.router.delete(
       addUUIDRegexToRoute(environment.apiRoutes.rooms.deleteTimeslot),
       AuthController.checkAuthenticationMiddleware,
       AuthController.checkAdminMiddleware,
-      RoomController.deleteTimeslot
+      async (req, res) =>
+        asyncErrorHandler(req, res, RoomController.deleteTimeslot)
     );
     this.router.delete(
       addUUIDRegexToRoute(environment.apiRoutes.rooms.deleteTimeslotSeries),
       AuthController.checkAuthenticationMiddleware,
       AuthController.checkAdminMiddleware,
-      RoomController.deleteTimeslotSeries
+      async (req, res) =>
+        asyncErrorHandler(req, res, RoomController.deleteTimeslotSeries)
     );
 
     // Appointment Management
@@ -326,44 +397,63 @@ class AppRouter {
       environment.apiRoutes.appointments.getAllAppointments,
       AuthController.checkAuthenticationMiddleware,
       AuthController.checkAdminMiddleware,
-      AppointmentController.getAllAppointments
+      async (req, res) =>
+        asyncErrorHandler(req, res, AppointmentController.getAllAppointments)
     );
     this.router.get(
       environment.apiRoutes.appointments.getCurrentUserAppointments,
       AuthController.checkAuthenticationMiddleware,
-      AppointmentController.getAppointmentsForCurrentUser
+      async (req, res) =>
+        asyncErrorHandler(
+          req,
+          res,
+          AppointmentController.getAppointmentsForCurrentUser
+        )
     );
     this.router.get(
       addUUIDRegexToRoute(
         environment.apiRoutes.appointments.getSeriesAppointments
       ),
       AuthController.checkAuthenticationMiddleware,
-      AppointmentController.getAppointmentsForSeries
+      async (req, res) =>
+        asyncErrorHandler(
+          req,
+          res,
+          AppointmentController.getAppointmentsForSeries
+        )
     );
     this.router.get(
       addUUIDRegexToRoute(
         environment.apiRoutes.appointments.getSingleAppointment
       ),
       AuthController.checkAuthenticationMiddleware,
-      AppointmentController.getAppointment
+      async (req, res) =>
+        asyncErrorHandler(req, res, AppointmentController.getAppointment)
     );
     this.router.post(
       environment.apiRoutes.appointments.createAppointment,
       AuthController.checkAuthenticationMiddleware,
       ForbiddenInputMiddleware,
-      AppointmentController.createAppointment
+      async (req, res) =>
+        asyncErrorHandler(req, res, AppointmentController.createAppointment)
     );
     this.router.post(
       environment.apiRoutes.appointments.createAppointmentSeries,
       AuthController.checkAuthenticationMiddleware,
       ForbiddenInputMiddleware,
-      AppointmentController.createAppointmentSeries
+      async (req, res) =>
+        asyncErrorHandler(
+          req,
+          res,
+          AppointmentController.createAppointmentSeries
+        )
     );
     this.router.patch(
       addUUIDRegexToRoute(environment.apiRoutes.appointments.updateAppointment),
       AuthController.checkAuthenticationMiddleware,
       ForbiddenInputMiddleware,
-      AppointmentController.updateAppointment
+      async (req, res) =>
+        asyncErrorHandler(req, res, AppointmentController.updateAppointment)
     );
     this.router.patch(
       addUUIDRegexToRoute(
@@ -371,56 +461,73 @@ class AppRouter {
       ),
       AuthController.checkAuthenticationMiddleware,
       ForbiddenInputMiddleware,
-      AppointmentController.updateAppointmentSeries
+      async (req, res) =>
+        asyncErrorHandler(
+          req,
+          res,
+          AppointmentController.updateAppointmentSeries
+        )
     );
     this.router.delete(
       addUUIDRegexToRoute(environment.apiRoutes.appointments.deleteAppointment),
       AuthController.checkAuthenticationMiddleware,
-      AppointmentController.deleteAppointment
+      async (req, res) =>
+        asyncErrorHandler(req, res, AppointmentController.deleteAppointment)
     );
     this.router.delete(
       addUUIDRegexToRoute(
         environment.apiRoutes.appointments.deleteAppointmentSeries
       ),
       AuthController.checkAuthenticationMiddleware,
-      AppointmentController.deleteAppointmentSeries
+      async (req, res) =>
+        asyncErrorHandler(
+          req,
+          res,
+          AppointmentController.deleteAppointmentSeries
+        )
     );
 
     // Inventory Management
     this.router.get(
       environment.apiRoutes.inventory_item.getAllItems,
       AuthController.checkAuthenticationMiddleware,
-      InventoryController.getAllInventoryItems
+      async (req, res) =>
+        asyncErrorHandler(req, res, InventoryController.getAllInventoryItems)
     );
     this.router.get(
       addUUIDRegexToRoute(environment.apiRoutes.inventory_item.getSingleItem),
       AuthController.checkAuthenticationMiddleware,
-      InventoryController.getInventoryItem
+      async (req, res) =>
+        asyncErrorHandler(req, res, InventoryController.getInventoryItem)
     );
     this.router.get(
       environment.apiRoutes.inventory_item.getByName,
       AuthController.checkAuthenticationMiddleware,
-      InventoryController.getByName
+      async (req, res) =>
+        asyncErrorHandler(req, res, InventoryController.getByName)
     );
     this.router.post(
       environment.apiRoutes.inventory_item.createItem,
       AuthController.checkAuthenticationMiddleware,
       AuthController.checkAdminMiddleware,
       ForbiddenInputMiddleware,
-      InventoryController.createInventoryItem
+      async (req, res) =>
+        asyncErrorHandler(req, res, InventoryController.createInventoryItem)
     );
     this.router.patch(
       addUUIDRegexToRoute(environment.apiRoutes.inventory_item.updateItem),
       AuthController.checkAuthenticationMiddleware,
       AuthController.checkAdminMiddleware,
       ForbiddenInputMiddleware,
-      InventoryController.updateInventoryItem
+      async (req, res) =>
+        asyncErrorHandler(req, res, InventoryController.updateInventoryItem)
     );
     this.router.delete(
       addUUIDRegexToRoute(environment.apiRoutes.inventory_item.deleteItem),
       AuthController.checkAuthenticationMiddleware,
       AuthController.checkAdminMiddleware,
-      InventoryController.deleteInventoryItem
+      async (req, res) =>
+        asyncErrorHandler(req, res, InventoryController.deleteInventoryItem)
     );
 
     // Order Management
@@ -428,56 +535,77 @@ class AppRouter {
       environment.apiRoutes.orders.getAllPendingOrders,
       AuthController.checkAuthenticationMiddleware,
       AuthController.checkAdminMiddleware,
-      OrderController.getAllPendingOrders
+      async (req, res) =>
+        asyncErrorHandler(req, res, OrderController.getAllPendingOrders)
     );
     this.router.get(
       environment.apiRoutes.orders.getAllAcceptedOrders,
       AuthController.checkAuthenticationMiddleware,
       AuthController.checkAdminMiddleware,
-      OrderController.getAllAcceptedOrders
+      async (req, res) =>
+        asyncErrorHandler(req, res, OrderController.getAllAcceptedOrders)
     );
     this.router.get(
       environment.apiRoutes.orders.getAllDeclinedOrders,
       AuthController.checkAuthenticationMiddleware,
       AuthController.checkAdminMiddleware,
-      OrderController.getAllDeclinedOrders
+      async (req, res) =>
+        asyncErrorHandler(req, res, OrderController.getAllDeclinedOrders)
     );
     this.router.get(
       environment.apiRoutes.orders.getCurrentUsersPendingOrders,
       AuthController.checkAuthenticationMiddleware,
-      OrderController.getPendingOrdersForCurrentUser
+      async (req, res) =>
+        asyncErrorHandler(
+          req,
+          res,
+          OrderController.getPendingOrdersForCurrentUser
+        )
     );
     this.router.get(
       environment.apiRoutes.orders.getCurrentUsersAcceptedOrders,
       AuthController.checkAuthenticationMiddleware,
-      OrderController.getAcceptedOrdersForCurrentUser
+      async (req, res) =>
+        asyncErrorHandler(
+          req,
+          res,
+          OrderController.getAcceptedOrdersForCurrentUser
+        )
     );
     this.router.get(
       environment.apiRoutes.orders.getCurrentUsersDeclinedOrders,
       AuthController.checkAuthenticationMiddleware,
-      OrderController.getDeclinedOrdersForCurrentUser
+      async (req, res) =>
+        asyncErrorHandler(
+          req,
+          res,
+          OrderController.getDeclinedOrdersForCurrentUser
+        )
     );
     this.router.get(
       addUUIDRegexToRoute(environment.apiRoutes.orders.getSingleOrder),
       AuthController.checkAuthenticationMiddleware,
-      OrderController.getOrder
+      async (req, res) => asyncErrorHandler(req, res, OrderController.getOrder)
     );
     this.router.post(
       environment.apiRoutes.orders.createOrder,
       AuthController.checkAuthenticationMiddleware,
       ForbiddenInputMiddleware,
-      OrderController.createOrder
+      async (req, res) =>
+        asyncErrorHandler(req, res, OrderController.createOrder)
     );
     this.router.patch(
       addUUIDRegexToRoute(environment.apiRoutes.orders.updateOrder),
       AuthController.checkAuthenticationMiddleware,
       ForbiddenInputMiddleware,
-      OrderController.updateOrder
+      async (req, res) =>
+        asyncErrorHandler(req, res, OrderController.updateOrder)
     );
     this.router.delete(
       addUUIDRegexToRoute(environment.apiRoutes.orders.deleteOrder),
       AuthController.checkAuthenticationMiddleware,
-      OrderController.deleteOrder
+      async (req, res) =>
+        asyncErrorHandler(req, res, OrderController.deleteOrder)
     );
 
     // Livecam
@@ -485,45 +613,52 @@ class AppRouter {
       environment.apiRoutes.livecam.getAllRecordings,
       AuthController.checkAuthenticationMiddleware,
       AuthController.checkAdminMiddleware,
-      LivecamController.getFinishedRecordings
+      async (req, res) =>
+        asyncErrorHandler(req, res, LivecamController.getFinishedRecordings)
     );
     this.router.get(
       environment.apiRoutes.livecam.getAllScheduled,
       AuthController.checkAuthenticationMiddleware,
       AuthController.checkAdminMiddleware,
-      LivecamController.getScheduledRecordings
+      async (req, res) =>
+        asyncErrorHandler(req, res, LivecamController.getScheduledRecordings)
     );
     this.router.get(
       addUUIDRegexToRoute(environment.apiRoutes.livecam.getSingleRecording),
       AuthController.checkAuthenticationMiddleware,
       AuthController.checkAdminMiddleware,
-      LivecamController.getRecordingById
+      async (req, res) =>
+        asyncErrorHandler(req, res, LivecamController.getRecordingById)
     );
     this.router.post(
       environment.apiRoutes.livecam.createSchedule,
       AuthController.checkAuthenticationMiddleware,
       AuthController.checkAdminMiddleware,
       ForbiddenInputMiddleware,
-      LivecamController.scheduleRecording
+      async (req, res) =>
+        asyncErrorHandler(req, res, LivecamController.scheduleRecording)
     );
     this.router.patch(
       addUUIDRegexToRoute(environment.apiRoutes.livecam.updateRecording),
       AuthController.checkAuthenticationMiddleware,
       AuthController.checkAdminMiddleware,
       ForbiddenInputMiddleware,
-      LivecamController.updateRecording
+      async (req, res) =>
+        asyncErrorHandler(req, res, LivecamController.updateRecording)
     );
     this.router.get(
       addUUIDRegexToRoute(environment.apiRoutes.livecam.downloadRecording),
       AuthController.checkAuthenticationMiddleware,
       AuthController.checkAdminMiddleware,
-      LivecamController.streamRecording
+      async (req, res) =>
+        asyncErrorHandler(req, res, LivecamController.streamRecording)
     );
     this.router.delete(
       addUUIDRegexToRoute(environment.apiRoutes.livecam.deleteRecording),
       AuthController.checkAuthenticationMiddleware,
       AuthController.checkAdminMiddleware,
-      LivecamController.deleteRecording
+      async (req, res) =>
+        asyncErrorHandler(req, res, LivecamController.deleteRecording)
     );
     this.router.ws(
       environment.apiRoutes.livecam.streamFeed,
