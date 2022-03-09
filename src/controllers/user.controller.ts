@@ -91,7 +91,7 @@ export class UserController {
           await MessagingController.sendMessage(
             user,
             'Account updated',
-            'Your account has been updated' +
+            'Your account has been updated. \n' +
               Object.keys(req.body)
                 .filter((key: string) => key !== 'password')
                 .map((e: string) => `${e}: ${req.body[e]}`)
@@ -118,7 +118,7 @@ export class UserController {
       await MessagingController.sendMessage(
         user,
         'Account updated',
-        'Your account has been updated' +
+        'Your account has been updated. \n' +
           Object.keys(req.body)
             .map((e: string) => `${e}: ${req.body[e]}`)
             .join(', '),
