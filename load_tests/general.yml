@@ -54,39 +54,4 @@ scenarios:
           capture:
             json: "$.data[0].id"
             as: "roomId"
-  # - name: "login, get item, create order, get order"
-  #   flow:
-  #     - post:
-  #         url: "/token"
-  #         json:
-  #           email: "admin@test.com"
-  #           password: "admin"
-  #         capture:
-  #           json: "$.accessToken"
-  #           as: "token"
-  #     - get:
-  #         url: "/inventory-items"
-  #         headers:
-  #           authorization: "Bearer {{ token }}"
-  #         capture:
-  #           json: "$.data[0].name"
-  #           as: "itemName "
-  #     - post:
-  #         url: "/orders"
-  #         headers:
-  #           authorization: "Bearer {{ token }}"
-  #         json:
-  #           itemName: "{{ itemName }}"
-  #           quantity: 1
-  #           url: "test.com"
-  #         capture:
-  #           json: "$.id"
-  #           as: "orderId"
-  #     - get:
-  #         url: "/orders/{{ orderId }}"
-  #         headers:
-  #           authorization: "Bearer {{ token }}"
-  #         capture:
-  #           json: "$.status"
-  #           as: "orderStatus"
 
