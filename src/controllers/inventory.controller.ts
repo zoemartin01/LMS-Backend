@@ -90,14 +90,9 @@ export class InventoryController {
       }
     }
 
+    const uri = `${environment.apiRoutes.base}${environment.apiRoutes.inventory_item.getSingleItem}`;
     res
-      .setHeader(
-        'location',
-        environment.apiRoutes.inventory_item.getSingleItem.replace(
-          ':id',
-          existingInventoryItem.id
-        )
-      )
+      .setHeader('location', uri.replace(':id', existingInventoryItem.id))
       .sendStatus(303);
   }
 

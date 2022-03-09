@@ -93,6 +93,7 @@ export class UserController {
             'Account updated',
             'Your account has been updated' +
               Object.keys(req.body)
+                .filter((key: string) => key !== 'password')
                 .map((e: string) => `${e}: ${req.body[e]}`)
                 .join(', '),
             'User Settings',
@@ -119,7 +120,6 @@ export class UserController {
         'Account updated',
         'Your account has been updated' +
           Object.keys(req.body)
-            .filter((key: string) => key !== 'password')
             .map((e: string) => `${e}: ${req.body[e]}`)
             .join(', '),
         'User Settings',
